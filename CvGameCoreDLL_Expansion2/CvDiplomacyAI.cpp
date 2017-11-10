@@ -2834,19 +2834,23 @@ void CvDiplomacyAI::DoCounters()
 				}
 #endif
 #if defined(MOD_BALANCE_CORE)
-				if(!IsAtWar(eLoopPlayer) && !GET_PLAYER(eLoopPlayer).isMinorCiv())
+				if(!IsAtWar(eLoopPlayer))
 				{
 					if(GetNumTimesRazed(eLoopPlayer) > 0)
 					{
 						if(GetMajorCivOpinion(eLoopPlayer) >= MAJOR_CIV_OPINION_FRIEND)
 						{
-							ChangeNumTimesRazed(eLoopPlayer, -3);
+							ChangeNumTimesRazed(eLoopPlayer, -10);
 						}
 						else if(GetMajorCivOpinion(eLoopPlayer) >= MAJOR_CIV_OPINION_NEUTRAL)
 						{
-							ChangeNumTimesRazed(eLoopPlayer, -2);
+							ChangeNumTimesRazed(eLoopPlayer, -5);
 						}
 						else if(GetMajorCivOpinion(eLoopPlayer) >= MAJOR_CIV_OPINION_COMPETITOR)
+						{
+							ChangeNumTimesRazed(eLoopPlayer, -3);
+						}
+						else
 						{
 							ChangeNumTimesRazed(eLoopPlayer, -1);
 						}
@@ -20875,6 +20879,7 @@ void CvDiplomacyAI::DoMakeDemand(PlayerTypes ePlayer, DiploStatementTypes& eStat
 				{
 					// Clear out the deal if we don't want to offer it so that it's not tainted for the next trade possibility we look at
 					pDeal->ClearItems();
+					DeclareWar(ePlayer);
 				}
 			}
 		}
@@ -21819,27 +21824,27 @@ void CvDiplomacyAI::DoLuxuryTrade(PlayerTypes ePlayer, DiploStatementTypes& eSta
 			DiploStatementTypes eTempStatement = DIPLO_STATEMENT_LUXURY_TRADE;
 			int iTurnsBetweenStatements = 15;
 #if defined(MOD_BALANCE_CORE)
-				if(GetNeediness() > 7)
-				{
-					iTurnsBetweenStatements /= 2;
-				}
-				int iMessage = 0;
-				int iMessageMax = MAX_INT;
-				PlayerTypes eLoopPlayer;
-				for(int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
-				{
-					eLoopPlayer = (PlayerTypes) iPlayerLoop;
+			if(GetNeediness() > 7)
+			{
+				iTurnsBetweenStatements /= 2;
+			}
+			int iMessage = 0;
+			int iMessageMax = MAX_INT;
+			PlayerTypes eLoopPlayer;
+			for(int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
+			{
+				eLoopPlayer = (PlayerTypes) iPlayerLoop;
 
-					if(eLoopPlayer != NULL && GET_PLAYER(eLoopPlayer).isAlive() && GET_PLAYER(eLoopPlayer).isMajorCiv() && eLoopPlayer != ePlayer)
+				if(eLoopPlayer != NULL && GET_PLAYER(eLoopPlayer).isAlive() && GET_PLAYER(eLoopPlayer).isMajorCiv() && eLoopPlayer != ePlayer)
+				{
+					iMessage = GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->GetNumTurnsSinceStatementSent(ePlayer, eTempStatement);
+					if(iMessage < iMessageMax)
 					{
-						iMessage = GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->GetNumTurnsSinceStatementSent(ePlayer, eTempStatement);
-						if(iMessage < iMessageMax)
-						{
-							iMessageMax = iMessage;
-						}
+						iMessageMax = iMessage;
 					}
 				}
-				if(iMessageMax >= iTurnsBetweenStatements && (GetNumTurnsSinceStatementSent(ePlayer, eTempStatement) >= iTurnsBetweenStatements))
+			}
+			if(iMessageMax >= iTurnsBetweenStatements && (GetNumTurnsSinceStatementSent(ePlayer, eTempStatement) >= iTurnsBetweenStatements))
 #else
 			if(GetNumTurnsSinceStatementSent(ePlayer, eTempStatement) >= iTurnsBetweenStatements)
 #endif
@@ -22012,7 +22017,7 @@ void CvDiplomacyAI::DoOpenBordersExchange(PlayerTypes ePlayer, DiploStatementTyp
 			if(IsOpenBordersExchangeAcceptable(ePlayer))
 			{
 				DiploStatementTypes eTempStatement = DIPLO_STATEMENT_OPEN_BORDERS_EXCHANGE;
-				int iTurnsBetweenStatements = 15;
+				int iTurnsBetweenStatements = 25;
 #if defined(MOD_BALANCE_CORE)
 				if(GetNeediness() > 7)
 				{
@@ -22115,7 +22120,7 @@ void CvDiplomacyAI::DoOpenBordersOffer(PlayerTypes ePlayer, DiploStatementTypes&
 		if(GetPlayer()->GetDealAI()->IsMakeOfferForOpenBorders(ePlayer, /*pDeal can be modified in this function*/ pDeal))
 		{
 			DiploStatementTypes eTempStatement = DIPLO_STATEMENT_OPEN_BORDERS_OFFER;
-			int iTurnsBetweenStatements = 15;
+			int iTurnsBetweenStatements = 25;
 #if defined(MOD_BALANCE_CORE)
 			if(GetNeediness() > 7)
 			{
@@ -26337,6 +26342,9 @@ void CvDiplomacyAI::DoFromUIDiploEvent(PlayerTypes eFromPlayer, FromUIDiploEvent
 		{
 			bDeclareWar = true;
 
+			if (GET_TEAM(GetPlayer()->getTeam()).IsVassalOfSomeone())
+				bDeclareWar = false;
+
 #if defined(MOD_EVENTS_WAR_AND_PEACE)
 			GET_TEAM(GetTeam()).declareWar(GET_PLAYER(eFromPlayer).getTeam(), false, GetPlayer()->GetID());
 #else
@@ -26503,6 +26511,9 @@ void CvDiplomacyAI::DoFromUIDiploEvent(PlayerTypes eFromPlayer, FromUIDiploEvent
 			{
 				bDeclareWar = true;
 
+				if (GET_TEAM(GetPlayer()->getTeam()).IsVassalOfSomeone())
+					bDeclareWar = false;
+
 #if defined(MOD_EVENTS_WAR_AND_PEACE)
 				GET_TEAM(GetTeam()).declareWar(GET_PLAYER(eFromPlayer).getTeam(), false, GetPlayer()->GetID());
 #else
@@ -26592,6 +26603,9 @@ void CvDiplomacyAI::DoFromUIDiploEvent(PlayerTypes eFromPlayer, FromUIDiploEvent
 #endif
 			{
 				bDeclareWar = true;
+
+				if (GET_TEAM(GetPlayer()->getTeam()).IsVassalOfSomeone())
+					bDeclareWar = false;
 
 #if defined(MOD_EVENTS_WAR_AND_PEACE)
 				GET_TEAM(GetTeam()).declareWar(GET_PLAYER(eFromPlayer).getTeam(), false, GetPlayer()->GetID());
@@ -26949,6 +26963,8 @@ void CvDiplomacyAI::DoFromUIDiploEvent(PlayerTypes eFromPlayer, FromUIDiploEvent
 					{
 						bDeclareWar = false;
 					}
+					if (GET_TEAM(GetPlayer()->getTeam()).IsVassalOfSomeone())
+						bDeclareWar = false;
 #endif
 				}
 				if(bDeclareWar)
@@ -33170,10 +33186,11 @@ int CvDiplomacyAI::GetCiviliansReturnedToMeScore(PlayerTypes ePlayer)
 	{
 		// Full credit for first one
 		iOpinionWeight += /*-20*/ GC.getOPINION_WEIGHT_RETURNED_CIVILIAN();
+		iOpinionWeight /= 2;
 		// Partial credit for any after first
 		if (iNumCivs > 1)
 		{
-			iOpinionWeight += ((GC.getOPINION_WEIGHT_RETURNED_CIVILIAN() / 3) * (iNumCivs - 1));
+			iOpinionWeight += ((GC.getOPINION_WEIGHT_RETURNED_CIVILIAN() / 4) * (iNumCivs - 1));
 		}
 	}
 #else
@@ -33182,13 +33199,13 @@ int CvDiplomacyAI::GetCiviliansReturnedToMeScore(PlayerTypes ePlayer)
 		iOpinionWeight += (/*-20*/ GC.getOPINION_WEIGHT_RETURNED_CIVILIAN() * GetNumCiviliansReturnedToMe(ePlayer));
 #endif
 #if defined(MOD_BALANCE_CORE)
-	if(iOpinionWeight > 0)
+	if(iOpinionWeight != 0)
 	{
 		int iTurn = GC.getGame().getGameSpeedInfo().GetDealDuration();
-		if((GC.getGame().getGameTurn() - GetCiviliansReturnedToMeTurn(ePlayer)) > iTurn)
+		if((GC.getGame().getGameTurn() - GetCiviliansReturnedToMeTurn(ePlayer)) >= iTurn)
 		{
 			iOpinionWeight /= 2;
-			if((GC.getGame().getGameTurn() - GetCiviliansReturnedToMeTurn(ePlayer)) > (iTurn * 2))
+			if((GC.getGame().getGameTurn() - GetCiviliansReturnedToMeTurn(ePlayer)) >= (iTurn * 2))
 			{
 				iOpinionWeight = 0;
 			}
@@ -34202,10 +34219,10 @@ int CvDiplomacyAI::GetCitiesRazedScore(PlayerTypes ePlayer)
 	int iOpinionWeight = 0;
 	if(GetNumTimesRazed(ePlayer) > 0)
 	{
-		iOpinionWeight += max((GetNumTimesRazed(ePlayer) / 5), 50);
+		iOpinionWeight += min(GetNumTimesRazed(ePlayer), 50);
 
 		//We high enough up to incur a global penalty?
-		if(((GetNumTimesRazed(ePlayer) / 5) >= 100) && !GET_TEAM(GET_PLAYER(ePlayer).getTeam()).IsCivilianKiller())
+		if((GetNumTimesRazed(ePlayer) >= 50) && !GET_TEAM(GET_PLAYER(ePlayer).getTeam()).IsCivilianKiller())
 		{
 			GET_TEAM(GET_PLAYER(ePlayer).getTeam()).SetCivilianKiller(true);
 		}
@@ -34224,7 +34241,7 @@ int CvDiplomacyAI::GetCitiesRazedGlobalScore(PlayerTypes ePlayer)
 	{
 		if(GET_TEAM(GET_PLAYER(ePlayer).getTeam()).IsCivilianKiller() && GetCitiesRazedScore(ePlayer) <= 0)
 		{
-			iOpinionWeight += (/*100*/ GC.getOPINION_WEIGHT_NUKED_MAX() / 3);
+			iOpinionWeight += (/*100*/ GC.getOPINION_WEIGHT_NUKED_MAX() / 5);
 		}
 	}
 
@@ -40897,8 +40914,8 @@ bool CvDiplomacyAI::IsVoluntaryVassalageAcceptable(PlayerTypes ePlayer)
 	int iWantVassalageScore = 0;
 
 	// Small bonus for voluntary vassalage depending on opinion
-	if(eOpinion == MAJOR_CIV_OPINION_NEUTRAL)
-		iWantVassalageScore += -10;
+	if(eOpinion <= MAJOR_CIV_OPINION_NEUTRAL)
+		iWantVassalageScore += -20;
 	else if(eOpinion == MAJOR_CIV_OPINION_FAVORABLE)
 		iWantVassalageScore += 5;
 	else if(eOpinion == MAJOR_CIV_OPINION_FRIEND)
@@ -40917,7 +40934,7 @@ bool CvDiplomacyAI::IsVoluntaryVassalageAcceptable(PlayerTypes ePlayer)
 	else if(eEconomyStrength == STRENGTH_STRONG)
 		iWantVassalageScore += 20;
 	else if(eEconomyStrength == STRENGTH_AVERAGE)
-		iWantVassalageScore += -10;
+		iWantVassalageScore += -20;
 	else if(eEconomyStrength == STRENGTH_POOR)
 		iWantVassalageScore += -40;
 	else if(eEconomyStrength == STRENGTH_WEAK)
@@ -40934,18 +40951,18 @@ bool CvDiplomacyAI::IsVoluntaryVassalageAcceptable(PlayerTypes ePlayer)
 	else if(eMilitaryStrength == STRENGTH_STRONG)
 		iWantVassalageScore += 25;
 	else
-		iWantVassalageScore += -50;
+		iWantVassalageScore += -100;
 
 	// Small bonus for being a threat to us
 	ThreatTypes eMilitaryThreat = GetMilitaryThreat(ePlayer);
 	if(eMilitaryThreat == THREAT_CRITICAL)
-		iWantVassalageScore += 15;
+		iWantVassalageScore += 20;
 	else if(eMilitaryThreat == THREAT_SEVERE)
 		iWantVassalageScore += 10;
 	else if(eMilitaryThreat == THREAT_MAJOR)
 		iWantVassalageScore += 5;
-	else if(eMilitaryThreat == THREAT_MINOR)
-		iWantVassalageScore += -5;
+	else if(eMilitaryThreat <= THREAT_MINOR)
+		iWantVassalageScore += -20;
 	else
 		iWantVassalageScore += 0;
 
@@ -40957,17 +40974,12 @@ bool CvDiplomacyAI::IsVoluntaryVassalageAcceptable(PlayerTypes ePlayer)
 	else
 		iTechPercent = iOurTechs * 100 / iTheirTechs;
 
-	// We have a lot more techs than them!
-	if(iTechPercent > 125)
+	// We are at a similar tech level!
+	if(iTechPercent > 95)
 		return false;
 
-	// Doing fine
-	if(iTechPercent >= 100)
-		iWantVassalageScore += -15;
-	else if(iTechPercent >= 95)
-		iWantVassalageScore += 0;
 	// Lagging behind
-	else if(iTechPercent >= 85)
+	if(iTechPercent >= 85)
 		iWantVassalageScore += 10;
 	else if(iTechPercent >= 75)
 		iWantVassalageScore += 20;
@@ -40975,7 +40987,7 @@ bool CvDiplomacyAI::IsVoluntaryVassalageAcceptable(PlayerTypes ePlayer)
 	else if(iTechPercent >= 65)
 		iWantVassalageScore += 30;
 	else
-		iWantVassalageScore += 50;
+		iWantVassalageScore += 40;
 
 	// Small mod based on happiness
 	if(GetPlayer()->GetExcessHappiness() < 0)
@@ -41002,12 +41014,12 @@ bool CvDiplomacyAI::IsVoluntaryVassalageAcceptable(PlayerTypes ePlayer)
 	}
 
 	// Adjust score based on civ flavors
-	iWantVassalageScore += (iExpansionFlavor - GC.getDEFAULT_FLAVOR_VALUE())		* -2;	// expansionist civs don't like vassalage too much
-	iWantVassalageScore += (iOffenseFlavor - GC.getDEFAULT_FLAVOR_VALUE())			* -2;	// offensive civs don't like vassalage too much
+	iWantVassalageScore += (iExpansionFlavor - GC.getDEFAULT_FLAVOR_VALUE()) * -2;	// expansionist civs don't like vassalage too much
+	iWantVassalageScore += (iOffenseFlavor - GC.getDEFAULT_FLAVOR_VALUE()) * -2;	// offensive civs don't like vassalage too much
 	iWantVassalageScore += (iMilitaryTrainingFlavor - GC.getDEFAULT_FLAVOR_VALUE())	* -2;	// offensive civs don't like vassalage too much
-	iWantVassalageScore += (iDefenseFlavor - GC.getDEFAULT_FLAVOR_VALUE())			* 2;	// defensive civs like vassalage a lot
-	iWantVassalageScore += (iCultureFlavor - GC.getDEFAULT_FLAVOR_VALUE())			* 2;	// cultural civs prefer vassalage
-	iWantVassalageScore += (iWonderFlavor - GC.getDEFAULT_FLAVOR_VALUE())			* 2;	// wonder civs don't mind vassalage
+	iWantVassalageScore += (iDefenseFlavor - GC.getDEFAULT_FLAVOR_VALUE());	// defensive civs like vassalage a lot
+	iWantVassalageScore += (iCultureFlavor - GC.getDEFAULT_FLAVOR_VALUE());	// cultural civs prefer vassalage
+	iWantVassalageScore += (iWonderFlavor - GC.getDEFAULT_FLAVOR_VALUE());	// wonder civs don't mind vassalage
 
 	// Modifier based on proximity
 	switch(GetPlayer()->GetProximityToPlayer(ePlayer))

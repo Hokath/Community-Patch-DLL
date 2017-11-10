@@ -7,7 +7,7 @@ WHERE Tag = 'TXT_KEY_BELIEF_GODDESS_HUNT' AND EXISTS (SELECT * FROM COMMUNITY WH
 
 -- Fertility Rites (Now Goddess of Fertility)
 UPDATE Language_en_US
-SET Text = '+1 [ICON_FOOD] Food and [ICON_PEACE] Faith from Shrines, Watermills, and Wells, and 15% faster [ICON_FOOD] Growth Rate'
+SET Text = '+2 [ICON_FOOD] Food and +1 [ICON_PEACE] Faith from Shrines, Watermills, and Wells. 25% faster [ICON_FOOD] Growth Rate'
 WHERE Tag = 'TXT_KEY_BELIEF_FERTILITY_RITES' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 UPDATE Language_en_US
@@ -23,12 +23,12 @@ WHERE Tag = 'TXT_KEY_BELIEF_GOD_SEA' AND EXISTS (SELECT * FROM COMMUNITY WHERE T
 
 -- God of the Open Sky
 UPDATE Language_en_US
-SET Text = '+1 [ICON_CULTURE] Culture in City per 2 worked Plains or 2 worked Grassland tiles without Hills or Features. +1 [ICON_PEACE] Faith and [ICON_GOLD] Gold from Pastures'
+SET Text = '+1 [ICON_CULTURE] Culture in City per 2 worked Plains or 2 worked Grassland tiles without Hills or Features. +1 [ICON_PEACE] Faith and +3 [ICON_GOLD] Gold from Pastures'
 WHERE Tag = 'TXT_KEY_BELIEF_OPEN_SKY' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 -- Messenger of the Gods
 UPDATE Language_en_US
-SET Text = '+1 [ICON_PEACE] Faith for every +25 [ICON_GOLD] Gold per Turn you produce. +2 [ICON_PEACE] Faith and +2 [ICON_GOLD] Gold in Cities with a [ICON_CONNECTED] City Connection'
+SET Text = '+1 [ICON_PEACE] Faith for every +20 [ICON_GOLD] Gold per Turn you produce. +2 [ICON_PEACE] Faith and [ICON_GOLD] Gold in [ICON_CAPITAL] Capital, and in Cities with a [ICON_CONNECTED] City Connection'
 WHERE Tag = 'TXT_KEY_BELIEF_MESSENGER_GODS' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 UPDATE Language_en_US
@@ -37,7 +37,7 @@ WHERE Tag = 'TXT_KEY_BELIEF_MESSENGER_GODS_SHORT' AND EXISTS (SELECT * FROM COMM
 
 -- One With Nature (Now Goddess of Nature)
 UPDATE Language_en_US
-SET Text = '+1 [ICON_PEACE] Faith and [ICON_CULTURE] Culture for every 2 Mountains within 3 tiles of a City (capping at the City''s population). Natural Wonders gain +3 [ICON_PEACE] Faith and +2 [ICON_CULTURE] Culture'
+SET Text = '+1 [ICON_PEACE] Faith, [ICON_GOLD] Gold, and [ICON_FOOD] Food for every 2 Mountains within 3 tiles of a City (capping at the City''s population). Natural Wonders gain +3 [ICON_PEACE] Faith and +2 [ICON_CULTURE] Culture'
 WHERE Tag = 'TXT_KEY_BELIEF_ONE_WITH_NATURE' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 UPDATE Language_en_US
@@ -55,7 +55,7 @@ WHERE Tag = 'TXT_KEY_BELIEF_FORMAL_LITURGY_SHORT' AND EXISTS (SELECT * FROM COMM
 
 -- Stone Circles (Now God of Craftsmen)
 UPDATE Language_en_US
-SET Text = '+1 [ICON_PRODUCTION] Production and [ICON_GOLD] Gold from Quarries and Stone Works, and +3 [ICON_PEACE] Faith in Cities with a Specialist'
+SET Text = '+1 [ICON_PEACE] Faith and [ICON_PRODUCTION] Production from Quarries and Stone Works. +1 [ICON_CULTURE] Culture and [ICON_GOLD] Gold from Monuments'
 WHERE Tag = 'TXT_KEY_BELIEF_STONE_CIRCLES' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 UPDATE Language_en_US
@@ -64,7 +64,7 @@ WHERE Tag = 'TXT_KEY_BELIEF_STONE_CIRCLES_SHORT' AND EXISTS (SELECT * FROM COMMU
 
 -- God of War
 UPDATE Language_en_US
-SET Text = '+50% increase in city [ICON_RANGE_STRENGTH] Ranged Combat Strength. Gain [ICON_PEACE] Faith if you win a battle'
+SET Text = '+50% increase in city [ICON_RANGE_STRENGTH] Ranged Combat Strength. Gain [ICON_PEACE] Faith from killing a military unit'
 WHERE Tag = 'TXT_KEY_BELIEF_GOD_WAR' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 -- Sacred Waters (Now Goddess of Purity)
@@ -73,17 +73,17 @@ SET Text = 'Goddess of Purity'
 WHERE Tag = 'TXT_KEY_BELIEF_SACRED_WATERS_SHORT' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 UPDATE Language_en_US
-SET Text = '+1 [ICON_PEACE] Faith and [ICON_FOOD] Food from Oases, Lakes, and Marshes. +1 [ICON_HAPPINESS_1] Happiness from Cities on rivers'
+SET Text = '+1 [ICON_PEACE] Faith, [ICON_FOOD] Food, and [ICON_PRODUCTION] Production from Lakes and Marshes. +1 [ICON_HAPPINESS_1] Happiness from Cities on rivers'
 WHERE Tag = 'TXT_KEY_BELIEF_SACRED_WATERS' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 -- Goddess of Love
 UPDATE Language_en_US
-SET Text = 'Gain 12 [ICON_PEACE] Faith and [ICON_GOLDEN_AGE] Golden Age Points every time a [ICON_CITIZEN] Citizen is born. Bonuses scale with Era and Gamespeed'
+SET Text = 'Gain 15 [ICON_PEACE] Faith and [ICON_GOLDEN_AGE] Golden Age Points every time a [ICON_CITIZEN] Citizen is born. Bonuses scale with Era and Gamespeed'
 WHERE Tag = 'TXT_KEY_BELIEF_GODDESS_LOVE' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 -- Religious Settlements (Now God of the Expanse)
 UPDATE Language_en_US
-SET Text = '+25% faster border growth, and gain 18 [ICON_PEACE] Faith every time a city expands its borders. Bonus scales with Gamespeed'
+SET Text = '+20% faster border growth, and gain 15 [ICON_PEACE] Faith and [ICON_FOOD] Food every time a city expands its borders, scaling with Gamespeed'
 WHERE Tag = 'TXT_KEY_BELIEF_RELIGIOUS_SETTLEMENTS' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 -- Religious Settlements 
@@ -93,12 +93,12 @@ WHERE Tag = 'TXT_KEY_BELIEF_RELIGIOUS_SETTLEMENTS_SHORT' AND EXISTS (SELECT * FR
 
 -- God of Festivals
 UPDATE Language_en_US
-SET Text = '+1 [ICON_PEACE] Faith, [ICON_CULTURE] Culture, [ICON_FOOD] Food, and [ICON_GOLD] Gold for every unique Luxury Resource you control'
+SET Text = '+1 [ICON_GOLD] Gold, [ICON_PEACE] Faith, and [ICON_CULTURE] Culture for every unique Luxury Resource you control'
 WHERE Tag = 'TXT_KEY_BELIEF_GOD_FESTIVALS' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 -- Oral Tradition (Now Goddess of Springtime)
 UPDATE Language_en_US
-SET Text = '+1 [ICON_GOLD] Gold, [ICON_FOOD] Food, and [ICON_CULTURE] Culture from Plantations, and +2 [ICON_PEACE] Faith from Markets'
+SET Text = '+1 [ICON_GOLD] Gold, [ICON_FOOD] Food, and [ICON_CULTURE] Culture from Plantations. +3 [ICON_PEACE] Faith from Markets'
 WHERE Tag = 'TXT_KEY_BELIEF_ORAL_TRADITION' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 UPDATE Language_en_US
@@ -107,13 +107,13 @@ WHERE Tag = 'TXT_KEY_BELIEF_ORAL_TRADITION_SHORT' AND EXISTS (SELECT * FROM COMM
 
 -- Ancestor Worship
 UPDATE Language_en_US
-SET Text = '+1 [ICON_PEACE] Faith for every 3 [ICON_CITIZEN] Citizens in a city. +1 [ICON_CULTURE] Culture and +1 [ICON_RESEARCH] Science from Councils'
+SET Text = '+1 [ICON_PEACE] Faith for every 3 [ICON_CITIZEN] Citizens in a city. +1 [ICON_CULTURE] Culture from Councils, and +2 [ICON_RESEARCH] Science if you have at least one Specialist in the City'
 WHERE Tag = 'TXT_KEY_BELIEF_ANCESTOR_WORSHIP' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 -- Desert Folklore (Now Spirit of the Desert)
 
 UPDATE Language_en_US
-SET Text = '+2 [ICON_PEACE] Faith, +2 [ICON_GOLD] Gold, and +1 [ICON_FOOD] Food from Desert tiles with improved resources'
+SET Text = '+1 [ICON_PEACE] Faith, [ICON_PRODUCTION] Production, and [ICON_CULTURE] Culture from Desert tiles with resources, and +2 [ICON_FOOD] Food from Oases'
 WHERE Tag = 'TXT_KEY_BELIEF_DESERT_FOLKLORE' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 UPDATE Language_en_US
@@ -131,7 +131,7 @@ WHERE Tag = 'TXT_KEY_BELIEF_SACRED_PATH_SHORT' AND EXISTS (SELECT * FROM COMMUNI
 
 -- Goddess of Protection
 UPDATE Language_en_US
-SET Text = '+10 HP healed per turn in friendly territory. +2 [ICON_PEACE] Faith and +1 [ICON_CULTURE] Culture from Palace, Walls, and Barracks'
+SET Text = '+10 HP healed per turn in friendly territory. +2 [ICON_PEACE] Faith, +1 [ICON_CULTURE] Culture and +1 [ICON_RESEARCH] Science from Palace, Walls, and Barracks'
 WHERE Tag = 'TXT_KEY_BELIEF_GODDESS_STRATEGY' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 -- Monuments to the Gods (Now Goddess of Beauty)
@@ -145,7 +145,7 @@ WHERE Tag = 'TXT_KEY_BELIEF_MONUMENT_GODS_SHORT' AND EXISTS (SELECT * FROM COMMU
 
 -- Dance of the Aurora (now God of the Stars and Sky)
 UPDATE Language_en_US
-SET Text = '+1 [ICON_PEACE] Faith, +1 [ICON_CULTURE] Culture, and +2 [ICON_PRODUCTION] Production from Tundra tiles with improved resources'
+SET Text = '+1 [ICON_PEACE] Faith, [ICON_CULTURE] Culture, [ICON_GOLD] Gold, and [ICON_FOOD] Food from Tundra tiles with improved resources'
 WHERE Tag = 'TXT_KEY_BELIEF_DANCE_AURORA' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 UPDATE Language_en_US
@@ -154,7 +154,7 @@ WHERE Tag = 'TXT_KEY_BELIEF_DANCE_AURORA_SHORT' AND EXISTS (SELECT * FROM COMMUN
 
 --  Tears of the Gods (Now God of Creation)
 UPDATE Language_en_US
-SET Text = '+1 [ICON_PEACE] Faith in [ICON_CAPITAL] Capital. +1 [ICON_CULTURE] Culture and [ICON_HAPPINESS_1] Happiness for every Pantheon ever founded (max 8)'
+SET Text = '+1 [ICON_PEACE] Faith from Monuments. +1 [ICON_FOOD] Food, [ICON_PRODUCTION] Production, [ICON_GOLD] Gold, and [ICON_RESEARCH] Science in [ICON_CAPITAL] Capital for every two Pantheons ever founded'
 WHERE Tag = 'TXT_KEY_BELIEF_TEARS_OF_GODS' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 UPDATE Language_en_US
@@ -163,17 +163,17 @@ WHERE Tag = 'TXT_KEY_BELIEF_TEARS_OF_GODS_SHORT' AND EXISTS (SELECT * FROM COMMU
 
 -- Earth Mother
 UPDATE Language_en_US
-SET Text = '+1 [ICON_PEACE] Faith and [ICON_PRODUCTION] Production from Mines on improved resources, +2 [ICON_GOLD] Gold from Monuments'
+SET Text = '+1 [ICON_PEACE] Faith and [ICON_GOLD] Gold from Mines on improved resources. +1 [ICON_PRODUCTION] Production for every 3 [ICON_CITIZEN] Citizens in a city'
 WHERE Tag = 'TXT_KEY_BELIEF_EARTH_MOTHER' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 -- God-King
 UPDATE Language_en_US
-SET Text = '+1 [ICON_CULTURE] Culture, [ICON_PEACE] Faith, [ICON_GOLD] Gold, and [ICON_RESEARCH] Science in [ICON_CAPITAL] Capital for every 5 Followers of your Pantheon in owned Cities'
+SET Text = '+1 [ICON_PEACE] Faith in [ICON_CAPITAL] Capital. +1 [ICON_CULTURE] Culture, [ICON_GOLDEN_AGE] Golden Age Points, [ICON_PEACE] Faith, [ICON_GOLD] Gold, and [ICON_RESEARCH] Science in [ICON_CAPITAL] Capital for every 6 Followers of your Pantheon in owned Cities'
 WHERE Tag = 'TXT_KEY_BELIEF_GOD_KING' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 -- Sun God
 UPDATE Language_en_US
-SET Text = '+2 [ICON_FOOD] Food, +1 [ICON_GOLD] Gold from Granaries. +2 [ICON_PEACE] Faith, +1 [ICON_CULTURE] Culture, and +1 [ICON_FOOD] Food from Farms on [ICON_RES_WHEAT] Wheat'
+SET Text = '+2 [ICON_PEACE] Faith and [ICON_GOLD] Gold from Granaries. +3 [ICON_FOOD] Food from Farms on [ICON_RES_WHEAT] Wheat, and +1 [ICON_RESEARCH] Science for every 2 Flood Plains worked by the City.'
 WHERE Tag = 'TXT_KEY_BELIEF_SUN_GOD' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 UPDATE Language_en_US
@@ -239,7 +239,7 @@ WHERE Tag = 'TXT_KEY_BELIEF_UNDERGROUND_SECT_SHORT' AND EXISTS (SELECT * FROM CO
 -- Unity of the Prophets (Now Knowledge Through Faith)
 
 UPDATE Language_en_US
-SET Text = 'Landmarks and Great Person Improvements produce +3 [ICON_PEACE] Faith and +1 [ICON_CULTURE] Culture. [ICON_GREAT_WORK] Great Works produce +2 [ICON_CULTURE] Culture.'
+SET Text = 'Landmarks and Great Person Improvements produce +4 [ICON_PEACE] Faith and [ICON_RESEARCH] Science. [ICON_GREAT_WORK] Great Works produce +2 [ICON_CULTURE] Culture, and you can purchase Archaeologists with [ICON_PEACE] Faith.'
 WHERE Tag = 'TXT_KEY_BELIEF_UNITY_OF_PROPHETS' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 UPDATE Language_en_US
@@ -489,12 +489,12 @@ WHERE Tag = 'TXT_KEY_BELIEF_INTERFAITH_DIALOGUE_SHORT' AND EXISTS (SELECT * FROM
 
 -- Ceremonial Burial
 UPDATE Language_en_US
-SET Text = 'Unlocks Mausoleum National Wonder (+5 [ICON_PEACE] Faith, and gain [ICON_PEACE] Faith when an owned unit is killed in battle, +5 [ICON_PEACE] Faith from Holy Sites; unlocks Reformation Belief). When a Great Person is expended, gain 5 [ICON_PEACE] Faith and [ICON_CULTURE] Culture for every City following your Religion.'
+SET Text = 'Unlocks Mausoleum National Wonder (+5 [ICON_PEACE] Faith, and gain [ICON_PEACE] Faith when an owned unit is killed in battle, +5 [ICON_PEACE] Faith from Holy Sites; unlocks Reformation Belief). When a Great Person is expended, gain 10 [ICON_PEACE] Faith and [ICON_CULTURE] Culture for every City following your Religion.'
 WHERE Tag = 'TXT_KEY_BELIEF_CEREMONIAL_BURIAL' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 -- Church Property (Now Holy Law)
 UPDATE Language_en_US
-SET Text = 'Unlocks Divine Court National Wonder (+4 [ICON_PEACE] Faith, +6 [ICON_GOLD] Gold; +5 [ICON_GOLD] Gold from Holy Sites; unlocks Reformation Belief). When you unlock a Policy, gain 3 [ICON_PEACE] Faith, [ICON_RESEARCH] Science, and [ICON_GOLD] Gold for every Follower of your Religion.'
+SET Text = 'Unlocks Divine Court National Wonder (+4 [ICON_PEACE] Faith, +6 [ICON_GOLD] Gold; +5 [ICON_GOLD] Gold from Holy Sites; unlocks Reformation Belief). When you unlock a Policy, gain 4 [ICON_PEACE] Faith, [ICON_RESEARCH] Science, and [ICON_GOLD] Gold for every Follower of your Religion.'
 WHERE Tag = 'TXT_KEY_BELIEF_CHURCH_PROPERTY' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 UPDATE Language_en_US
@@ -512,7 +512,7 @@ WHERE Tag = 'TXT_KEY_BELIEF_TITHE_SHORT' AND EXISTS (SELECT * FROM COMMUNITY WHE
 
 -- Initiation Rites (Now Way of Transcendence)
 UPDATE Language_en_US
-SET Text = 'Unlocks Sacred Garden National Wonder (+3 [ICON_PEACE] Faith, +5 [ICON_CULTURE] Culture; +5 [ICON_FOOD] Food from Holy Sites; unlocks Reformation Belief). When you enter a new Era, Holy City gains 25 of every Yield for each City following your Religion.'
+SET Text = 'Unlocks Sacred Garden National Wonder (+3 [ICON_PEACE] Faith, +5 [ICON_CULTURE] Culture; +5 [ICON_FOOD] Food from Holy Sites; unlocks Reformation Belief). When you enter a new Era, Holy City gains 30 of every Yield for each City following your Religion.'
 WHERE Tag = 'TXT_KEY_BELIEF_INITIATION_RITES' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 UPDATE Language_en_US
@@ -521,7 +521,7 @@ WHERE Tag = 'TXT_KEY_BELIEF_INITIATION_RITES_SHORT' AND EXISTS (SELECT * FROM CO
 
 -- Papal Primacy (Now Council of Elders)
 UPDATE Language_en_US
-SET Text = 'Unlocks Holy Council National Wonder (+4 [ICON_PEACE] Faith, +5 [ICON_FOOD] Food; +5 [ICON_RESEARCH] Science from Holy Sites; unlocks Reformation Belief). When a city adopts your Religion for the first time, gain 4 [ICON_RESEARCH] Science and [ICON_PRODUCTION] Production in your Holy City for every City following your Religion.'
+SET Text = 'Unlocks Holy Council National Wonder (+4 [ICON_PEACE] Faith, +5 [ICON_FOOD] Food; +5 [ICON_RESEARCH] Science from Holy Sites; unlocks Reformation Belief). When a city adopts your Religion for the first time, gain 10 [ICON_RESEARCH] Science and [ICON_PRODUCTION] Production in your Holy City for every City following your Religion.'
 WHERE Tag = 'TXT_KEY_BELIEF_PAPAL_PRIMACY' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_RELIGION' AND Value= 1 );
 
 UPDATE Language_en_US

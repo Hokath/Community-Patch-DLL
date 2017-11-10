@@ -7298,7 +7298,7 @@ BeliefTypes CvReligionAI::ChooseReformationBelief()
 }
 
 /// Find the city where a missionary should next spread his religion
-CvCity* CvReligionAI::ChooseMissionaryTargetCity(CvUnit* pUnit, int* piTurns)
+CvCity* CvReligionAI::ChooseMissionaryTargetCity(CvUnit* pUnit, const vector<int>& vIgnoreTargets, int* piTurns)
 {
 	ReligionTypes eMyReligion = GetReligionToSpread();
 	if(eMyReligion <= RELIGION_PANTHEON)
@@ -7317,7 +7317,11 @@ CvCity* CvReligionAI::ChooseMissionaryTargetCity(CvUnit* pUnit, int* piTurns)
 			CvCity* pLoopCity;
 			for(pLoopCity = kPlayer.firstCity(&iLoop); pLoopCity != NULL; pLoopCity = kPlayer.nextCity(&iLoop))
 			{
-				if(pLoopCity && pUnit->CanSpreadReligion(pLoopCity->plot()) && pUnit->GetDanger(pLoopCity->plot())==0 && !pLoopCity->IsRazing())
+				//we often have multiple missionaries active at the same time, don't all go to the same target
+				if (std::find(vIgnoreTargets.begin(), vIgnoreTargets.end(), pLoopCity->plot()->GetPlotIndex()) != vIgnoreTargets.end())
+					continue;
+
+				if(pUnit->CanSpreadReligion(pLoopCity->plot()) && pUnit->GetDanger(pLoopCity->plot())==0 && !pLoopCity->IsRazing())
 				{
 					int iScore = ScoreCityForMissionary(pLoopCity, pUnit);
 					if (iScore>0)
@@ -7646,7 +7650,6 @@ void CvReligionAI::DoFaithPurchasesInCities(CvCity* pCity)
 				if(GC.getLogging())
 				{
 					strLogMsg += ", Bought a Faith Building";
-					GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
 					CvString strFaith;
 					strFaith.Format(", Faith: %d", m_pPlayer->GetFaith());
 					strLogMsg += strFaith;
@@ -7659,7 +7662,6 @@ void CvReligionAI::DoFaithPurchasesInCities(CvCity* pCity)
 				if(GC.getLogging())
 				{
 					strLogMsg += ", Saving up for a Faith Building.";
-					GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
 					CvString strFaith;
 					strFaith.Format(", Faith: %d", m_pPlayer->GetFaith());
 					strLogMsg += strFaith;
@@ -7674,7 +7676,7 @@ void CvReligionAI::DoFaithPurchasesInCities(CvCity* pCity)
 	// Have cities Inquisitors can defend?
 	if (pMyReligion->m_bEnhanced)
 	{
-		if ((eReligion != NO_RELIGION) && !HaveEnoughInquisitors(eReligion) && !pCity->GetCityReligions()->HasFriendlyInquisitor(eReligion))
+		if ((eReligion != NO_RELIGION) && (eReligion == GetReligionToSpread()) && !HaveEnoughInquisitors(eReligion) && !pCity->GetCityReligions()->HasFriendlyInquisitor(eReligion))
 		{
 			UnitTypes eInquisitor = kPlayer.GetSpecificUnitType("UNITCLASS_INQUISITOR", true);
 
@@ -7701,7 +7703,6 @@ void CvReligionAI::DoFaithPurchasesInCities(CvCity* pCity)
 				if (GC.getLogging())
 				{
 					strLogMsg += ", Focusing on Inquisitors, Need to Defend Our Cities";
-					GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
 					CvString strFaith;
 					strFaith.Format(", Faith: %d", m_pPlayer->GetFaith());
 					strLogMsg += strFaith;
@@ -7733,7 +7734,6 @@ void CvReligionAI::DoFaithPurchasesInCities(CvCity* pCity)
 							if (GC.getLogging())
 							{
 								strLogMsg += ", Bought a Non-Faith Building";
-								GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
 								CvString strFaith;
 								strFaith.Format(", Faith: %d", m_pPlayer->GetFaith());
 								strLogMsg += strFaith;
@@ -7746,7 +7746,6 @@ void CvReligionAI::DoFaithPurchasesInCities(CvCity* pCity)
 							if (GC.getLogging())
 							{
 								strLogMsg += ", Focusing on Non-Faith Buildings, have belief that allows this";
-								GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
 								CvString strFaith;
 								strFaith.Format(", Faith: %d", m_pPlayer->GetFaith());
 								strLogMsg += strFaith;
@@ -7764,58 +7763,45 @@ void CvReligionAI::DoFaithPurchasesInCities(CvCity* pCity)
 	// Try to build other units with Faith if we took that belief
 	if((eReligion != NO_RELIGION) && AreAllOurCitiesConverted(eReligion, false /*bIncludePuppets*/))
 	{
+		int iPurchaseAmount = 5;
+		if (m_pPlayer->GetPlayerTraits()->IsCanPurchaseNavalUnitsFaith())
+		{
+			iPurchaseAmount *= 10;
+		}
 		if((kPlayer.GetTreasury()->CalculateBaseNetGoldTimes100() > 0) && (kPlayer.GetNumUnitsOutOfSupply() <= 0))
 		{
-			for (int iI = 0; iI < GC.getNumUnitClassInfos(); iI++)
+			CvCityBuildable selection = (pCity->GetCityStrategyAI()->ChooseHurry(true, true));
+			if (selection.m_eBuildableType != NOT_A_CITY_BUILDABLE)
 			{
-				UnitTypes eUnit = (UnitTypes)kPlayer.getCivilizationInfo().getCivilizationUnits(iI);
-				if(eUnit != NO_UNIT)
+				UnitTypes eUnit = (UnitTypes)selection.m_iIndex;
+				if (eUnit != NO_UNIT)
 				{
-					CvUnitEntry* pUnitEntry = GC.GetGameUnits()->GetEntry(eUnit);
-
-					// Check to make sure this is a war unit.
-					if(pUnitEntry && !pUnitEntry->IsSpreadReligion() && !pUnitEntry->IsRemoveHeresy() && (pUnitEntry->GetFaithCost() > 0) && pUnitEntry->GetSpecialUnitType() == NO_SPECIALUNIT)
+					CvUnitEntry* pUnitEntry = GC.getUnitInfo(eUnit);
+					if (pUnitEntry)
 					{
-						if(pCity->IsCanPurchase(true, true, eUnit, (BuildingTypes)-1, (ProjectTypes)-1, YIELD_FAITH))
+						if (eUnit == pCity->GetUnitForOperation() || eUnit == kPlayer.GetMilitaryAI()->GetUnitForArmy(pCity))
 						{
-							if(eUnit == pCity->GetUnitForOperation() || eUnit == kPlayer.GetMilitaryAI()->GetUnitForArmy(pCity))
+							pCity->Purchase(eUnit, (BuildingTypes)-1, (ProjectTypes)-1, YIELD_FAITH);
+							if (GC.getLogging())
 							{
-								pCity->Purchase(eUnit, (BuildingTypes)-1, (ProjectTypes)-1, YIELD_FAITH);
-								if(GC.getLogging())
-								{
-									CvString strFaith;
-									strFaith.Format(", Bought a Non-Faith military Unit, %s", pUnitEntry->GetDescriptionKey());
-									strLogMsg += strFaith;
-									GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
-								}
-								if(GC.getLogging())
-								{
-									CvString strFaith;
-									strFaith.Format(", Faith: %d", m_pPlayer->GetFaith());
-									strLogMsg += strFaith;
-									GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
-								}
-								return;
+								CvString strFaith;
+								strFaith.Format(", Bought a Non-Faith military Unit, %s, Faith: %d", pUnitEntry->GetDescriptionKey(), m_pPlayer->GetFaith());
+								strLogMsg += strFaith;
+								GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
 							}
-							else if(m_pPlayer->GetNumUnitsWithUnitAI(pUnitEntry->GetDefaultUnitAIType()) <= 5)
+							return;
+						}
+						else if (m_pPlayer->GetNumUnitsWithUnitAI(pUnitEntry->GetDefaultUnitAIType()) <= iPurchaseAmount)
+						{
+							pCity->Purchase(eUnit, (BuildingTypes)-1, (ProjectTypes)-1, YIELD_FAITH);
+							if (GC.getLogging())
 							{
-								pCity->Purchase(eUnit, (BuildingTypes)-1, (ProjectTypes)-1, YIELD_FAITH);
-								if(GC.getLogging())
-								{
-									CvString strFaith;
-									strFaith.Format(", Bought a Non-Faith Unit %s (up to four)", pUnitEntry->GetDescriptionKey());
-									strLogMsg += strFaith;
-									GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
-								}
-								if(GC.getLogging())
-								{
-									CvString strFaith;
-									strFaith.Format(", Faith: %d", m_pPlayer->GetFaith());
-									strLogMsg += strFaith;
-									GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
-								}
-								return;
+								CvString strFaith;
+								strFaith.Format(", Bought a Non-Faith military Unit, %s, (up to %d), Faith: %d", pUnitEntry->GetDescriptionKey(), iPurchaseAmount, m_pPlayer->GetFaith());
+								strLogMsg += strFaith;
+								GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
 							}
+							return;
 						}
 					}
 				}
@@ -7955,7 +7941,6 @@ bool CvReligionAI::DoFaithPurchases()
 					if(GC.getLogging())
 					{
 						strLogMsg += ", Bought a Prophet for religion enhancement.";
-						GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
 						CvString strFaith;
 						strFaith.Format(", Faith: %d", m_pPlayer->GetFaith());
 						strLogMsg += strFaith;
@@ -7967,7 +7952,6 @@ bool CvReligionAI::DoFaithPurchases()
 					if(GC.getLogging())
 					{
 						strLogMsg += ", Saving up for a Prophet for religion enhancement.";
-						GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
 						CvString strFaith;
 						strFaith.Format(", Faith: %d", m_pPlayer->GetFaith());
 						strLogMsg += strFaith;
@@ -8031,7 +8015,6 @@ bool CvReligionAI::DoFaithPurchases()
 						{
 							strLogMsg += ", Bought a Great Person, as we don't have a faith and it is the Industrial age.";
 							strLogMsg += GC.getUnitInfo(eGPType)->GetDescription();
-							GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
 							CvString strFaith;
 							strFaith.Format(", Faith: %d", m_pPlayer->GetFaith());
 							strLogMsg += strFaith;
@@ -8044,7 +8027,6 @@ bool CvReligionAI::DoFaithPurchases()
 						{
 							strLogMsg += ", Saving up for a Great Person, as we don't have a faith and it is the Industrial age.";
 							strLogMsg += GC.getUnitInfo(eGPType)->GetDescription();
-							GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
 							CvString strFaith;
 							strFaith.Format(", Faith: %d", m_pPlayer->GetFaith());
 							strLogMsg += strFaith;
@@ -8067,7 +8049,6 @@ bool CvReligionAI::DoFaithPurchases()
 					if(GC.getLogging())
 					{
 						strLogMsg += ", Bought a Prophet, badly need to Convert Non-Puppet Cities";
-						GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
 						CvString strFaith;
 						strFaith.Format(", Faith: %d", m_pPlayer->GetFaith());
 						strLogMsg += strFaith;
@@ -8079,7 +8060,6 @@ bool CvReligionAI::DoFaithPurchases()
 					if(GC.getLogging())
 					{
 						strLogMsg += ", Saving up for a Prophet, as we need to convert Non-Puppet Cities.";
-						GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
 						CvString strFaith;
 						strFaith.Format(", Faith: %d", m_pPlayer->GetFaith());
 						strLogMsg += strFaith;
@@ -8095,7 +8075,6 @@ bool CvReligionAI::DoFaithPurchases()
 					if(GC.getLogging())
 					{
 						strLogMsg += ", Bought a Missionary, need to Convert Non-Puppet Cities";
-						GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
 						CvString strFaith;
 						strFaith.Format(", Faith: %d", m_pPlayer->GetFaith());
 						strLogMsg += strFaith;
@@ -8107,7 +8086,6 @@ bool CvReligionAI::DoFaithPurchases()
 					if(GC.getLogging())
 					{
 						strLogMsg += ", Saving up for a Prophet or Missionary, as we need to convert Non-Puppet Cities.";
-						GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
 						CvString strFaith;
 						strFaith.Format(", Faith: %d", m_pPlayer->GetFaith());
 						strLogMsg += strFaith;
@@ -8126,7 +8104,6 @@ bool CvReligionAI::DoFaithPurchases()
 				if(GC.getLogging())
 				{
 					strLogMsg += ", Bought a Missionary, Need to Convert Puppet Cities";
-					GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
 					CvString strFaith;
 					strFaith.Format(", Faith: %d", m_pPlayer->GetFaith());
 					strLogMsg += strFaith;
@@ -8138,7 +8115,6 @@ bool CvReligionAI::DoFaithPurchases()
 				if(GC.getLogging())
 				{
 					strLogMsg += ", Saving up for a Missionary, as we need to convert Puppet Cities.";
-					GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
 					CvString strFaith;
 					strFaith.Format(", Faith: %d", m_pPlayer->GetFaith());
 					strLogMsg += strFaith;
@@ -8170,7 +8146,6 @@ bool CvReligionAI::DoFaithPurchases()
 				if(GC.getLogging())
 				{
 					strLogMsg += ", Focusing on Missionaries, Need to Convert EVERYONE because religious zealotry";
-					GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
 					CvString strFaith;
 					strFaith.Format(", Faith: %d", m_pPlayer->GetFaith());
 					strLogMsg += strFaith;
@@ -8182,7 +8157,6 @@ bool CvReligionAI::DoFaithPurchases()
 				if(GC.getLogging())
 				{
 					strLogMsg += ", Saving up for Missionaries, Need to Convert EVERYONE because religious zealotry";
-					GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
 					CvString strFaith;
 					strFaith.Format(", Faith: %d", m_pPlayer->GetFaith());
 					strLogMsg += strFaith;
@@ -8201,7 +8175,6 @@ bool CvReligionAI::DoFaithPurchases()
 				if(GC.getLogging())
 				{
 					strLogMsg += ", Focusing on Missionaries, Need to Convert Cities of Non-Religion Starters";
-					GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
 					CvString strFaith;
 					strFaith.Format(", Faith: %d", m_pPlayer->GetFaith());
 					strLogMsg += strFaith;
@@ -8213,7 +8186,6 @@ bool CvReligionAI::DoFaithPurchases()
 				if(GC.getLogging())
 				{
 					strLogMsg += ", Saving up for Missionaries, Need to Convert Cities of Non-Religion Starters";
-					GC.getGame().GetGameReligions()->LogReligionMessage(strLogMsg);
 					CvString strFaith;
 					strFaith.Format(", Faith: %d", m_pPlayer->GetFaith());
 					strLogMsg += strFaith;
@@ -8451,12 +8423,15 @@ int CvReligionAI::ScoreBelief(CvBeliefEntry* pEntry)
 		PlayerTypes ePlotOwner = pPlot->getOwner();
 		if(pPlot->isRevealed(m_pPlayer->getTeam()) && (ePlotOwner == NO_PLAYER || ePlotOwner == m_pPlayer->GetID()))
 		{
-			// Also skip if closest city of ours is not within 2 turns
+			// Also skip if closest city of ours is not within 2 turn
 			if (m_pPlayer->GetCityDistanceInEstimatedTurns(pPlot)>2)
 				continue;
 
 			// Score it
 			int iScoreAtPlot = ScoreBeliefAtPlot(pEntry, pPlot);
+
+			if (iScoreAtPlot <= 0)
+				continue;
 		
 			// Apply multiplier based on whether or not being worked, within culture borders, or not
 			if(pPlot->isBeingWorked())
@@ -8486,7 +8461,6 @@ int CvReligionAI::ScoreBelief(CvBeliefEntry* pEntry)
 				iScoreAtPlot *= GC.getRELIGION_BELIEF_SCORE_UNOWNED_PLOT_MULTIPLIER();
 			}
 
-
 			iRtnValue += iScoreAtPlot;
 
 			iScorePlot = iRtnValue;
@@ -8510,9 +8484,9 @@ int CvReligionAI::ScoreBelief(CvBeliefEntry* pEntry)
 	iRtnValue += iScorePlayer;
 
 	int iRand = 0;
-	if (iRtnValue > 0)
+	if (iRtnValue > 50)
 	{
-		iRand = GC.getGame().getJonRandNum((100 - (GC.getGame().getHandicapInfo().GetID() * 5)), "Faith rand weight.");
+		iRand = GC.getGame().getJonRandNum(iRtnValue / max(1, GC.getGame().getHandicapInfo().GetID()), "Faith rand weight.");
 		iRtnValue += iRand;
 	}
 
@@ -8587,7 +8561,7 @@ int CvReligionAI::GetValidPlotYield(CvBeliefEntry* pEntry, CvPlot* pPlot, YieldT
 	//Lake
 	if (pPlot->isLake())
 	{
-		iRtnValue += pEntry->GetLakePlotYieldChange(iI);
+		iRtnValue += pEntry->GetLakePlotYieldChange(iI) * 3;
 	}
 
 	// Resource
@@ -8596,7 +8570,7 @@ int CvReligionAI::GetValidPlotYield(CvBeliefEntry* pEntry, CvPlot* pPlot, YieldT
 		iRtnValue += pEntry->GetResourceYieldChange(eResource, iI);
 		if (pEntry->GetResourceQuantityModifier(eResource) > 0)
 		{
-			iRtnValue += ((pPlot->getNumResource() * pEntry->GetResourceQuantityModifier(eResource)) / 25);
+			iRtnValue += ((pPlot->getNumResource() * pEntry->GetResourceQuantityModifier(eResource)) / 20);
 		}
 	}
 
@@ -8612,7 +8586,7 @@ int CvReligionAI::GetValidPlotYield(CvBeliefEntry* pEntry, CvPlot* pPlot, YieldT
 		
 			if (pPlot->HasImprovement((ImprovementTypes)jJ))
 			{
-				iRtnValue += (pEntry->GetImprovementYieldChange((ImprovementTypes)jJ, (YieldTypes)iI)) * 4;
+				iRtnValue += (pEntry->GetImprovementYieldChange((ImprovementTypes)jJ, (YieldTypes)iI)) * 3;
 			}
 			else if (pPlot->canHaveImprovement((ImprovementTypes)jJ, m_pPlayer->GetID()))
 			{
@@ -8667,7 +8641,7 @@ int CvReligionAI::ScoreBeliefAtPlot(CvBeliefEntry* pEntry, CvPlot* pPlot)
 
 	// Terrain
 	FeatureTypes eFeature = pPlot->getFeatureType();
-	ResourceTypes eResource = pPlot->getResourceType(m_pPlayer->getTeam());
+	ResourceTypes eResource = pPlot->getResourceType();
 	ImprovementTypes eImprovement = pPlot->getImprovementType();
 
 	for(int iI = 0; iI < NUM_YIELD_TYPES; iI++)
@@ -8700,32 +8674,35 @@ int CvReligionAI::ScoreBeliefAtPlot(CvBeliefEntry* pEntry, CvPlot* pPlot)
 			break;
 		}
 
+		iFlavor *= 2;
+		iFlavor /= 3;
+
 		iRtnValue = 0;
 #endif
 
-		if (pEntry->RequiresNoFeature() && eFeature == NO_FEATURE)
+		if (pEntry->RequiresResource() && eResource == NO_RESOURCE)
 		{
-			iRtnValue += GetValidPlotYield(pEntry, pPlot, (YieldTypes)iI);
+			return 0;
 		}
-		else if (pEntry->RequiresResource() && eResource != NO_RESOURCE)
-		{
-			iRtnValue += GetValidPlotYield(pEntry, pPlot, (YieldTypes)iI);
-		}
-		else if (pEntry->RequiresNoImprovement() && eImprovement == NO_IMPROVEMENT)
-		{
-			iRtnValue += GetValidPlotYield(pEntry, pPlot, (YieldTypes)iI);
-		}
-		else if (pEntry->RequiresImprovement() && eImprovement != NO_IMPROVEMENT)
-		{
-			iRtnValue += GetValidPlotYield(pEntry, pPlot, (YieldTypes)iI);
-		}
-		else
-		{
-			iRtnValue += GetValidPlotYield(pEntry, pPlot, (YieldTypes)iI);
-		}
-
+		
+		iRtnValue = GetValidPlotYield(pEntry, pPlot, (YieldTypes)iI);
 		iTotalRtnValue += iRtnValue*iFlavor;
 
+		if (pEntry->RequiresNoImprovement() && eImprovement != NO_IMPROVEMENT)
+		{
+			iRtnValue *= 2;
+			iRtnValue /= 3;
+		}
+		if (pEntry->RequiresImprovement() && eImprovement == NO_IMPROVEMENT)
+		{
+			iRtnValue *= 2;
+			iRtnValue /= 3;
+		}
+		if (pEntry->RequiresNoFeature() && eFeature == NO_FEATURE)
+		{
+			iRtnValue *= 2;
+			iRtnValue /= 3;
+		}
 	}
 
 	return iTotalRtnValue;
@@ -8749,11 +8726,11 @@ int CvReligionAI::ScoreBeliefAtCity(CvBeliefEntry* pEntry, CvCity* pCity)
 	int iHappinessNeedFactor = iFlavorOffense * 2 + iFlavorHappiness - iFlavorDefense;
 	if (iHappinessNeedFactor > 15)
 	{
-		iHappinessMultiplier = 6;
+		iHappinessMultiplier = 15;
 	}
 	else if (iHappinessNeedFactor < 6)
 	{
-		iHappinessMultiplier = 1;
+		iHappinessMultiplier = 6;
 	}
 
 	iMinPop = pEntry->GetMinPopulation();
@@ -8843,16 +8820,6 @@ int CvReligionAI::ScoreBeliefAtCity(CvBeliefEntry* pEntry, CvCity* pCity)
 
 	int iCulture = pCity->getJONSCulturePerTurn();
 
-	int iNumLuxuries = 0;
-	for (int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
-	{
-		ResourceTypes eResource = static_cast<ResourceTypes>(iResourceLoop);
-		CvResourceInfo* pkResource = GC.getResourceInfo(eResource);
-		if (pkResource && pkResource->getResourceUsage() == RESOURCEUSAGE_LUXURY && (pCity->GetNumResourceLocal(eResource) > 0 || m_pPlayer->getNumResourceAvailable(eResource) > 0))
-		{
-			iNumLuxuries++;
-		}
-	}
 	bool bIsHolyCity = false;
 	int iLoopUnit;
 	CvUnit* pLoopUnit;
@@ -8870,14 +8837,26 @@ int CvReligionAI::ScoreBeliefAtCity(CvBeliefEntry* pEntry, CvCity* pCity)
 			}
 		}
 	}
+
+	int iNumLuxuries = 0;
+	for (int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
+	{
+		ResourceTypes eResource = static_cast<ResourceTypes>(iResourceLoop);
+		CvResourceInfo* pkResource = GC.getResourceInfo(eResource);
+		if (pkResource && pkResource->getResourceUsage() == RESOURCEUSAGE_LUXURY && (pCity->GetNumResourceLocal(eResource, false, true) > 0 || pCity->GetNumResourceLocal(eResource, true, true) > 0 || pCity->GetNumResourceLocal(eResource) > 0 || m_pPlayer->getNumResourceAvailable(eResource) > 0))
+		{
+			iNumLuxuries++;
+		}
+	}
+
 	for (int iI = 0; iI < NUM_YIELD_TYPES; iI++)
 	{
 		if (pEntry->GetYieldPerPop(iI) > 0)
 		{
-			iTotalRtnValue += (pEntry->GetYieldPerPop(iI) / max(1, pCity->getPopulation())) * 5;
+			iTotalRtnValue += (pEntry->GetYieldPerPop(iI) * pCity->getPopulation() * pCity->getPopulation()) / 4;
 			if (m_pPlayer->GetPlayerTraits()->IsPopulationBoostReligion())
 			{
-				iTotalRtnValue *= 5;
+				iTotalRtnValue *= 2;
 			}
 		}
 		if (bIsHolyCity)
@@ -8889,9 +8868,9 @@ int CvReligionAI::ScoreBeliefAtCity(CvBeliefEntry* pEntry, CvCity* pCity)
 		}
 		if (pEntry->GetYieldPerLux(iI) > 0)
 		{
-			iTotalRtnValue += (pEntry->GetYieldPerLux(iI) * iNumLuxuries) * 8;
+			iTotalRtnValue += (pEntry->GetYieldPerLux(iI) * max(2, iNumLuxuries)) * 5;
 
-			if (m_pPlayer->GetPlayerTraits()->GetLuxuryHappinessRetention())
+			if (m_pPlayer->GetPlayerTraits()->GetLuxuryHappinessRetention() || m_pPlayer->GetPlayerTraits()->GetUniqueLuxuryQuantity() != 0 || m_pPlayer->GetPlayerTraits()->IsImportsCountTowardsMonopolies())
 			{
 				iTotalRtnValue *= 2;
 			}
@@ -8912,7 +8891,7 @@ int CvReligionAI::ScoreBeliefAtCity(CvBeliefEntry* pEntry, CvCity* pCity)
 			iTotalRtnValue += ((pEntry->GetYieldPerBorderGrowth(iI) * iCulture) / max(3, pCity->GetJONSCultureLevel() * 3));
 			if (m_pPlayer->GetPlayerTraits()->IsPopulationBoostReligion())
 			{
-				iTotalRtnValue *= 10;
+				iTotalRtnValue *= 2;
 			}
 		}
 	}
@@ -8930,7 +8909,7 @@ int CvReligionAI::ScoreBeliefAtCity(CvBeliefEntry* pEntry, CvCity* pCity)
 
 			if (pEntry->GetGreatPersonPoints(eGP) > 0)
 			{
-				iTotalRtnValue += pEntry->GetGreatPersonPoints(eGP) * 4;
+				iTotalRtnValue += pEntry->GetGreatPersonPoints(eGP) * 3;
 			}
 		}
 	}
@@ -8944,10 +8923,10 @@ int CvReligionAI::ScoreBeliefAtCity(CvBeliefEntry* pEntry, CvCity* pCity)
 #if defined(MOD_BALANCE_CORE_BELIEFS)		
 		if (pEntry->GetYieldPerBirth(iI) > 0)
 		{
-			iTotalRtnValue += (pEntry->GetYieldPerBirth(iI) * (pCity->foodDifferenceTimes100() / 300));
+			iTotalRtnValue += (pEntry->GetYieldPerBirth(iI) * (pCity->foodDifferenceTimes100() / 400));
 			if (m_pPlayer->GetPlayerTraits()->IsPopulationBoostReligion())
 			{
-				iTotalRtnValue *= 10;
+				iTotalRtnValue *= 5;
 			}
 		}
 		if (pEntry->GetYieldFromWLTKD(iI) > 0)
@@ -9050,7 +9029,7 @@ int CvReligionAI::ScoreBeliefAtCity(CvBeliefEntry* pEntry, CvCity* pCity)
 			{
 				if(eTerrain == TERRAIN_MOUNTAIN)
 				{
-					iValidTiles = pCity->GetNearbyMountains() * 5;
+					iValidTiles = pCity->GetNearbyMountains() * 2;
 				}
 				else
 				{
@@ -9099,9 +9078,9 @@ int CvReligionAI::ScoreBeliefAtCity(CvBeliefEntry* pEntry, CvCity* pCity)
 				{
 					if (iUnownedTiles > 0)
 					{
-						iValidTiles += (iUnownedTiles / 4);
+						iValidTiles += (iUnownedTiles / 3);
 					}
-					iRtnValue += ((iValidTiles * 3 * pEntry->GetYieldPerXTerrainTimes100(iJ, iI)) / 100);
+					iRtnValue += ((iValidTiles * 4 * pEntry->GetYieldPerXTerrainTimes100(iJ, iI)) / 100);
 				}
 			}
 		}
@@ -9152,10 +9131,10 @@ int CvReligionAI::ScoreBeliefAtCity(CvBeliefEntry* pEntry, CvCity* pCity)
 				{
 					if (iUnownedTiles > 0)
 					{
-						iValidTiles += (iUnownedTiles / 4);
+						iValidTiles += (iUnownedTiles / 3);
 					}
 
-					iRtnValue += ((iValidTiles * 3 * pEntry->GetYieldPerXFeatureTimes100(iJ, iI)) / 100);
+					iRtnValue += ((iValidTiles * 4 * pEntry->GetYieldPerXFeatureTimes100(iJ, iI)) / 100);
 				}
 			}
 		}
@@ -9613,7 +9592,7 @@ int CvReligionAI::ScoreBeliefForPlayer(CvBeliefEntry* pEntry)
 	{
 		if (pEntry->GetYieldPerScience(iI) > 0)
 		{
-			iScienceTemp += ((m_pPlayer->GetScience() * 6) / pEntry->GetYieldPerScience(iI));
+			iScienceTemp += ((m_pPlayer->GetScience() * 150) / pEntry->GetYieldPerScience(iI));
 		}
 		if (pEntry->GetYieldFromEraUnlock(iI) > 0)
 		{
@@ -9631,11 +9610,12 @@ int CvReligionAI::ScoreBeliefForPlayer(CvBeliefEntry* pEntry)
 	///////////////////
 
 	int iGoldTemp = 0;
+	int GrossGold = max(15, m_pPlayer->GetTreasury()->CalculateGrossGold());
 	for (int iI = 0; iI < NUM_YIELD_TYPES; iI++)
 	{
 		if (pEntry->GetYieldPerGPT(iI) > 0)
 		{
-			iGoldTemp += (m_pPlayer->GetTreasury()->CalculateGrossGold() * 3 / pEntry->GetYieldPerGPT(iI));
+			iGoldTemp += ((GrossGold * 150) / pEntry->GetYieldPerGPT(iI));
 		}
 	}
 
@@ -9853,15 +9833,15 @@ int CvReligionAI::ScoreBeliefForPlayer(CvBeliefEntry* pEntry)
 		// Yields for followers and follower cities
 		for (int iI = 0; iI < NUM_YIELD_TYPES; iI++)
 		{
-			iSpreadYields += pEntry->GetYieldChangePerForeignCity(iI) * 3;
+			iSpreadYields += pEntry->GetYieldChangePerForeignCity(iI) * 2;
 
-			iSpreadYields += pEntry->GetYieldChangePerXForeignFollowers(iI) * 3;
+			iSpreadYields += pEntry->GetYieldChangePerXForeignFollowers(iI) * 2;
 
-			iSpreadYields += pEntry->GetYieldPerXFollowers(iI) * 5;
+			iSpreadYields += pEntry->GetYieldPerXFollowers(iI);
 
-			iSpreadYields += pEntry->GetMaxYieldPerFollower(iI) * 5;
+			iSpreadYields += pEntry->GetMaxYieldPerFollower(iI);
 
-			iSpreadYields += pEntry->GetMaxYieldPerFollowerHalved(iI) * 3;
+			iSpreadYields += pEntry->GetMaxYieldPerFollowerHalved(iI) / 2;
 
 			if ((YieldTypes)iI == YIELD_SCIENCE && m_pPlayer->GetPlayerTraits()->IsPermanentYieldsDecreaseEveryEra())
 			{
@@ -10292,7 +10272,7 @@ int CvReligionAI::ScoreBeliefForPlayer(CvBeliefEntry* pEntry)
 		{
 			if (pEntry->GetYieldFromKnownPantheons(iI) > 0)
 			{
-				iDiploTemp += ((25 + (GC.getGame().GetGameReligions()->GetNumPantheonsCreated() * 5)) * pEntry->GetYieldFromKnownPantheons(iI));
+				iDiploTemp += (((GC.getGame().GetGameReligions()->GetNumPantheonsCreated() * 6)) * pEntry->GetYieldFromKnownPantheons(iI) / 10);
 			}
 			if (pEntry->GetYieldFromHost(iI) > 0)
 			{
@@ -10587,7 +10567,7 @@ int CvReligionAI::ScoreBeliefForPlayer(CvBeliefEntry* pEntry)
 		iRtnValue *= 100;
 	}
 
-	iRtnValue /= 2;
+	iRtnValue /= 3;
 
 	if (GC.getLogging() && GC.getAILogging())
 	{

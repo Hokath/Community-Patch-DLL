@@ -949,6 +949,8 @@ void CvEconomicAI::DoTurn()
 	if(!m_pPlayer->isHuman())
 	{
 		DoHurry();
+		//let's do this twice, to make sure we're using all our money.
+		DoHurry();
 		DoPlotPurchases();
 		DisbandExtraWorkers();
 		DisbandExtraArchaeologists();
@@ -2510,7 +2512,7 @@ void CvEconomicAI::DoReconState()
 
 	// estimate one explorer per x open plots, depending on personality (these are only the border plots between known and unknown)
 	int iPlotsPerExplorer = 20 - m_pPlayer->GetGrandStrategyAI()->GetPersonalityAndGrandStrategy((FlavorTypes)GC.getInfoTypeForString("FLAVOR_RECON"));
-	int iNumExplorersNeededTimes100 = 100 + (iNumPlotsToExplore*100) / iPlotsPerExplorer;
+	int iNumExplorersNeededTimes100 = 50 + (iNumPlotsToExplore*100) / iPlotsPerExplorer;
 	if (bWar)
 		iNumExplorersNeededTimes100 /= 2;
 
@@ -2602,7 +2604,7 @@ void CvEconomicAI::DoReconState()
 
 		// estimate one explorer per x open plots (these are only the border plots between known and unknown)
 		int iPlotsPerExplorer = 20 - m_pPlayer->GetGrandStrategyAI()->GetPersonalityAndGrandStrategy((FlavorTypes)GC.getInfoTypeForString("FLAVOR_NAVAL_RECON"));
-		int iNumExplorersNeededTimes100 = 100 + (iNumPlotsToExplore * 100) / iPlotsPerExplorer;
+		int iNumExplorersNeededTimes100 = 50 + (iNumPlotsToExplore * 100) / iPlotsPerExplorer;
 		if (bWar)
 			iNumExplorersNeededTimes100 /= 2;
 

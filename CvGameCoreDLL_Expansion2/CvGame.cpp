@@ -8112,6 +8112,23 @@ void CvGame::doTurn()
 #if defined(MOD_BALANCE_CORE)
 	GetGameCorporations()->DoTurn();
 	GetGameContracts()->DoTurn();
+
+	for (int iLoop = 0; iLoop < GC.getNumResourceInfos(); iLoop++)
+	{
+		const ResourceTypes eResource = static_cast<ResourceTypes>(iLoop);
+		CvResourceInfo* pkResource = GC.getResourceInfo(eResource);
+		if (pkResource && pkResource->isMonopoly())
+		{
+			UpdateGreatestPlayerResourceMonopoly(eResource);
+			for (iI = 0; iI < MAX_MAJOR_CIVS; iI++)
+			{
+				if (GET_PLAYER((PlayerTypes)iI).isAlive())
+				{
+					GET_PLAYER((PlayerTypes)iI).CheckForMonopoly(eResource);
+				}
+			}
+		}
+	}
 #endif
 
 #if defined(MOD_BALANCE_CORE_HAPPINESS)
@@ -10197,7 +10214,7 @@ CvRandom& CvGame::getJonRand()
 int CvGame::getJonRandNum(int iNum, const char* pszLog)
 {
 #if defined(MOD_BUGFIX_RANDOM)
-	if (GC.getGame().getActivePlayer() == BARBARIAN_PLAYER)
+	if (BARBARIAN_PLAYER != NO_PLAYER && GET_TEAM(BARBARIAN_TEAM).isTurnActive())
 		return getSmallFakeRandNum(iNum, ((iNum/2)+(iNum*2)));
 
 	if (iNum > 0)
@@ -10266,7 +10283,9 @@ int CvGame::getSmallFakeRandNum(int iNum, const CvPlot& input)
 
 int CvGame::getSmallFakeRandNum(int iNum, int iExtraSeed)
 {
-	int iFake = getGameTurn() + abs(iExtraSeed);
+	int iFake = getGameTurn() - getNumCivCities() + GetGlobalPopulation() + abs(iExtraSeed);
+	if (iNum == 0)
+		iNum = -1;
 
 	//watch out, iFake^2 may turn negative because of overflow!
 	if (iNum>0)

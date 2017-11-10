@@ -221,7 +221,7 @@ public:
 #else
 	void InitDangerPlots();
 #endif
-	void UpdateDangerPlots();
+	void UpdateDangerPlots(bool bKeepKnownUnits);
 	void SetDangerPlotsDirty();
 
 	bool isHuman() const;
@@ -690,6 +690,9 @@ public:
 	int GetExtraHappinessPerXPoliciesFromPolicies() const;
 	void ChangeExtraHappinessPerXPoliciesFromPolicies(int iChange);
 
+	int GetHappinessPerXGreatWorks() const;
+	void ChangeHappinessPerXGreatWorks(int iChange);
+
 #if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 	int GetHappinessFromResourceMonopolies() const;
 #endif
@@ -957,6 +960,7 @@ public:
 #endif
 #if defined(MOD_BALANCE_CORE)
 	int GetGoldenAgePointsFromEmpire();
+	int GetGoldenAgePointsFromCities();
 #endif
 	void DoProcessGoldenAge();
 
@@ -1160,6 +1164,9 @@ public:
 	int GetTechCostXCitiesModifier() const;
 	void SetTechCostXCitiesModifier(int iValue);
 	void ChangeTechCostXCitiesModifier(int iChange);
+
+	int GetTourismCostXCitiesMod() const;
+	void ChangeTourismCostXCitiesMod(int iChange);
 
 	int GetGreatGeneralCombatBonus() const;
 	void SetGreatGeneralCombatBonus(int iValue);
@@ -2379,6 +2386,10 @@ public:
 	void setReplayDataValue(unsigned int uiDataSet, unsigned int uiTurn, int iValue);
 	TurnData getReplayDataHistory(unsigned int uiDataSet) const;
 
+	int getInstantYieldValue(YieldTypes eYield, int iTurn) const;
+	void changeInstantYieldValue(YieldTypes eYield, int iValue);
+	CvString getInstantYieldHistoryTooltip(int iGameTurn, int iNumPreviousTurnsToCount);
+
 	// Arbitrary Script Data
 	std::string getScriptData() const;
 	void setScriptData(std::string szNewValue);
@@ -2890,6 +2901,7 @@ protected:
 	FAutoVariable<int, CvPlayer> m_iCenterOfMassY;
 	FAutoVariable<int, CvPlayer> m_iReferenceFoundValue;
 	FAutoVariable<bool, CvPlayer> m_bIsReformation;
+	FAutoVariable<std::vector<int>, CvPlayer> m_viInstantYieldsTotal;
 #endif
 #if defined(MOD_BALANCE_CORE_HAPPINESS_LUXURY)
 	FAutoVariable<int, CvPlayer> m_iBaseLuxuryHappiness;
@@ -2930,6 +2942,7 @@ protected:
 	FAutoVariable<int, CvPlayer> m_iHappinessPerCity;
 	FAutoVariable<int, CvPlayer> m_iHappinessPerXPolicies;
 	FAutoVariable<int, CvPlayer> m_iExtraHappinessPerXPoliciesFromPolicies;
+	FAutoVariable<int, CvPlayer> m_iHappinessPerXGreatWorks;
 	FAutoVariable<int, CvPlayer> m_iEspionageModifier;
 	FAutoVariable<int, CvPlayer> m_iSpyStartingRank;
 #if defined(MOD_RELIGION_CONVERSION_MODIFIERS)
@@ -3046,6 +3059,7 @@ protected:
 	FAutoVariable<int, CvPlayer> m_iGreatScientistBeakerModifier;
 	FAutoVariable<int, CvPlayer> m_iGreatEngineerHurryMod;
 	FAutoVariable<int, CvPlayer> m_iTechCostXCitiesModifier;
+	FAutoVariable<int, CvPlayer> m_iTourismCostXCitiesMod;
 	FAutoVariable<int, CvPlayer> m_iGreatEngineerRateModifier;
 	FAutoVariable<int, CvPlayer> m_iGreatPersonExpendGold;
 #if defined(MOD_BALANCE_CORE_HAPPINESS)
@@ -3496,6 +3510,8 @@ protected:
 
 	std::vector<CvString> m_ReplayDataSets;
 	std::vector<TurnData> m_ReplayDataSetValues;
+
+	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppiInstantYieldHistoryValues;
 
 	void doResearch();
 	void doWarnings();

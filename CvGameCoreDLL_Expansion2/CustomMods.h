@@ -71,17 +71,9 @@
 /// unrevealed plots are impassable instead of passable by default
 #define MOD_CORE_UNREVEALED_IMPASSABLE
 
-/// visible tiles stay visible until the end of the turn
-#define MOD_CORE_DELAYED_VISIBILITY
-
-/// experimental performance improvement
-#define MOD_CORE_CACHE_REACHABLE_PLOTS
-
-/// unrevealed plots are impassable instead of passable by default
-#define MOD_CORE_UNREVEALED_IMPASSABLE
-
 /// for better multiplayer experience
 #define MOD_CORE_REDUCE_RANDOMNESS
+
 #define MOD_CORE_RESILIENT_PANTHEONS
 
 ///	air units take a flat amount of damage in each air strike (plus interceptions)
@@ -403,6 +395,8 @@
 #define MOD_BALANCE_RETROACTIVE_PROMOS				(MOD_COMMUNITY_PATCH && gCustomMods.isBALANCE_RETROACTIVE_PROMOS())
 #define MOD_BALANCE_NO_GAP_DURING_GA				(MOD_COMMUNITY_PATCH && gCustomMods.isBALANCE_NO_GAP_DURING_GA())
 #define MOD_BALANCE_DYNAMIC_UNIT_SUPPLY				(MOD_COMMUNITY_PATCH && gCustomMods.isBALANCE_DYNAMIC_UNIT_SUPPLY())
+#define MOD_BALANCE_CORE_UNIQUE_BELIEFS_ONLY_FOR_CIV	(MOD_COMMUNITY_PATCH && gCustomMods.isBALANCE_CORE_UNIQUE_BELIEFS_ONLY_FOR_CIV())
+#define MOD_BALANCE_DEFENSIVE_PACTS_AGGRESSION_ONLY	(MOD_COMMUNITY_PATCH && gCustomMods.isBALANCE_DEFENSIVE_PACTS_AGGRESSION_ONLY())
 #endif
 // activate eureka for tech cost bonus 'quest'
 #define MOD_CIV6_EUREKA								gCustomMods.isCIV6_EUREKAS()
@@ -791,7 +785,7 @@
 //   GameEvents.CityTrained.Add(function(iPlayer, iCity, iUnit, bGold, bFaith) end)
 //   GameEvents.CityConstructed.Add(function(iPlayer, iCity, iBuilding, bGold, bFaith) end)
 //   GameEvents.CityCreated.Add(function(iPlayer, iCity, iProject, bGold, bFaith) end)
-//   GameEvents.CityPrepared.Add(function(iPlayer, iCity, iSpecialist, bGold, bFaith) end) (v33)
+//   GameEvents.CityPrepared.Add(function(iPlayer, iCity, iSpecialist, iAmount, iNeeded) end) (v33)
 //   GameEvents.CityBoughtPlot.Add(function(iPlayer, iCity, iPlotX, iPlotY, bGold, bCulture) end)
 //   GameEvents.CitySoldBuilding.Add(function(iPlayer, iCity, iBuilding) end)
 #define MOD_EVENTS_CITY                             gCustomMods.isEVENTS_CITY()
@@ -1120,7 +1114,7 @@ enum BattleTypeTypes
 #define GAMEEVENT_CityConnections				"CityConnections",				"ib"
 #define GAMEEVENT_CityConstructed				"CityConstructed",				"iiibb"
 #define GAMEEVENT_CityCreated					"CityCreated",					"iiibb"
-#define GAMEEVENT_CityPrepared					"CityPrepared",					"iiibb"
+#define GAMEEVENT_CityPrepared					"CityPrepared",					"iiiii"
 #define GAMEEVENT_CitySoldBuilding				"CitySoldBuilding",				"iii"
 #define GAMEEVENT_CityTrained					"CityTrained",					"iiibb"
 #define GAMEEVENT_CustomMissionCompleted		"CustomMissionCompleted",		"iiiiiii"
@@ -1135,6 +1129,7 @@ enum BattleTypeTypes
 #define GAMEEVENT_EspionageCanMoveSpyTo			"EspionageCanMoveSpyTo",		"iii"
 #define GAMEEVENT_EspionageCanStageCoup			"EspionageCanStageCoup",		"iii"
 #define GAMEEVENT_EspionageResult				"EspionageResult",				"iiiii"
+#define GAMEEVENT_EspionageNotificationData		"EspionageNotificationData",	"iiiiiiiibiibi"
 #define GAMEEVENT_EspionageState				"EspionageState",				"iiiii"
 #define GAMEEVENT_GetDiploModifier				"GetDiploModifier",				"iii"
 #define GAMEEVENT_GetBombardRange				"GetBombardRange",				"ii"
@@ -1195,7 +1190,7 @@ enum BattleTypeTypes
 #define GAMEEVENT_ReligionCanHaveBelief			"ReligionCanHaveBelief",		"iii"
 #define GAMEEVENT_ReligionEnhanced				"ReligionEnhanced",				"iiii"
 #define GAMEEVENT_ReligionFounded				"ReligionFounded",				"iiiiiiii"
-#define GAMEEVENT_ReligionReformed				"ReligionReformed",				"iiiiiii"
+#define GAMEEVENT_ReligionReformed				"ReligionReformed",				"iii"
 #define GAMEEVENT_ResolutionProposing			"ResolutionProposing",			"ii"
 #define GAMEEVENT_ResolutionResult				"ResolutionResult",				"iiibb"
 #define GAMEEVENT_ResolutionVoting				"ResolutionVoting",				"ii"
@@ -1483,6 +1478,8 @@ public:
 	MOD_OPT_DECL(BALANCE_RETROACTIVE_PROMOS);
 	MOD_OPT_DECL(BALANCE_NO_GAP_DURING_GA);
 	MOD_OPT_DECL(BALANCE_DYNAMIC_UNIT_SUPPLY);
+	MOD_OPT_DECL(BALANCE_CORE_UNIQUE_BELIEFS_ONLY_FOR_CIV);
+	MOD_OPT_DECL(BALANCE_DEFENSIVE_PACTS_AGGRESSION_ONLY);
 
 	MOD_OPT_DECL(CIV6_WORKER);
 	MOD_OPT_DECL(CIV6_ROADS);

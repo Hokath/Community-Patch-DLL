@@ -76,6 +76,8 @@ ALTER TABLE Policies ADD COLUMN 'GreatEngineerHurryModifier' INTEGER DEFAULT 0;
 
 -- Reduce tech costs from cities:
 ALTER TABLE Policies ADD COLUMN 'TechCostXCitiesMod' INTEGER DEFAULT 0;
+-- And reduce tourism cost from cities
+ALTER TABLE Policies ADD COLUMN 'TourismCostXCitiesMod' INTEGER DEFAULT 0;
 
 
 -- Policy - reduces policy cost of Wonders by 1 for every x CS allies
@@ -111,6 +113,10 @@ ALTER TABLE GameSpeeds ADD COLUMN 'StartingHappiness' INTEGER DEFAULT 0;
 -- No unhappiness from Isolation.
 
 ALTER TABLE Traits ADD COLUMN 'NoConnectionUnhappiness' BOOLEAN DEFAULT 0;
+
+-- can buy boats with faith (need faith cost on units to do so).
+
+ALTER TABLE Traits ADD COLUMN 'CanPurchaseNavalUnitsFaith' BOOLEAN DEFAULT 0;
 
 -- Imports count towards monopolies.
 
@@ -171,6 +177,7 @@ ALTER TABLE Traits ADD COLUMN 'AllianceCSStrength' INTEGER DEFAULT 0;
 -- Adds a trait that converts x% of tourism to GAP, where x is the integer below.
 
 ALTER TABLE Traits ADD COLUMN 'TourismToGAP' INTEGER DEFAULT 0;
+ALTER TABLE Traits ADD COLUMN 'GoldToGAP' INTEGER DEFAULT 0;
 
 -- Adds a trait that boosts the value of historic event tourism. 1 = 10%, 2 = 20%, etc.
 
@@ -188,6 +195,9 @@ ALTER TABLE Traits ADD COLUMN 'GAGarrisonCityRangeStrikeModifier' INTEGER DEFAUL
 
 -- Player enters a golden age on a declaration of war, either as attacking or defending
 ALTER TABLE Traits ADD COLUMN 'GoldenAgeOnWar' BOOLEAN DEFAULT 0;
+
+-- Puppet negative modifiers no longer apply
+ALTER TABLE Traits ADD COLUMN 'IgnorePuppetPenalties' BOOLEAN DEFAULT 0;
 
 -- Player gains a free policy after unlocking x number of technologies from the tech tree.
 ALTER TABLE Traits ADD COLUMN 'FreePolicyPerXTechs' INTEGER default 0;
@@ -943,6 +953,7 @@ ALTER TABLE Resources ADD COLUMN 'StrategicHelp' TEXT DEFAULT NULL;
 ALTER TABLE Policies ADD COLUMN 'TRSpeedBoost' INTEGER DEFAULT 0;
 ALTER TABLE Policies ADD COLUMN 'TRVisionBoost' INTEGER DEFAULT 0;
 ALTER TABLE Policies ADD COLUMN 'HappinessPerXPolicies' INTEGER DEFAULT 0;
+ALTER TABLE Policies ADD COLUMN 'HappinessPerXGreatWorks' INTEGER DEFAULT 0;
 
 -- Trade Routes
 ALTER TABLE Policies ADD COLUMN 'ExtraCultureandScienceTradeRoutes' INTEGER DEFAULT 0;

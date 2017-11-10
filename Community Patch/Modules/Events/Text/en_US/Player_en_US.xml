@@ -601,7 +601,7 @@
 			<Text>The nations of the world respect your resolve, earning you {2_InstantYield}. A new army appears near the [ICON_CAPITAL] Capital.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_PLAYER_EVENT_ADVISOR_DEBATE_CHOICE_2_SUCCESSFUL">
-			<Text>Your Science Advisor notes that our leverage over the international research council has successfully unlocked a new technology./Text>
+			<Text>Your Science Advisor notes that our leverage over the international research council has successfully unlocked a new technology.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_PLAYER_EVENT_ADVISOR_DEBATE_CHOICE_2_SUCCESSFUL_S">
 			<Text>Research Grant</Text>

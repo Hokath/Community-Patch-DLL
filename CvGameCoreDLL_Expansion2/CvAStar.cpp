@@ -503,17 +503,6 @@ void CvAStar::CreateChildren(CvAStarNode* node)
 		if (!check)
 			continue;
 
-		//check if we already found a better way ...
-		if (check->m_eCvAStarListType == CVASTARLIST_OPEN || check->m_eCvAStarListType == CVASTARLIST_CLOSED)
-		{
-			if ((check->m_iTurns < node->m_iTurns) || (check->m_iTurns == node->m_iTurns && check->m_iMoves > node->m_iMoves))
-			{
-				LogNodeAction(node, m_iRounds, NS_OBSOLETE);
-				continue;
-			}
-		}
-
-		//now the real checks
 		m_iTestedNodes++;
 		if(udFunc(udValid, node, check, m_sData))
 		{
@@ -1585,7 +1574,7 @@ int StepCostEstimate(const CvAStarNode* parent, const CvAStarNode* node, const S
 		iScale = 67;
 	else if (pToPlot->isRoughGround())
 		iScale = 200;
-	else if (pFromPlot->isWater() != pToPlot->isWater())
+	else if (pFromPlot->isWater() != pToPlot->isWater() && !pFromPlot->isCity() && !pToPlot->isCity())
 		iScale = 200; //dis/embarkation
 	else if (pFromPlot->isWater() && pToPlot->isWater())
 		iScale = 67; //movement on water is usually faster
@@ -2249,6 +2238,10 @@ bool CvTwoLayerPathFinder::AddStopNodeIfRequired(const CvAStarNode* current, con
 {
 	//we're stopping anyway - nothing to do
 	if (current->m_iMoves == 0)
+		return false;
+
+	//stop nodes don't make sense if we're only after the reachable plots
+	if (!HasValidDestination())
 		return false;
 
 	//can't stop - nothing to do
