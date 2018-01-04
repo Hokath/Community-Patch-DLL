@@ -59,7 +59,7 @@
 			<Text>A large investment will pay dividends.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_CITY_EVENT_FISHING_EXPEDITION_CHOICE_2_HELP">
-			<Text>Spend {1_Scaled}. Fishing Boats near the City will gain +5 [ICON_FOOD] Food for {5_Turns}.</Text>
+			<Text>Spend {1_Scaled}. Fishing Boats near the City will gain +4 [ICON_FOOD] Food for {5_Turns}.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_CITY_EVENT_FISHING_EXPEDITION_CHOICE_3">
 			<Text>I'd rather invest in something much lucrative...</Text>
