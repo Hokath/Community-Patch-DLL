@@ -39,7 +39,7 @@ public:
 	static void GenerateNuclearCombatInfo(CvUnit& kAttacker, CvPlot& plot, CvCombatInfo* pkCombatInfo);
 	
 #if defined(MOD_GLOBAL_PARATROOPS_AA_DAMAGE)
-	static bool ParadropIntercept(CvUnit& pParaUnit, CvPlot& pDropPlot);
+	static bool ParadropIntercept(CvUnit& paraUnit, CvPlot& dropPlot);
 #endif
 
 	static void ResolveCombat(const CvCombatInfo& kInfo, uint uiParentEventID = 0);
@@ -66,6 +66,7 @@ protected:
 
 	static void GenerateNuclearExplosionDamage(CvPlot* pkTargetPlot, int iDamageLevel, CvUnit* pkAttacker, CvCombatMemberEntry* pkDamageArray, int* piDamageMembers, int iMaxDamageMembers);
 	static uint ApplyNuclearExplosionDamage(const CvCombatMemberEntry* pkDamageArray, int iDamageMembers, CvUnit* pkAttacker, CvPlot* pkTargetPlot, int iDamageLevel);
+	static bool AttackerAdvances(CvUnit& kAttacker);
 
 public:
 	static void ApplyPostKillTraitEffects(CvUnit* pkWinner, CvUnit* pkLoser);

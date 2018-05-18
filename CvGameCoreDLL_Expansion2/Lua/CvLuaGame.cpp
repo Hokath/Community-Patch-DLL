@@ -165,6 +165,9 @@ void CvLuaGame::RegisterMembers(lua_State* L)
 	Method(GetInitTech);
 	Method(GetInitWonders);
 	Method(GetNumWorldWonders);
+#if defined(MOD_API_LUA_EXTENSIONS)
+	Method(IsWorldWonderClass);
+#endif
 
 	Method(GetAIAutoPlay);
 	Method(SetAIAutoPlay);
@@ -317,6 +320,7 @@ void CvLuaGame::RegisterMembers(lua_State* L)
 
 	Method(GetNumCitiesPolicyCostMod);
 	Method(GetNumCitiesTechCostMod);
+	Method(GetNumCitiesTourismCostMod);
 
 	Method(GetBuildingYieldChange);
 	Method(GetBuildingYieldModifier);
@@ -514,12 +518,21 @@ void CvLuaGame::RegisterMembers(lua_State* L)
 	Method(GetContractUnits);
 	Method(GetInactiveContractUnitList);
 	Method(GetActiveContractUnitList);
+
+	Method(DoSpawnFreeCity);
 #endif
 
 #if defined(MOD_BATTLE_ROYALE)
 	Method(DeleteCSV);
 	Method(WriteCSV);
 #endif
+
+#if defined(MOD_API_LUA_EXTENSIONS)
+	Method(IsPitbossHost);
+	Method(IsHost);
+	Method(GetTimeStringForYear);
+#endif
+
 }
 //------------------------------------------------------------------------------
 
@@ -1221,6 +1234,18 @@ int CvLuaGame::lGetNumWorldWonders(lua_State* L)
 	lua_pushinteger(L, iWonderCount);
 	return 1;
 }
+#if defined(MOD_API_LUA_EXTENSIONS)
+//------------------------------------------------------------------------------
+//bool isWorldWonderClass(const CvBuildingClassInfo& kBuildingClass);
+int CvLuaGame::lIsWorldWonderClass(lua_State* L)
+{
+	const BuildingClassTypes eBuildingClass = (BuildingClassTypes) lua_tointeger(L, 1);
+	CvBuildingClassInfo* pkBuildingClassInfo = GC.getBuildingClassInfo(eBuildingClass);
+	const bool bResult = ::isWorldWonderClass(*pkBuildingClassInfo);
+	lua_pushboolean(L, bResult);
+	return 1;
+}
+#endif
 //------------------------------------------------------------------------------
 //int getAIAutoPlay();
 int CvLuaGame::lGetAIAutoPlay(lua_State* L)
@@ -2199,6 +2224,12 @@ int CvLuaGame::lGetNumCitiesPolicyCostMod(lua_State* L)
 	return 1;
 }
 //------------------------------------------------------------------------------
+int CvLuaGame::lGetNumCitiesTourismCostMod(lua_State* L)
+{
+	lua_pushinteger(L, GC.getMap().getWorldInfo().GetNumCitiesTourismCostMod());
+	return 1;
+}
+//------------------------------------------------------------------------------
 int CvLuaGame::lGetNumCitiesTechCostMod(lua_State* L)
 {
 	const PlayerTypes ePlayer = GC.getGame().getActivePlayer();
@@ -2851,11 +2882,19 @@ int CvLuaGame::lGetReligionName(lua_State* L)
 		return 1;
 	}
 	
-	CvReligionEntry* pkEntry = GC.getReligionInfo(eReligion);
-	if(pkEntry != NULL)
+	if (eReligion == NO_RELIGION)
 	{
-		lua_pushstring(L, pkEntry->GetDescriptionKey());
+		lua_pushstring(L, "No Religion");
 		return 1;
+	}
+	else
+	{
+		CvReligionEntry* pkEntry = GC.getReligionInfo(eReligion);
+		if (pkEntry != NULL)
+		{
+			lua_pushstring(L, pkEntry->GetDescriptionKey());
+			return 1;
+		}
 	}
 
 	return 0;
@@ -3429,8 +3468,8 @@ int CvLuaGame::lGetTradeRoute(lua_State* L)
 		lua_pushinteger(L, iFromPressure);
 		lua_setfield(L, t, "FromPressure");
 #if defined(MOD_BALANCE_CORE)
-		int iToDelta = pFromCity->GetBaseTourism() * pFromCity->GetCityCulture()->GetTourismMultiplier(pToPlayer->GetID(), true, true, false, true, true);
-		int iFromDelta = pToCity->GetBaseTourism() * pToCity->GetCityCulture()->GetTourismMultiplier(pFromPlayer->GetID(), true, true, false, true, true);
+		int iToDelta = (pFromCity->GetBaseTourism() / 100) * pFromCity->GetCityCulture()->GetTourismMultiplier(pToPlayer->GetID(), true, true, false, true, true);
+		int iFromDelta = (pToCity->GetBaseTourism() / 100) * pToCity->GetCityCulture()->GetTourismMultiplier(pFromPlayer->GetID(), true, true, false, true, true);
 #else
 		int iToDelta = pFromCity->GetBaseTourism() * pFromCity->GetCityCulture()->GetTourismMultiplier(pToPlayer->GetID(), true, true, false, true, true);
 		int iFromDelta = pToCity->GetBaseTourism() * pToCity->GetCityCulture()->GetTourismMultiplier(pFromPlayer->GetID(), true, true, false, true, true);
@@ -4016,6 +4055,13 @@ int CvLuaGame::lGetActiveContractUnitList(lua_State* L)
 	}
 	return 1;
 }
+
+int CvLuaGame::lDoSpawnFreeCity(lua_State* L)
+{
+	CvCity* pkCity = CvLuaCity::GetInstance(L, 1);
+	GC.getGame().CreateFreeCityPlayer(pkCity);
+	return 0;
+}
 #endif
 
 #if defined(MOD_BATTLE_ROYALE)
@@ -4035,6 +4081,33 @@ int CvLuaGame::lWriteCSV(lua_State * L)
 
 	CvLoggerCSV::WriteCSVLog(szCSVFilename, szCSVLine);
 
+	return 1;
+}
+#endif
+
+#if defined(MOD_API_LUA_EXTENSIONS)
+int CvLuaGame::lIsPitbossHost(lua_State* L)
+{
+	lua_pushboolean(L, gDLL->IsPitbossHost());
+	return 1;
+}
+
+int CvLuaGame::lIsHost(lua_State* L)
+{
+	lua_pushboolean(L, gDLL->IsHost());
+	return 1;
+}
+
+int CvLuaGame::lGetTimeStringForYear(lua_State* L)
+{
+	int year = lua_tointeger(L, 1);
+
+	CvString timeString;
+
+	CvGame& kGame = GC.getGame();
+	CvGameTextMgr::setDateStr(timeString, year, true, kGame.getCalendar(), kGame.getStartYear(), kGame.getGameSpeedType());
+
+	lua_pushstring(L, timeString.GetCString());
 	return 1;
 }
 #endif

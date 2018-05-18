@@ -91,7 +91,7 @@ CvPolicyEntry::CvPolicyEntry(void):
 	m_bCorporationFreeFranchiseAbovePopular(false),
 	m_bCorporationRandomForeignFranchise(false),
 	m_iAdditionalNumFranchisesMod(0),
-	m_bUpgradeCSTerritory(false),
+	m_bUpgradeCSVassalTerritory(false),
 	m_iArchaeologicalDigTourism(0),
 	m_iGoldenAgeTourism(0),
 	m_iExtraCultureandScienceTradeRoutes(0),
@@ -213,7 +213,9 @@ CvPolicyEntry::CvPolicyEntry(void):
 	m_bFinisher(false),
 	m_iCityStateCombatModifier(0),
 	m_iGreatEngineerRateModifier(0),
+	m_iDefenseBoost(0),
 	m_eNewCityFreeBuilding(NO_BUILDINGCLASS),
+	m_eAllCityFreeBuilding(NO_BUILDINGCLASS),
 #endif
 	m_bMilitaryFoodProduction(false),
 	m_iWoundedUnitDamageMod(0),
@@ -241,6 +243,7 @@ CvPolicyEntry::CvPolicyEntry(void):
 	m_iNoUnhappfromXSpecialists(0),
 	m_iHappfromXSpecialists(0),
 	m_iNoUnhappfromXSpecialistsCapital(0),
+	m_iSpecialistFoodChange(0),
 	m_iWarWearinessModifier(0),
 	m_iWarScoreModifier(0),
 	m_iGreatGeneralExtraBonus(0),
@@ -253,6 +256,7 @@ CvPolicyEntry::CvPolicyEntry(void):
 	m_piCoastalCityYieldChange(NULL),
 	m_piCapitalYieldChange(NULL),
 	m_piCapitalYieldPerPopChange(NULL),
+	m_piCapitalYieldPerPopChangeEmpire(NULL),
 	m_piCapitalYieldModifier(NULL),
 	m_piGreatWorkYieldChange(NULL),
 	m_piSpecialistExtraYield(NULL),
@@ -289,7 +293,7 @@ CvPolicyEntry::CvPolicyEntry(void):
 	m_iTechCostXCitiesMod(0),
 	m_iTourismCostXCitiesMod(0),
 	m_iInternalTradeGold(0),
-	m_iCitadelBoost(0),
+	m_iCultureBombBoost(0),
 	m_iPuppetProdMod(0),
 	m_iOccupiedProdMod(0),
 	m_iFreeWCVotes(0),
@@ -353,6 +357,11 @@ CvPolicyEntry::CvPolicyEntry(void):
 	m_iMissionInfluenceModifier(0),
 	m_iHappinessPerActiveTradeRoute(0),
 	m_bCSResourcesForMonopolies(false),
+	m_iNeedsModifierFromAirUnits(0),
+	m_iFlatDefenseFromAirUnits(0),
+	m_iPuppetYieldPenaltyMod(0),
+	m_iConquestPerEraBuildingProductionMod(0),
+	m_iAdmiralLuxuryBonus(0),
 #endif
 #if defined(HH_MOD_API_TRADEROUTE_MODIFIERS)
 	m_piInternationalRouteYieldModifiers(NULL),
@@ -375,6 +384,7 @@ CvPolicyEntry::~CvPolicyEntry(void)
 	SAFE_DELETE_ARRAY(m_piCoastalCityYieldChange);
 	SAFE_DELETE_ARRAY(m_piCapitalYieldChange);
 	SAFE_DELETE_ARRAY(m_piCapitalYieldPerPopChange);
+	SAFE_DELETE_ARRAY(m_piCapitalYieldPerPopChangeEmpire);
 	SAFE_DELETE_ARRAY(m_piCapitalYieldModifier);
 	SAFE_DELETE_ARRAY(m_piGreatWorkYieldChange);
 	SAFE_DELETE_ARRAY(m_piSpecialistExtraYield);
@@ -530,7 +540,7 @@ bool CvPolicyEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 	m_bCorporationFreeFranchiseAbovePopular = kResults.GetBool("CorporationFreeFranchiseAbovePopular");
 	m_bCorporationRandomForeignFranchise = kResults.GetBool("CorporationRandomForeignFranchise");
 	m_iAdditionalNumFranchisesMod = kResults.GetInt("AdditionalNumFranchisesMod");
-	m_bUpgradeCSTerritory = kResults.GetBool("UpgradeCSTerritory");
+	m_bUpgradeCSVassalTerritory = kResults.GetBool("UpgradeCSVassalTerritory");
 	m_iArchaeologicalDigTourism = kResults.GetInt("ArchaeologicalDigTourism");
 	m_iGoldenAgeTourism = kResults.GetInt("GoldenAgeTourism");
 	m_iExtraCultureandScienceTradeRoutes = kResults.GetInt("ExtraCultureandScienceTradeRoutes");
@@ -602,6 +612,7 @@ bool CvPolicyEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 	m_bFinisher = kResults.GetBool("IsFinisher");
 	m_iCityStateCombatModifier = kResults.GetInt("CityStateCombatModifier");
 	m_iGreatEngineerRateModifier = kResults.GetInt("GreatEngineerRateModifier");
+	m_iDefenseBoost = kResults.GetInt("DefenseBoostAllCities");
 #endif
 	m_bMilitaryFoodProduction = kResults.GetBool("MilitaryFoodProduction");
 	m_iMaxConscript = kResults.GetInt("MaxConscript");
@@ -677,6 +688,7 @@ bool CvPolicyEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 	m_iNoUnhappfromXSpecialists = kResults.GetInt("NoUnhappfromXSpecialists");
 	m_iHappfromXSpecialists = kResults.GetInt("HappfromXSpecialists");
 	m_iNoUnhappfromXSpecialistsCapital = kResults.GetInt("NoUnhappfromXSpecialistsCapital");
+	m_iSpecialistFoodChange = kResults.GetInt("SpecialistFoodChange");
 	m_iWarWearinessModifier = kResults.GetInt("WarWearinessModifier");
 	m_iWarScoreModifier = kResults.GetInt("WarScoreModifier");
 	m_iGreatGeneralExtraBonus = kResults.GetInt("GreatGeneralExtraBonus");
@@ -704,7 +716,7 @@ bool CvPolicyEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 	m_iTechCostXCitiesMod = kResults.GetInt("TechCostXCitiesMod");
 	m_iTourismCostXCitiesMod = kResults.GetInt("TourismCostXCitiesMod");
 	m_iInternalTradeGold = kResults.GetInt("InternalTradeGold");
-	m_iCitadelBoost = kResults.GetInt("CitadelBoost");
+	m_iCultureBombBoost = kResults.GetInt("CultureBombBoost");
 	m_iPuppetProdMod = kResults.GetInt("PuppetProdMod");
 	m_iOccupiedProdMod = kResults.GetInt("OccupiedProdMod");
 	m_iFreeWCVotes = kResults.GetInt("FreeWCVotes");
@@ -716,6 +728,11 @@ bool CvPolicyEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 	m_iMissionInfluenceModifier = kResults.GetInt("MissionInfluenceModifier");
 	m_iHappinessPerActiveTradeRoute = kResults.GetInt("HappinessPerActiveTradeRoute");
 	m_bCSResourcesForMonopolies = kResults.GetBool("CSResourcesCountForMonopolies");
+	m_iNeedsModifierFromAirUnits = kResults.GetInt("NeedsModifierFromAirUnits");
+	m_iFlatDefenseFromAirUnits = kResults.GetInt("FlatDefenseFromAirUnits");
+	m_iPuppetYieldPenaltyMod = kResults.GetInt("PuppetYieldPenaltyMod");
+	m_iConquestPerEraBuildingProductionMod = kResults.GetInt("ConquestPerEraBuildingProductionMod");
+	m_iAdmiralLuxuryBonus = kResults.GetInt("AdmiralLuxuryBonus");
 #endif
 #if defined(MOD_BALANCE_CORE_BUILDING_INVESTMENTS)
 	m_iInvestmentModifier = kResults.GetInt("InvestmentModifier");
@@ -743,6 +760,11 @@ bool CvPolicyEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 	{
 		m_eNewCityFreeBuilding = (BuildingClassTypes)GC.getInfoTypeForString(szNewCityFreeBuilding, true);
 	}
+	const char* szAllCityFreeBuilding = kResults.GetText("AllCityFreeBuilding");
+	if (szAllCityFreeBuilding)
+	{
+		m_eAllCityFreeBuilding = (BuildingClassTypes)GC.getInfoTypeForString(szAllCityFreeBuilding, true);
+	}
 #endif
 	//Arrays
 	const char* szPolicyType = GetType();
@@ -751,6 +773,7 @@ bool CvPolicyEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 	kUtility.SetYields(m_piCoastalCityYieldChange, "Policy_CoastalCityYieldChanges", "PolicyType", szPolicyType);
 	kUtility.SetYields(m_piCapitalYieldChange, "Policy_CapitalYieldChanges", "PolicyType", szPolicyType);
 	kUtility.SetYields(m_piCapitalYieldPerPopChange, "Policy_CapitalYieldPerPopChanges", "PolicyType", szPolicyType);
+	kUtility.SetYields(m_piCapitalYieldPerPopChangeEmpire, "Policy_CapitalYieldPerPopChangeEmpire", "PolicyType", szPolicyType);
 	kUtility.SetYields(m_piCapitalYieldModifier, "Policy_CapitalYieldModifiers", "PolicyType", szPolicyType);
 	kUtility.SetYields(m_piGreatWorkYieldChange, "Policy_GreatWorkYieldChanges", "PolicyType", szPolicyType);
 	kUtility.SetYields(m_piSpecialistExtraYield, "Policy_SpecialistExtraYields", "PolicyType", szPolicyType);
@@ -1117,6 +1140,8 @@ bool CvPolicyEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 	kUtility.SetYields(m_piArtYieldChanges, "Policy_ArtYieldChanges", "PolicyType", szPolicyType);
 	kUtility.SetYields(m_piLitYieldChanges, "Policy_LitYieldChanges", "PolicyType", szPolicyType);
 	kUtility.SetYields(m_piMusicYieldChanges, "Policy_MusicYieldChanges", "PolicyType", szPolicyType);
+	kUtility.SetYields(m_piRelicYieldChanges, "Policy_RelicYieldChanges", "PolicyType", szPolicyType);
+	kUtility.SetYields(m_piFilmYieldChanges, "Policy_FilmYieldChanges", "PolicyType", szPolicyType);
 
 	kUtility.SetYields(m_piYieldFromNonSpecialistCitizens, "Policy_YieldFromNonSpecialistCitizens", "PolicyType", szPolicyType);
 	kUtility.SetYields(m_piYieldModifierFromGreatWorks, "Policy_YieldModifierFromGreatWorks", "PolicyType", szPolicyType);
@@ -1667,9 +1692,9 @@ int CvPolicyEntry::GetAdditionalNumFranchisesMod() const
 {
 	return m_iAdditionalNumFranchisesMod;
 }
-bool CvPolicyEntry::IsUpgradeCSTerritory() const
+bool CvPolicyEntry::IsUpgradeCSVassalTerritory() const
 {
-	return m_bUpgradeCSTerritory;
+	return m_bUpgradeCSVassalTerritory;
 }
 int CvPolicyEntry::GetArchaeologicalDigTourism() const
 {
@@ -1886,6 +1911,10 @@ int CvPolicyEntry::GetNewCityExtraPopulation() const
 BuildingClassTypes CvPolicyEntry::GetNewCityFreeBuilding() const
 {
 	return m_eNewCityFreeBuilding;
+}
+BuildingClassTypes CvPolicyEntry::GetAllCityFreeBuilding() const
+{
+	return m_eAllCityFreeBuilding;
 }
 #endif
 /// Amount of free food newly-founded Cities receive
@@ -2255,6 +2284,10 @@ int CvPolicyEntry::GetGreatEngineerRateModifier() const
 {
 	return m_iGreatEngineerRateModifier;
 }
+int CvPolicyEntry::GetDefenseBoost() const
+{
+	return m_iDefenseBoost;
+}
 #endif
 /// Military units now all produced with food
 bool CvPolicyEntry::IsMilitaryFoodProduction() const
@@ -2403,6 +2436,10 @@ int CvPolicyEntry::GetNoUnhappfromXSpecialistsCapital() const
 {
 	return m_iNoUnhappfromXSpecialistsCapital;
 }
+int CvPolicyEntry::GetSpecialistFoodChange() const
+{
+	return m_iSpecialistFoodChange;
+}
 int CvPolicyEntry::GetWarWearinessModifier() const
 {
 	return m_iWarWearinessModifier;
@@ -2535,6 +2572,20 @@ int* CvPolicyEntry::GetCapitalYieldPerPopChangeArray() const
 	return m_piCapitalYieldPerPopChange;
 }
 
+
+/// Change to yield in Capital by type (per pop)
+int CvPolicyEntry::GetCapitalYieldPerPopChangeEmpire(int i) const
+{
+	CvAssertMsg(i < NUM_YIELD_TYPES, "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	return m_piCapitalYieldPerPopChangeEmpire ? m_piCapitalYieldPerPopChangeEmpire[i] : -1;
+}
+
+/// Array of yield changes in Capital (per pop)
+int* CvPolicyEntry::GetCapitalYieldPerPopChangeEmpireArray() const
+{
+	return m_piCapitalYieldPerPopChangeEmpire;
+}
 /// Change to yield in capital by type
 int CvPolicyEntry::GetCapitalYieldModifier(int i) const
 {
@@ -2802,9 +2853,9 @@ int CvPolicyEntry::GetTourismCostXCitiesMod() const
 	return m_iTourismCostXCitiesMod;
 }
 /// Citadel Boost?
-int CvPolicyEntry::GetCitadelBoost() const
+int CvPolicyEntry::GetCultureBombBoost() const
 {
-	return m_iCitadelBoost;
+	return m_iCultureBombBoost;
 }
 /// Puppet Production Boost?
 int CvPolicyEntry::GetPuppetProdMod() const
@@ -3214,6 +3265,29 @@ int* CvPolicyEntry::GetMusicYieldChangesArray() const
 	return m_piMusicYieldChanges;
 }
 
+int CvPolicyEntry::GetRelicYieldChanges(int i) const
+{
+	CvAssertMsg(i < NUM_YIELD_TYPES, "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	return m_piRelicYieldChanges ? m_piRelicYieldChanges[i] : 0;
+}
+
+int* CvPolicyEntry::GetRelicYieldChangesArray() const
+{
+	return m_piRelicYieldChanges;
+}
+
+int CvPolicyEntry::GetFilmYieldChanges(int i) const
+{
+	CvAssertMsg(i < NUM_YIELD_TYPES, "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	return m_piFilmYieldChanges ? m_piFilmYieldChanges[i] : 0;
+}
+
+int* CvPolicyEntry::GetFilmYieldChangesArray() const
+{
+	return m_piFilmYieldChanges;
+}
 
 int CvPolicyEntry::GetYieldFromNonSpecialistCitizens(int i) const
 {
@@ -3270,6 +3344,27 @@ int CvPolicyEntry::GetMissionInfluenceModifier() const
 int CvPolicyEntry::GetHappinessPerActiveTradeRoute() const
 {
 	return m_iHappinessPerActiveTradeRoute;
+}
+
+int CvPolicyEntry::GetNeedsModifierFromAirUnits() const
+{
+	return m_iNeedsModifierFromAirUnits;
+}
+int CvPolicyEntry::GetFlatDefenseFromAirUnits() const
+{
+	return m_iFlatDefenseFromAirUnits;
+}
+int CvPolicyEntry::GetPuppetYieldPenaltyMod() const
+{
+	return m_iPuppetYieldPenaltyMod;
+}
+int CvPolicyEntry::GetConquestPerEraBuildingProductionMod() const
+{
+	return m_iConquestPerEraBuildingProductionMod;
+}
+int CvPolicyEntry::GetAdmiralLuxuryBonus() const
+{
+	return m_iAdmiralLuxuryBonus;
 }
 
 bool CvPolicyEntry::IsCSResourcesForMonopolies() const
@@ -4177,6 +4272,9 @@ int CvPlayerPolicies::GetNumericModifier(PolicyModifierType eType)
 			case POLICYMOD_STEAL_GW_FASTER_MODIFIER:
 				rtnValue += m_pPolicies->GetPolicyEntry(i)->GetStealGWFasterModifier();
 				break;
+			case POLICYMOD_CITY_DEFENSE_BOOST:
+				rtnValue += m_pPolicies->GetPolicyEntry(i)->GetDefenseBoost();
+				break;
 #endif
 #if defined(MOD_DIPLOMACY_CITYSTATES)
 			case POLICYMOD_GREAT_DIPLOMAT_RATE:
@@ -4902,102 +5000,15 @@ void CvPlayerPolicies::DoUnlockPolicyBranch(PolicyBranchTypes eBranchType)
 	}
 
 #if defined(MOD_BALANCE_CORE)
+	CvCity* pCapital = m_pPlayer->getCapitalCity();
 	int iPolicyGEorGM = m_pPlayer->GetPlayerTraits()->GetPolicyGEorGM();
-	if(iPolicyGEorGM > 0)
+	if (iPolicyGEorGM > 0 && pCapital != NULL)
 	{
-		CvCity* pLoopCity;
-		int iLoop;
-		int iValue = iPolicyGEorGM * (m_pPlayer->GetCurrentEra() + 1);
-		SpecialistTypes eBestSpecialist = NO_SPECIALIST;
-		int iRandom = GC.getGame().getJonRandNum(100, "Random GE or GM value");
-		if(iRandom <= 33)
-		{
-			eBestSpecialist = (SpecialistTypes)GC.getInfoTypeForString("SPECIALIST_ENGINEER");
-		}
-		else if(iRandom > 34 && iRandom <= 66)
-		{
-			eBestSpecialist = (SpecialistTypes)GC.getInfoTypeForString("SPECIALIST_SCIENTIST");
-		}
-		else if(iRandom > 66)
-		{
-			eBestSpecialist = (SpecialistTypes)GC.getInfoTypeForString("SPECIALIST_MERCHANT");			
-		}
-		if(eBestSpecialist != NULL)
-		{
-			for(pLoopCity = m_pPlayer->firstCity(&iLoop); pLoopCity != NULL; pLoopCity = m_pPlayer->nextCity(&iLoop))
-			{
-				if(eBestSpecialist == (SpecialistTypes)GC.getInfoTypeForString("SPECIALIST_ENGINEER"))
-				{
-					pLoopCity->changeProduction(iValue);
-				}
-				else if(eBestSpecialist == (SpecialistTypes)GC.getInfoTypeForString("SPECIALIST_MERCHANT"))
-				{
-					m_pPlayer->GetTreasury()->ChangeGold(iValue);
-				}
-				else if(eBestSpecialist == (SpecialistTypes)GC.getInfoTypeForString("SPECIALIST_SCIENTIST"))
-				{
-					TechTypes eCurrentTech = m_pPlayer->GetPlayerTechs()->GetCurrentResearch();
-					if(eCurrentTech == NO_TECH)
-					{
-						m_pPlayer->changeOverflowResearch(iValue);
-						if(m_pPlayer->getOverflowResearch() <= 0)
-						{
-							m_pPlayer->setOverflowResearch(0);
-						}
-					}
-					else
-					{
-						GET_TEAM(m_pPlayer->getTeam()).GetTeamTechs()->ChangeResearchProgress(eCurrentTech, iValue, m_pPlayer->GetID());
-						if(GET_TEAM(m_pPlayer->getTeam()).GetTeamTechs()->GetResearchProgress(eCurrentTech) <= 0)
-						{
-							GET_TEAM(m_pPlayer->getTeam()).GetTeamTechs()->SetResearchProgress(eCurrentTech, 0, m_pPlayer->GetID());
-						}
-					}
-				}
-				CvSpecialistInfo* pkSpecialistInfo = GC.getSpecialistInfo(eBestSpecialist);
-				if(pkSpecialistInfo)
-				{
-					int iGPThreshold = pLoopCity->GetCityCitizens()->GetSpecialistUpgradeThreshold((UnitClassTypes)pkSpecialistInfo->getGreatPeopleUnitClass());
-					iGPThreshold *= 100;
-					//Get % of threshold for test.
-					iGPThreshold *= iPolicyGEorGM;
-					iGPThreshold /= 100;
-				
-					pLoopCity->GetCityCitizens()->ChangeSpecialistGreatPersonProgressTimes100(eBestSpecialist, iGPThreshold, true);
-					if(m_pPlayer->GetID() == GC.getGame().getActivePlayer())
-					{
-						iGPThreshold /= 100;
-						char text[256] = {0};
-						float fDelay = 0.5f;
-						sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_GREAT_PEOPLE]", iGPThreshold);
-						DLLUI->AddPopupText(pLoopCity->getX(),pLoopCity->getY(), text, fDelay);
-						CvNotifications* pNotification = m_pPlayer->GetNotifications();
-						if(pNotification)
-						{
-							CvString strMessage = GetLocalizedText("TXT_KEY_POLICY_ADOPT_GP_BONUS", iGPThreshold);
-							CvString strSummary;
-							// Class specific specialist message
-							if((UnitClassTypes)pkSpecialistInfo->getGreatPeopleUnitClass() == GC.getInfoTypeForString("UNITCLASS_MERCHANT"))
-							{
-								strMessage = GetLocalizedText("TXT_KEY_POLICY_ADOPT_GP_BONUS_MERCHANT", iGPThreshold);
-							}
-							else if((UnitClassTypes)pkSpecialistInfo->getGreatPeopleUnitClass() == GC.getInfoTypeForString("UNITCLASS_ENGINEER"))
-							{
-								strMessage = GetLocalizedText("TXT_KEY_POLICY_ADOPT_GP_BONUS_ENGINEER", iGPThreshold);
-							}
-							else if((UnitClassTypes)pkSpecialistInfo->getGreatPeopleUnitClass() == GC.getInfoTypeForString("UNITCLASS_SCIENTIST"))
-							{
-								strMessage = GetLocalizedText("TXT_KEY_POLICY_ADOPT_GP_BONUS_SCIENTIST", iGPThreshold);
-							}
-							strSummary = GetLocalizedText("TXT_KEY_POLICY_ADOPT_SUMMARY_GP_BONUS");
-							pNotification->Add(NOTIFICATION_GENERIC, strMessage, strSummary, -1, -1, -1);
-						}
-					}
-				}
-			}
-		}
+		m_pPlayer->doPolicyGEorGM(iPolicyGEorGM);
 	}
 	m_pPlayer->doInstantYield(INSTANT_YIELD_TYPE_POLICY_UNLOCK, false, NO_GREATPERSON, NO_BUILDING, 0, false);
+	m_pPlayer->doInstantGreatPersonProgress(INSTANT_YIELD_TYPE_POLICY_UNLOCK);
+
 	int iLoop;
 	for (CvCity* pLoopCity = m_pPlayer->firstCity(&iLoop); pLoopCity != NULL; pLoopCity = m_pPlayer->nextCity(&iLoop)) 
 	{
@@ -5454,103 +5465,6 @@ void CvPlayerPolicies::DoSwitchIdeologies(PolicyBranchTypes eNewBranchType)
 	m_pPlayer->GetCulture()->SetTurnIdeologySwitch(GC.getGame().getGameTurn());
 	m_pPlayer->setJONSCulture(0);
 	m_pPlayer->ChangeNumFreeTenets(iNewBranchTenets, false /*bCountAsFreePolicies*/);
-#if defined(MOD_BALANCE_CORE)
-	int iPolicyGEorGM = m_pPlayer->GetPlayerTraits()->GetPolicyGEorGM();
-	if(iPolicyGEorGM > 0)
-	{
-		CvCity* pLoopCity;
-		int iLoop;
-		int iValue = iPolicyGEorGM * (m_pPlayer->GetCurrentEra() + 1);
-		SpecialistTypes eBestSpecialist = NO_SPECIALIST;
-		int iRandom = GC.getGame().getJonRandNum(100, "Random GE or GM value");
-		if(iRandom <= 33)
-		{
-			eBestSpecialist = (SpecialistTypes)GC.getInfoTypeForString("SPECIALIST_ENGINEER");
-		}
-		else if(iRandom > 34 && iRandom <= 66)
-		{
-			eBestSpecialist = (SpecialistTypes)GC.getInfoTypeForString("SPECIALIST_SCIENTIST");
-		}
-		else if(iRandom > 66)
-		{
-			eBestSpecialist = (SpecialistTypes)GC.getInfoTypeForString("SPECIALIST_MERCHANT");			
-		}
-		if(eBestSpecialist != NULL)
-		{
-			for(pLoopCity = m_pPlayer->firstCity(&iLoop); pLoopCity != NULL; pLoopCity = m_pPlayer->nextCity(&iLoop))
-			{
-				if(eBestSpecialist == (SpecialistTypes)GC.getInfoTypeForString("SPECIALIST_ENGINEER"))
-				{
-					pLoopCity->changeProduction(iValue);
-				}
-				else if(eBestSpecialist == (SpecialistTypes)GC.getInfoTypeForString("SPECIALIST_MERCHANT"))
-				{
-					m_pPlayer->GetTreasury()->ChangeGold(iValue);
-				}
-				else if(eBestSpecialist == (SpecialistTypes)GC.getInfoTypeForString("SPECIALIST_SCIENTIST"))
-				{
-					TechTypes eCurrentTech = m_pPlayer->GetPlayerTechs()->GetCurrentResearch();
-					if(eCurrentTech == NO_TECH)
-					{
-						m_pPlayer->changeOverflowResearch(iValue);
-						if(m_pPlayer->getOverflowResearch() <= 0)
-						{
-							m_pPlayer->setOverflowResearch(0);
-						}
-					}
-					else
-					{
-						GET_TEAM(m_pPlayer->getTeam()).GetTeamTechs()->ChangeResearchProgress(eCurrentTech, iValue, m_pPlayer->GetID());
-						if(GET_TEAM(m_pPlayer->getTeam()).GetTeamTechs()->GetResearchProgress(eCurrentTech) <= 0)
-						{
-							GET_TEAM(m_pPlayer->getTeam()).GetTeamTechs()->SetResearchProgress(eCurrentTech, 0, m_pPlayer->GetID());
-						}
-					}
-				}
-				CvSpecialistInfo* pkSpecialistInfo = GC.getSpecialistInfo(eBestSpecialist);
-				if(pkSpecialistInfo)
-				{
-					int iGPThreshold = pLoopCity->GetCityCitizens()->GetSpecialistUpgradeThreshold((UnitClassTypes)pkSpecialistInfo->getGreatPeopleUnitClass());
-					iGPThreshold *= 100;
-					//Get % of threshold for test.
-					iGPThreshold *= iPolicyGEorGM;
-					iGPThreshold /= 100;
-				
-					pLoopCity->GetCityCitizens()->ChangeSpecialistGreatPersonProgressTimes100(eBestSpecialist, iGPThreshold, true);
-					if(m_pPlayer->GetID() == GC.getGame().getActivePlayer())
-					{
-						iGPThreshold /= 100;
-						char text[256] = {0};
-						float fDelay = 0.5f;
-						sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_GREAT_PEOPLE]", iGPThreshold);
-						DLLUI->AddPopupText(pLoopCity->getX(),pLoopCity->getY(), text, fDelay);
-						CvNotifications* pNotification = m_pPlayer->GetNotifications();
-						if(pNotification)
-						{
-							CvString strMessage = GetLocalizedText("TXT_KEY_POLICY_ADOPT_GP_BONUS", iGPThreshold);
-							CvString strSummary;
-							// Class specific specialist message
-							if((UnitClassTypes)pkSpecialistInfo->getGreatPeopleUnitClass() == GC.getInfoTypeForString("UNITCLASS_MERCHANT"))
-							{
-								strMessage = GetLocalizedText("TXT_KEY_POLICY_ADOPT_GP_BONUS_MERCHANT", iGPThreshold);
-							}
-							else if((UnitClassTypes)pkSpecialistInfo->getGreatPeopleUnitClass() == GC.getInfoTypeForString("UNITCLASS_ENGINEER"))
-							{
-								strMessage = GetLocalizedText("TXT_KEY_POLICY_ADOPT_GP_BONUS_ENGINEER", iGPThreshold);
-							}
-							else if((UnitClassTypes)pkSpecialistInfo->getGreatPeopleUnitClass() == GC.getInfoTypeForString("UNITCLASS_SCIENTIST"))
-							{
-								strMessage = GetLocalizedText("TXT_KEY_POLICY_ADOPT_GP_BONUS_SCIENTIST", iGPThreshold);
-							}
-							strSummary = GetLocalizedText("TXT_KEY_POLICY_ADOPT_SUMMARY_GP_BONUS");
-							pNotification->Add(NOTIFICATION_GENERIC, strMessage, strSummary, -1, -1, -1);
-						}
-					}
-				}
-			}
-		}
-	}
-#endif
 #if defined(MOD_BUGFIX_MISSING_POLICY_EVENTS)
 	if (MOD_BUGFIX_MISSING_POLICY_EVENTS)
 	{

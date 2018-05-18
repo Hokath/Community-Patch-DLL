@@ -61,6 +61,8 @@ public:
 	int GetHurryMultiplier() const;
 	bool IsRushBuilding() const;
 	int GetBaseGold() const;
+	int GetScaleFromNumGWs() const;
+	int GetScaleFromNumThemes() const;
 	int GetNumGoldPerEra() const;
 #if defined(MOD_DIPLOMACY_CITYSTATES)
 	int GetNumInfPerEra() const;
@@ -187,6 +189,7 @@ public:
 
 	const char* GetUnitNames(int i) const;
 	GreatWorkType GetGreatWorks(int i) const;
+	bool IsGreatWorkUnit() const;
 
 #if defined(MOD_GLOBAL_STACKING_RULES)
 	int GetNumberStackingUnits() const;
@@ -200,16 +203,11 @@ public:
 	bool IsInvalidMinorCivGift() const;
 	int GetCooldown() const;
 	int GetGlobalFaithCooldown() const;
+	int GetLocalFaithCooldown() const;
 	bool IsMounted() const;
 	bool IsCultureFromExperienceDisbandUpgrade() const;
-	bool IsConvertUnit() const;
 	bool IsUnitEraUpgrade() const;
-	bool IsConvertOnDamage() const;
-	int GetDamageThreshold() const;
-	UnitTypes GetConvertUnit() const;
-	bool IsConvertOnFullHP() const;
 	bool IsWarOnly() const;
-	bool IsConvertEnemyUnitToBarbarian() const;
 	bool IsWLTKDFromBirth() const;
 	bool IsGoldenAgeFromBirth() const;
 	bool IsCultureBoost() const;
@@ -219,6 +217,7 @@ public:
 	// Accessor Functions (Arrays)
 	int GetPrereqAndTechs(int i) const;
 	int GetResourceQuantityRequirement(int i) const;
+	int GetResourceQuantityExpended(int i) const;
 	int GetBuildingProductionModifier(BuildingTypes eBuilding) const;
 	int GetYieldFromKills(YieldTypes eYield) const;
 #if defined(MOD_API_UNIFIED_YIELDS)
@@ -234,6 +233,7 @@ public:
 	bool GetGreatPeoples(int i) const;
 	bool GetBuildings(int i) const;
 	bool GetBuildingClassRequireds(int i) const;
+	int GetScalingFromOwnedImprovements(int i) const;
 #if defined(MOD_BALANCE_CORE)
 	bool GetBuildOnFound(int i) const;
 	bool GetBuildingClassPurchaseRequireds(int i) const;
@@ -287,6 +287,8 @@ private:
 	int m_iHurryMultiplier;
 	bool m_bRushBuilding;
 	int m_iBaseGold;
+	int m_iScaleFromNumGWs;
+	int m_iScaleFromNumThemes;
 	int m_iNumGoldPerEra;
 #if defined(MOD_DIPLOMACY_CITYSTATES)
 	int m_iNumInfPerEra;
@@ -386,16 +388,12 @@ private:
 	bool m_bIsMounted;
 	int m_iCooldown;
 	int m_iGlobalFaithCooldown;
+	int m_iLocalFaithCooldown;
 	int m_iBeliefUnlock;
 	bool m_bCultureFromExperienceOnDisband;
 	bool m_bIsConvertUnit;
 	bool m_bUnitEraUpgrade;
-	bool m_bIsConvertOnDamage;
-	int m_iDamageThreshold;
-	UnitTypes m_eConvertUnit;
-	bool m_bIsConvertOnFullHP;
 	bool m_bWarOnly;
-	bool m_bConvertEnemyUnitToBarbarian;
 	bool m_bWLTKD;
 	bool m_bGoldenAge;
 	bool m_bCultureBoost;
@@ -438,6 +436,7 @@ private:
 	// Arrays
 	int* m_piPrereqAndTechs;
 	int* m_piResourceQuantityRequirements;
+	int* m_piResourceQuantityExpended;
 	int* m_piProductionTraits;
 	int* m_piFlavorValue;
 	int* m_piUnitGroupRequired;
@@ -455,6 +454,7 @@ private:
 	bool* m_pbBuildings;
 	bool* m_pbBuildingClassRequireds;
 #if defined(MOD_BALANCE_CORE)
+	int* m_piScalingFromOwnedImprovements;
 	bool* m_pbBuildOnFound;
 	bool* m_pbBuildingClassPurchaseRequireds;
 	int* m_piEraCombatStrength;

@@ -364,6 +364,9 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(UnitClassDefenseModifier);
 	Method(UnitCombatModifier);
 #if defined(MOD_BALANCE_CORE)
+	Method(PerAdjacentUnitCombatModifier);
+	Method(PerAdjacentUnitCombatAttackMod);
+	Method(PerAdjacentUnitCombatDefenseMod);
 	Method(IsMounted);
 	Method(IsStrongerDamaged);
 	Method(GetMultiAttackBonus);
@@ -505,6 +508,7 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(GetLeaderUnitType);
 	Method(SetLeaderUnitType);
 	Method(IsNearGreatGeneral);
+	Method(GetGreatGeneralAuraBonus);
 	Method(IsStackedGreatGeneral);
 	Method(IsIgnoreGreatGeneralBenefit);
 	Method(GetReverseGreatGeneralModifier);
@@ -517,6 +521,9 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 #if defined(MOD_BALANCE_CORE)
 	Method(IsHalfNearSapper);
 	Method(GetNearbyUnitClassModifierFromUnitClass);
+	Method(GetSapperAreaEffectBonus);
+	Method(GetGiveCombatModToUnit);
+	Method(GetNearbyCityBonusCombatMod);
 #endif
 	Method(GetNearbyImprovementModifier);
 	Method(IsFriendlyUnitAdjacent);
@@ -557,6 +564,10 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(IsPromotionValid);
 	Method(IsHasPromotion);
 	Method(SetHasPromotion);
+#if defined(MOD_API_LUA_EXTENSIONS)
+	Method(GetPromotionDuration);
+	Method(GetTurnPromotionGained);
+#endif
 
 #if defined(MOD_API_LUA_EXTENSIONS)
 	Method(SetActivityType);
@@ -568,6 +579,7 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(GetReligion);
 	Method(GetConversionStrength);
 	Method(GetSpreadsLeft);
+	Method(GetChargesLeft);
 	Method(GetNumFollowersAfterSpread);
 	Method(GetMajorityReligionAfterSpread);
 #if defined(MOD_API_LUA_EXTENSIONS)
@@ -662,14 +674,18 @@ int CvLuaUnit::lIsNone(lua_State* L)
 	return 1;
 }
 //------------------------------------------------------------------------------
-//void convert(CyUnit* pUnit);
+//void convert(CvUnit* pUnit, bool bIsUpgrade, bool bSupply = true);
 int CvLuaUnit::lConvert(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
 	CvUnit* pkUnitToConvert = GetInstance(L, 2);
 	bool bIsUpgrade = lua_toboolean(L, 3);
-
+#if defined(MOD_BALANCE_CORE)
+	bool bSupply = luaL_optbool(L, 4, true);
+	pkUnit->convert(pkUnitToConvert, bIsUpgrade, bSupply);
+#else
 	pkUnit->convert(pkUnitToConvert, bIsUpgrade);
+#endif
 #if defined(MOD_BUGFIX_MINOR)
 	// Unlike every other call to CvUnit::convert() do NOT call CvUnit::setupGraphical() here as it creates ghost units on the map
 #endif
@@ -768,19 +784,44 @@ int CvLuaUnit::lGetPathEndTurnPlot(lua_State* L)
 	return 1;
 }
 //------------------------------------------------------------------------------
-//bool generatePath(CyPlot* pToPlot, int iFlags = 0, bool bReuse = false, int* piPathTurns = NULL);
+//bool generatePath(CvPlot* pToPlot, int iMaxTurns);
 int CvLuaUnit::lGeneratePath(lua_State* L)
 {
-	luaL_error(L, "NYI");
-	/*CvUnit* pkUnit = GetInstance(L);
+	CvUnit* pkUnit = GetInstance(L);
 	CvPlot* pkPlot = CvLuaPlot::GetInstance(L, 2);
-	const int iFlags = 0;
-	const bool bReuse = luaL_optint(L, 4, 0);	//defeaults to false
-	const bool bResult = pkUnit->generatePath();
+	const int iMaxTurns = lua_tointeger(L, 3);
 
-	lua_pushboolean(L, bResult);
-	return 1;*/
-	return 0;
+	lua_createtable(L, 0, 0);
+	int iCount = 1;
+
+	//no caching!
+	SPathFinderUserData data(pkUnit, CvUnit::MOVEFLAG_IGNORE_STACKING, iMaxTurns);
+	SPath newPath = GC.GetPathFinder().GetPath(pkUnit->getX(), pkUnit->getY(), pkPlot->getX(), pkPlot->getY(), data, true);
+
+	for (int i = 0; i < newPath.length(); i++)
+	{
+		const SPathNode& kNode = newPath.vPlots[i];
+
+		lua_createtable(L, 0, 0);
+		const int t = lua_gettop(L);
+		lua_pushinteger(L, kNode.x);
+		lua_setfield(L, t, "X");
+		lua_pushinteger(L, kNode.y);
+		lua_setfield(L, t, "Y");
+		lua_pushinteger(L, kNode.moves);
+		lua_setfield(L, t, "RemainingMovement");
+		lua_pushinteger(L, kNode.turns);
+		lua_setfield(L, t, "Turn");
+		lua_pushinteger(L, 0);
+		lua_setfield(L, t, "Flags");
+		lua_pushboolean(L, newPath.get(i)->isVisible(pkUnit->getTeam())==false ); //don't have that info, make it up
+		lua_setfield(L, t, "Invisible");
+		lua_pushboolean(L, newPath.get(i)->isAdjacentNonvisible(pkUnit->getTeam()) ); //don't have that info, make it up
+		lua_setfield(L, t, "AdjInvisible");
+		lua_rawseti(L, -2, iCount++);
+	}
+
+	return 1;
 }
 #if defined(MOD_API_LUA_EXTENSIONS)
 //------------------------------------------------------------------------------
@@ -792,33 +833,34 @@ int CvLuaUnit::lGetActivePath(lua_State* L)
 	int iCount = 1;
 
 	CvPlot* pDestPlot = pkUnit->LastMissionPlot();
-	if (pDestPlot) {
-		pkUnit->GeneratePath(pDestPlot);
+	if (!pDestPlot)
+		return 0;
 
-		const CvPathNodeArray& kPathNodeArray = pkUnit->GetPathNodeArray();
+	//no caching!
+	SPathFinderUserData data(pkUnit, 0, INT_MAX);
+	SPath newPath = GC.GetPathFinder().GetPath(pkUnit->getX(), pkUnit->getY(), pDestPlot->getX(), pDestPlot->getY(), data, true);
 
-		for (int i = ((int)kPathNodeArray.size())-1; i >=0 ; --i)
-		{
-			const CvPathNode& kNode = kPathNodeArray[i];
+	for (int i = 0; i < newPath.length(); i++)
+	{
+		const SPathNode& kNode = newPath.vPlots[i];
 
-			lua_createtable(L, 0, 0);
-			const int t = lua_gettop(L);
-			lua_pushinteger(L, kNode.m_iX);
-			lua_setfield(L, t, "X");
-			lua_pushinteger(L, kNode.m_iY);
-			lua_setfield(L, t, "Y");
-			lua_pushinteger(L, kNode.m_iMoves);
-			lua_setfield(L, t, "RemainingMovement");
-			lua_pushinteger(L, kNode.m_iTurns);
-			lua_setfield(L, t, "Turn");
-			lua_pushinteger(L, kNode.m_iFlags);
-			lua_setfield(L, t, "Flags");
-			lua_pushboolean(L, kNode.GetFlag(CvPathNode::PLOT_INVISIBLE));
-			lua_setfield(L, t, "Invisible");
-			lua_pushboolean(L, kNode.GetFlag(CvPathNode::PLOT_ADJACENT_INVISIBLE));
-			lua_setfield(L, t, "AdjInvisible");
-			lua_rawseti(L, -2, iCount++);
-		}
+		lua_createtable(L, 0, 0);
+		const int t = lua_gettop(L);
+		lua_pushinteger(L, kNode.x);
+		lua_setfield(L, t, "X");
+		lua_pushinteger(L, kNode.y);
+		lua_setfield(L, t, "Y");
+		lua_pushinteger(L, kNode.moves);
+		lua_setfield(L, t, "RemainingMovement");
+		lua_pushinteger(L, kNode.turns);
+		lua_setfield(L, t, "Turn");
+		lua_pushinteger(L, 0);
+		lua_setfield(L, t, "Flags");
+		lua_pushboolean(L, newPath.get(i)->isVisible(pkUnit->getTeam()) == false); //don't have that info, make it up
+		lua_setfield(L, t, "Invisible");
+		lua_pushboolean(L, newPath.get(i)->isAdjacentNonvisible(pkUnit->getTeam())); //don't have that info, make it up
+		lua_setfield(L, t, "AdjInvisible");
+		lua_rawseti(L, -2, iCount++);
 	}
 
 	return 1;
@@ -1303,7 +1345,7 @@ int CvLuaUnit::lIsNukeVictim(lua_State* L)
 int CvLuaUnit::lCanNuke(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
-	const bool bResult = pkUnit->canNuke(pkUnit->plot());
+	const bool bResult = pkUnit->canNuke();
 
 	lua_pushboolean(L, bResult);
 	return 1;
@@ -1466,7 +1508,11 @@ int CvLuaUnit::lGetCombatVersusOtherReligionOwnLands(lua_State* L)
 		{
 			eTheirReligion = GET_PLAYER(pkOtherUnit->getOwner()).GetReligions()->GetReligionInMostCities();
 		} 
-		if(eFoundedReligion != NO_RELIGION)
+		if (eFoundedReligion == NO_RELIGION)
+		{
+			eFoundedReligion = GET_PLAYER(pkUnit->getOwner()).GetReligions()->GetReligionInMostCities();
+		}
+		if (eFoundedReligion != NO_RELIGION)
 		{
 			const CvReligion* pReligion = pReligions->GetReligion(eFoundedReligion, pkUnit->getOwner());
 			if(pReligion)
@@ -1519,7 +1565,11 @@ int CvLuaUnit::lGetCombatVersusOtherReligionTheirLands(lua_State* L)
 		{
 			eTheirReligion = GET_PLAYER(pkOtherUnit->getOwner()).GetReligions()->GetReligionInMostCities();
 		} 
-		if(eFoundedReligion != NO_RELIGION)
+		if (eFoundedReligion == NO_RELIGION)
+		{
+			eFoundedReligion = GET_PLAYER(pkUnit->getOwner()).GetReligions()->GetReligionInMostCities();
+		}
+		if (eFoundedReligion != NO_RELIGION)
 		{
 			const CvReligion* pReligion = pReligions->GetReligion(eFoundedReligion, pkUnit->getOwner());
 			if(pReligion)
@@ -2895,9 +2945,7 @@ int CvLuaUnit::lGetBestInterceptor(lua_State* L)
 
 	CvUnit* pkBestUnit = 0;
 	if(pkPlot)
-	{
-		pkBestUnit = pkUnit->GetBestInterceptor(*pkPlot, pkDefender, bLandInterceptorsOnly, bVisibleInterceptorsOnly);
-	}
+		pkBestUnit = pkPlot->GetBestInterceptor(pkUnit->getOwner(), pkDefender, bLandInterceptorsOnly, bVisibleInterceptorsOnly);
 
 	CvLuaUnit::Push(L, pkBestUnit);
 	return 1;
@@ -2914,9 +2962,7 @@ int CvLuaUnit::lGetInterceptorCount(lua_State* L)
 
 	int iCount  = 0;
 	if(pkPlot)
-	{
-		iCount = pkUnit->GetInterceptorCount(*pkPlot, pkDefender, bLandInterceptorsOnly, bVisibleInterceptorsOnly);
-	}
+		iCount = pkPlot->GetInterceptorCount(pkUnit->getOwner(), pkDefender, bLandInterceptorsOnly, bVisibleInterceptorsOnly);
 
 	lua_pushinteger(L, iCount);
 	return 1;
@@ -2930,9 +2976,7 @@ int CvLuaUnit::lGetBestSeaPillageInterceptor(lua_State* L)
 
 	CvUnit* pkBestUnit = 0;
 	if(pkPlot)
-	{
-		pkBestUnit = pkUnit->GetBestInterceptor(*pkPlot);
-	}
+		pkBestUnit = pkPlot->GetBestInterceptor(pkUnit->getOwner());
 
 	CvLuaUnit::Push(L, pkBestUnit);
 	return 1;
@@ -2979,7 +3023,7 @@ int CvLuaUnit::lIsWaiting(lua_State* L)
 int CvLuaUnit::lIsFortifyable(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
-	const bool bResult = pkUnit->isFortifyable();
+	const bool bResult = pkUnit->canFortify(pkUnit->plot());
 
 	lua_pushboolean(L, bResult);
 	return 1;
@@ -3659,6 +3703,89 @@ int CvLuaUnit::lUnitCombatModifier(lua_State* L)
 }
 #if defined(MOD_BALANCE_CORE)
 //------------------------------------------------------------------------------
+//int getCombatModPerAdjacentUnitCombatModifier(int /*UnitCombatTypes*/ eUnitCombat);
+int CvLuaUnit::lPerAdjacentUnitCombatModifier(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	//const UnitCombatTypes eUnitCombat = (UnitCombatTypes)lua_tointeger(L, 2);
+
+	CvPlot* pFromPlot = pkUnit->plot();
+
+	int iResult = 0;
+	if (pFromPlot != NULL)
+	{
+		for (int iI = 0; iI < GC.getNumUnitCombatClassInfos(); iI++)
+		{
+			const UnitCombatTypes eUnitCombat = static_cast<UnitCombatTypes>(iI);
+			CvBaseInfo* pkUnitCombatInfo = GC.getUnitCombatClassInfo(eUnitCombat);
+			int iModPerAdjacent = pkUnit->getCombatModPerAdjacentUnitCombatModifier(eUnitCombat);
+			if (pkUnitCombatInfo && iModPerAdjacent != 0)
+			{
+				int iNumFriendliesAdjacent = pFromPlot->GetNumSpecificFriendlyUnitCombatsAdjacent(pkUnit->getTeam(), eUnitCombat, NULL);
+				iResult += (iNumFriendliesAdjacent * iModPerAdjacent);
+			}
+		}
+	}
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
+//int getCombatModPerAdjacentUnitCombatAttackMod(int /*UnitCombatTypes*/ eUnitCombat);
+int CvLuaUnit::lPerAdjacentUnitCombatAttackMod(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	//const UnitCombatTypes eUnitCombat = (UnitCombatTypes)lua_tointeger(L, 2);
+
+	CvPlot* pFromPlot = pkUnit->plot();
+	
+	int iResult = 0;
+	if (pFromPlot != NULL)
+	{
+		for (int iI = 0; iI < GC.getNumUnitCombatClassInfos(); iI++)
+		{
+			const UnitCombatTypes eUnitCombat = static_cast<UnitCombatTypes>(iI);
+			CvBaseInfo* pkUnitCombatInfo = GC.getUnitCombatClassInfo(eUnitCombat);
+			int iModPerAdjacent = pkUnit->getCombatModPerAdjacentUnitCombatAttackMod(eUnitCombat);
+			if (pkUnitCombatInfo && iModPerAdjacent != 0)
+			{
+				int iNumFriendliesAdjacent = pFromPlot->GetNumSpecificFriendlyUnitCombatsAdjacent(pkUnit->getTeam(), eUnitCombat, NULL);
+				iResult += (iNumFriendliesAdjacent * iModPerAdjacent);
+			}
+		}
+	}
+	
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
+//int getCombatModPerAdjacentUnitCombatDefenseMod(int /*UnitCombatTypes*/ eUnitCombat);
+int CvLuaUnit::lPerAdjacentUnitCombatDefenseMod(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	//const UnitCombatTypes eUnitCombat = (UnitCombatTypes)lua_tointeger(L, 2);
+
+	CvPlot* pFromPlot = pkUnit->plot();
+	
+	int iResult = 0;
+	if (pFromPlot != NULL)
+	{
+		for (int iI = 0; iI < GC.getNumUnitCombatClassInfos(); iI++)
+		{
+			const UnitCombatTypes eUnitCombat = static_cast<UnitCombatTypes>(iI);
+			CvBaseInfo* pkUnitCombatInfo = GC.getUnitCombatClassInfo(eUnitCombat);
+			int iModPerAdjacent = pkUnit->getCombatModPerAdjacentUnitCombatDefenseMod(eUnitCombat);
+			if (pkUnitCombatInfo && iModPerAdjacent != 0)
+			{
+				int iNumFriendliesAdjacent = pFromPlot->GetNumSpecificFriendlyUnitCombatsAdjacent(pkUnit->getTeam(), eUnitCombat, NULL);
+				iResult += (iNumFriendliesAdjacent * iModPerAdjacent);
+			}
+		}
+	}
+	
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
 //int unitCombatModifier(int /*UnitCombatTypes*/ eUnitCombat);
 int CvLuaUnit::lBarbarianCombatBonus(lua_State* L)
 {
@@ -4273,7 +4400,7 @@ int CvLuaUnit::lGetFortifyTurns(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
 
-	const int iResult = pkUnit->getFortifyTurns();
+	const int iResult = pkUnit->IsFortified() ? 1 : 0; //need to fake this
 	lua_pushinteger(L, iResult);
 	return 1;
 }
@@ -4900,16 +5027,22 @@ int CvLuaUnit::lSetLeaderUnitType(lua_State* L)
 int CvLuaUnit::lIsNearGreatGeneral(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
-
-#if defined(MOD_PROMOTIONS_AURA_CHANGE)
-	int iAuraEffectChange = 0;
-	const bool bResult = pkUnit->IsNearGreatGeneral(iAuraEffectChange);
-	lua_pushboolean(L, bResult);
-	lua_pushinteger(L, iAuraEffectChange);
-	return 2;
-#else
 	const bool bResult = pkUnit->IsNearGreatGeneral();
 	lua_pushboolean(L, bResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
+int CvLuaUnit::lGetGreatGeneralAuraBonus(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+
+#if defined(MOD_PROMOTIONS_AURA_CHANGE)
+	int iActualBonus = pkUnit->GetAreaEffectBonus(AE_GREAT_GENERAL);
+	int iDefaultBonus = GET_PLAYER(pkUnit->getOwner()).GetGreatGeneralCombatBonus() + GET_PLAYER(pkUnit->getOwner()).GetPlayerTraits()->GetGreatGeneralExtraBonus();
+	lua_pushinteger(L, iActualBonus-iDefaultBonus);
+	return 1;
+#else
+	lua_pushboolean(L, 0);
 	return 1;
 #endif
 }
@@ -4984,11 +5117,43 @@ int CvLuaUnit::lIsNearSapper(lua_State* L)
 	CvUnit* pkUnit = GetInstance(L);
 	CvCity* pkCity = CvLuaCity::GetInstance(L, 2, false);
 
-	const bool bResult = pkUnit->IsNearSapper(pkCity);
-	lua_pushboolean(L, bResult);
+	if (!pkCity)
+	{
+		lua_pushboolean(L, false);
+		return 1;
+	}
+
+	int iBonus = pkUnit->GetAreaEffectBonus(AE_SAPPER, NULL, pkCity);
+	lua_pushboolean(L, iBonus == GC.getSAPPED_CITY_ATTACK_MODIFIER());
 	return 1;
 }
+
 #if defined(MOD_BALANCE_CORE)
+int CvLuaUnit::lGetSapperAreaEffectBonus(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	CvCity* pkCity = CvLuaCity::GetInstance(L, 2, false);
+	const int bResult = pkUnit->GetAreaEffectBonus(AE_SAPPER, pkUnit->plot(), pkCity);
+	lua_pushinteger(L, bResult);
+
+	return 1;
+}
+int CvLuaUnit::lGetGiveCombatModToUnit(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	const int bResult = pkUnit->GetGiveCombatModToUnit();
+	lua_pushinteger(L, bResult);
+
+	return 1;
+}
+int CvLuaUnit::lGetNearbyCityBonusCombatMod(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	const int bResult = pkUnit->GetNearbyCityBonusCombatMod();
+	lua_pushinteger(L, bResult);
+
+	return 1;
+}
 //------------------------------------------------------------------------------
 //bool IsHalfNearSapper(CvCity* pTargetCity);
 int CvLuaUnit::lIsHalfNearSapper(lua_State* L)
@@ -4996,8 +5161,14 @@ int CvLuaUnit::lIsHalfNearSapper(lua_State* L)
 	CvUnit* pkUnit = GetInstance(L);
 	CvCity* pkCity = CvLuaCity::GetInstance(L, 2, false);
 
-	const bool bResult = pkUnit->IsHalfNearSapper(pkCity);
-	lua_pushboolean(L, bResult);
+	if (!pkCity)
+	{
+		lua_pushboolean(L, false);
+		return 1;
+	}
+
+	int iBonus = pkUnit->GetAreaEffectBonus(AE_SAPPER, NULL, pkCity);
+	lua_pushboolean(L, iBonus > 0 && iBonus < GC.getSAPPED_CITY_ATTACK_MODIFIER());
 	return 1;
 }
 //bool GetNearbyUnitClassModifierFromUnitClass();
@@ -5325,6 +5496,27 @@ int CvLuaUnit::lSetHasPromotion(lua_State* L)
 	pkUnit->setHasPromotion(eIndex, bNewValue);
 	return 0;
 }
+#if defined(MOD_API_LUA_EXTENSIONS)
+int CvLuaUnit::lGetPromotionDuration(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	const PromotionTypes ePromotion = (PromotionTypes)lua_tointeger(L, 2);
+	const int iResult = pkUnit->getPromotionDuration(ePromotion);
+
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+int CvLuaUnit::lGetTurnPromotionGained(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	const PromotionTypes ePromotion = (PromotionTypes)lua_tointeger(L, 2);
+	const int iResult = pkUnit->getTurnPromotionGained(ePromotion);
+
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+
+#endif
 //------------------------------------------------------------------------------
 //ReligionTypes GetReligion();
 int CvLuaUnit::lGetReligion(lua_State* L)
@@ -5358,6 +5550,15 @@ int CvLuaUnit::lGetSpreadsLeft(lua_State* L)
 	CvUnit* pkUnit = GetInstance(L);
 	int iReligiousStrength = pkUnit->GetReligionData()->GetSpreadsLeft();
 	lua_pushinteger(L, iReligiousStrength);
+
+	return 1;
+}
+//int GetReligionSpreads();
+int CvLuaUnit::lGetChargesLeft(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	int iCharge = pkUnit->GetNumRepairCharges();
+	lua_pushinteger(L, iCharge);
 
 	return 1;
 }
@@ -5475,13 +5676,7 @@ int CvLuaUnit::lSetActivityType(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
 	const ActivityTypes eActivity = (ActivityTypes)lua_tointeger(L, 2);
-#if defined(MOD_API_LUA_EXTENSIONS) && defined(MOD_BUGFIX_UNITS_AWAKE_IN_DANGER)
-	const bool bClearFortify = luaL_optbool(L, 3, true);
-
-	pkUnit->SetActivityType(eActivity, bClearFortify);
-#else
 	pkUnit->SetActivityType(eActivity);
-#endif
 
 	return 0;
 }
@@ -5826,14 +6021,7 @@ int CvLuaUnit::lGetAIOperationInfo(lua_State* L)
 		}
 	}
 
-	if (pUnit->IsCombatUnit())
-	{
-		CvString msg = pUnit->getTacticalZoneInfo();
-		lua_pushstring(L, msg.c_str());
-	}
-	else
-		lua_pushstring(L, "");
-
+	lua_pushstring(L, "");
 	return 1;
 }
 

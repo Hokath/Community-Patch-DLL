@@ -104,7 +104,7 @@ void CvStartPositioner::ComputeFoundValues()
 		//    Allows us to reuse this data storage instead of jamming even more data into the CvPlot class that will never be used at run-time).
 		CvPlot* pLoopPlot = GC.getMap().plotByIndexUnchecked(iI);
 
-		int iValue = m_pSiteEvaluator->PlotFoundValue(pLoopPlot, NULL);
+		int iValue = m_pSiteEvaluator->PlotFoundValue(pLoopPlot, NULL, vector<int>());
 		pLoopPlot->setFoundValue((PlayerTypes)1, iValue);
 
 		if(iValue > m_iBestFoundValueOnMap)
@@ -151,7 +151,7 @@ void CvStartPositioner::RankPlayerStartOrder()
 				{
 					playerRank.m_iRank *= 10;
 				}
-				playerRank.m_iRank += GC.getGame().getJonRandNum(10, "Player Start Plot Draft Order");
+				playerRank.m_iRank += GC.getGame().getJonRandNum(10, "starting position");
 				m_PlayerOrder.push_back(playerRank);
 			}
 		}

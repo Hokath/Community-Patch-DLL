@@ -86,7 +86,7 @@ public:
 
 	void AddImprovingResourcesDirectives(CvUnit* pUnit, CvPlot* pPlot, int iMoveTurnsAway);
 	void AddImprovingPlotsDirectives(CvUnit* pUnit, CvPlot* pPlot, int iMoveTurnsAway);
-	void AddRouteDirectives(CvUnit* pUnit, CvPlot* pPlot, int iMoveTurnsAway, int iGold);
+	void AddRouteDirectives(CvUnit* pUnit, CvPlot* pPlot, int iMoveTurnsAway);
 	void AddRemoveRouteDirectives(CvUnit* pUnit, CvPlot* pPlot, int iMoveTurnsAway);
 	void AddChopDirectives(CvUnit* pUnit, CvPlot* pPlot, int iMoveTurnsAway);
 	void AddRepairTilesDirectives(CvUnit* pUnit, CvPlot* pPlot, int iMoveTurnsAway);
@@ -99,7 +99,7 @@ public:
 	int GetResourceWeight(ResourceTypes eResource, ImprovementTypes eImprovement, int iQuantity);
 	bool IsImprovementBeneficial(CvPlot* pPlot, const CvBuildInfo& kBuild, YieldTypes eYield, bool bIsBreakEvenOK = false);
 
-	CvCity* GetWorkingCity(CvPlot* pPlot);
+	CvCity* getOwningCity(CvPlot* pPlot);
 	bool DoesBuildHelpRush(CvUnit* pUnit, CvPlot* pPlot, BuildTypes eBuild);
 
 #if defined(MOD_BALANCE_CORE)
@@ -130,6 +130,7 @@ protected:
 	void ConnectCitiesToCapital(CvCity* pPlayerCapital, CvCity* pTargetCity, RouteTypes eRoute, int iNetGoldTimes100);
 	void ConnectCitiesForShortcuts(CvCity* pFirstCity, CvCity* pSecondCity, RouteTypes eRoute);
 	void ConnectCitiesForScenario(CvCity* pFirstCity, CvCity* pSecondCity, RouteTypes eRoute);
+	void ConnectPointsForStrategy(CvCity* pOriginCity, CvPlot* pTargetPlot, RouteTypes eRoute, int iNetGoldTimes100);
 
 	void UpdateCurrentPlotYields(CvPlot* pPlot);
 	void UpdateProjectedPlotYields(CvPlot* pPlot, BuildTypes eBuild);
@@ -151,6 +152,7 @@ protected:
 	bool m_bKeepJungle;
 #if defined(MOD_BALANCE_CORE)
 	bool m_bEvaluateAdjacent;
+	bool m_bNoPermanentsAdjacentCity;
 #endif
 };
 

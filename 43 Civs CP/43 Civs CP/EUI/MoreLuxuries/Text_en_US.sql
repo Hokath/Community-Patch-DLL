@@ -16,11 +16,11 @@ SET Text = 'The Amphitheater increases the [ICON_CULTURE] Culture of a city. Inc
 WHERE Tag = 'TXT_KEY_BUILDING_AMPHITHEATER_STRATEGY';
 
 UPDATE Language_en_US
-SET Text = '+2 [ICON_TOURISM] Tourism once you research Philosophy. +33% [ICON_GREAT_WRITER] Great Writer Rate in the City, and all Writers'' Guilds produce +1 [ICON_GOLD] Gold.[NEWLINE][NEWLINE]Whenever you destroy an enemy unit, receive +5 [ICON_CULTURE] Culture in the City, scaling with Era.[NEWLINE]Nearby [ICON_RES_DYE] Dye: +1 [ICON_CULTURE] Culture, +1 [ICON_GOLD] Gold.[NEWLINE]Nearby [ICON_RES_SILK] Silk: +1 [ICON_CULTURE] Culture, +1 [ICON_GOLD] Gold.[NEWLINE]Nearby [ICON_RES_LAPIS] Lapis Lazuli: +2 [ICON_CULTURE] Culture.'
+SET Text = '+3 [ICON_TOURISM] Tourism. +33% [ICON_GREAT_WRITER] Great Writer Rate in the City, and all Writers'' Guilds produce +1 [ICON_GOLD] Gold.[NEWLINE][NEWLINE]Whenever you destroy an enemy unit, receive +5 [ICON_CULTURE] Culture in the City, scaling with Era.[NEWLINE]Nearby [ICON_RES_DYE] Dye: +1 [ICON_CULTURE] Culture, +1 [ICON_GOLD] Gold.[NEWLINE]Nearby [ICON_RES_SILK] Silk: +1 [ICON_CULTURE] Culture, +1 [ICON_GOLD] Gold.[NEWLINE]Nearby [ICON_RES_LAPIS] Lapis Lazuli: +2 [ICON_CULTURE] Culture.'
 WHERE Tag = 'TXT_KEY_BUILDING_ODEON_HELP';
 
 UPDATE Language_en_US
-SET Text = 'Unique Greek replacement for the Amphitheater. Build Acropoli to boost your city''s Defense, Culture, and Tourism, especially while at war for the latter two. Also boosts the City''s Great Writer rate and the value of Writers'' Guilds. Produces +2 [ICON_TOURISM] Tourism once you research Philosophy.'
+SET Text = 'Unique Greek replacement for the Amphitheater. Build Acropoli to boost your city''s Defense, Culture, and Tourism, especially while at war for the latter two. Also boosts the City''s Great Writer rate and the value of Writers'' Guilds.'
 WHERE Tag = 'TXT_KEY_BUILDING_ODEON_STRATEGY';
 
 UPDATE Language_en_US
@@ -36,7 +36,7 @@ SET Text = 'Allows [ICON_PRODUCTION] Production to be moved from this city along
 WHERE Tag = 'TXT_KEY_BUILDING_STONE_WORKS_HELP';
 	
 UPDATE Language_en_US
-SET Text = 'Stone Works can only be constructed in a city near an improved [ICON_RES_STONE] Stone, [ICON_RES_MARBLE] Marble, [ICON_RES_SALT] Salt, or [ICON_RES_JADE] Jade resource. Stone Works increase [ICON_PRODUCTION] Production, and allow [ICON_PRODUCTION] Production to be moved from this city along trade routes inside your civilization.'
+SET Text = 'Stone Works can only be constructed in a city near an improved [ICON_RES_STONE] Stone, [ICON_RES_MARBLE] Marble, [ICON_RES_SALT] Salt, [ICON_RES_JADE] Jade, [ICON_RES_URANIUM] Uranium, [ICON_RES_LAPIS] Lapis Lazuli, or [ICON_RES_AMBER] Amber resource. Stone Works increase [ICON_PRODUCTION] Production, and allow [ICON_PRODUCTION] Production to be moved from this city along trade routes inside your civilization.'
 WHERE Tag = 'TXT_KEY_BUILDING_STONE_WORKS_STRATEGY';
 
 UPDATE Language_en_US

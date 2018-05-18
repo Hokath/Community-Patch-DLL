@@ -823,6 +823,10 @@ double CvCityStrategyAI::GetDeficientYieldValue(YieldTypes eYieldType)
 #endif
 		break;
 	case YIELD_FAITH:
+#if defined(MOD_BALANCE_CORE)
+		//No it isn't!
+		fDesiredYield = (GC.getAI_CITYSTRATEGY_YIELD_DEFICIENT_CULTURE() / 3);
+#endif
 		break;
 #if defined(MOD_API_UNIFIED_YIELDS_TOURISM)
 	case YIELD_TOURISM:
@@ -847,6 +851,17 @@ void CvCityStrategyAI::ChooseProduction(BuildingTypes eIgnoreBldg, UnitTypes eIg
 void CvCityStrategyAI::ChooseProduction(BuildingTypes eIgnoreBldg /* = NO_BUILDING */, UnitTypes eIgnoreUnit/*  = NO_UNIT */)
 #endif
 {
+	//Let's make sure we're not getting into a weird loop.
+	if (bInterruptBuildings)
+	{
+		//Are we already building a military unit? If so, ignore this call to choose a new production.
+		UnitTypes eUnit = m_pCity->getProductionUnit();
+		if (eUnit != NO_UNIT)
+		{
+			if (GC.getUnitInfo(eUnit)->GetCombat() > 0 || GC.getUnitInfo(eUnit)->GetRangedCombat() > 0)
+				return;
+		}
+	}
 	int iBldgLoop, iUnitLoop, iProjectLoop, iProcessLoop, iTempWeight;
 	CvCityBuildable buildable;
 	CvCityBuildable selection;
@@ -891,6 +906,7 @@ void CvCityStrategyAI::ChooseProduction(BuildingTypes eIgnoreBldg /* = NO_BUILDI
 		iTempWeight += (GC.getAI_CITYSTRATEGY_OPERATION_UNIT_FLAVOR_MULTIPLIER() * iOffenseFlavor);
 		if(iTempWeight > 0)
 		{
+			buildable.m_iValue = iTempWeight;
 			m_BuildablesPrecheck.push_back(buildable, iTempWeight);
 		}
 	}
@@ -904,11 +920,11 @@ void CvCityStrategyAI::ChooseProduction(BuildingTypes eIgnoreBldg /* = NO_BUILDI
 			buildable.m_eBuildableType = CITY_BUILDABLE_UNIT;
 			buildable.m_iIndex = iUnitLoop;
 			buildable.m_iTurnsToConstruct = GetCity()->getProductionTurnsLeft((UnitTypes)iUnitLoop, 0);
-
 			iTempWeight = m_pUnitProductionAI->GetWeight((UnitTypes)iUnitLoop);		
 			if(iTempWeight > 0)
 			{
 				m_BuildablesPrecheck.push_back(buildable, iTempWeight);
+				buildable.m_iValue = iTempWeight;
 			}
 		}
 	}
@@ -941,12 +957,12 @@ void CvCityStrategyAI::ChooseProduction(BuildingTypes eIgnoreBldg /* = NO_BUILDI
 			buildable.m_eBuildableType = CITY_BUILDABLE_BUILDING;
 			buildable.m_iIndex = iBldgLoop;
 			buildable.m_iTurnsToConstruct = GetCity()->getProductionTurnsLeft(eLoopBuilding, 0);
-
 			iTempWeight = m_pBuildingProductionAI->GetWeight(eLoopBuilding);
 
 			// Save it for later
 			if(iTempWeight > 0)
 			{
+				buildable.m_iValue = iTempWeight;
 				m_BuildablesPrecheck.push_back(buildable, iTempWeight);
 			}
 		}
@@ -963,6 +979,7 @@ void CvCityStrategyAI::ChooseProduction(BuildingTypes eIgnoreBldg /* = NO_BUILDI
 				buildable.m_eBuildableType = CITY_BUILDABLE_PROJECT;
 				buildable.m_iIndex = iProjectLoop;
 				buildable.m_iTurnsToConstruct = GetCity()->getProductionTurnsLeft((ProjectTypes)iProjectLoop, 0);
+				buildable.m_iValue = iTempWeight;
 				m_BuildablesPrecheck.push_back(buildable, m_pProjectProductionAI->GetWeight((ProjectTypes)iProjectLoop));
 			}
 		}
@@ -993,6 +1010,7 @@ void CvCityStrategyAI::ChooseProduction(BuildingTypes eIgnoreBldg /* = NO_BUILDI
 					buildable.m_eBuildableType = CITY_BUILDABLE_PROCESS;
 					buildable.m_iIndex = iProcessLoop;
 					buildable.m_iTurnsToConstruct = 1;
+					buildable.m_iValue = iTempWeight;
 					m_BuildablesPrecheck.push_back(buildable, iTempWeight);
 				}
 			}
@@ -1040,26 +1058,29 @@ void CvCityStrategyAI::ChooseProduction(BuildingTypes eIgnoreBldg /* = NO_BUILDI
 
 						if(pThisArmy)
 						{
-							int iNewWeight = GetUnitProductionAI()->CheckUnitBuildSanity(eUnitType, true, pThisArmy,  m_BuildablesPrecheck.GetWeight(iI), iGPT);
+							int iNewWeight = GetUnitProductionAI()->CheckUnitBuildSanity(eUnitType, true, pThisArmy, m_BuildablesPrecheck.GetWeight(iI), iGPT, 0, 0, false, false, bInterruptBuildings);
 							if(iNewWeight > 0)
 							{
+								selection.m_iValue = iNewWeight;
 								m_Buildables.push_back(selection, iNewWeight);
 							}
 						}
 						else
 						{
-							int iNewWeight = GetUnitProductionAI()->CheckUnitBuildSanity(eUnitType, true, NULL,  m_BuildablesPrecheck.GetWeight(iI), iGPT);
+							int iNewWeight = GetUnitProductionAI()->CheckUnitBuildSanity(eUnitType, true, NULL, m_BuildablesPrecheck.GetWeight(iI), iGPT, 0, 0, false, false, bInterruptBuildings);
 							if(iNewWeight > 0)
 							{
+								selection.m_iValue = iNewWeight;
 								m_Buildables.push_back(selection, iNewWeight);
 							}
 						}
 					}
 					else
 					{
-						int iNewWeight = GetUnitProductionAI()->CheckUnitBuildSanity(eUnitType, true, NULL,  m_BuildablesPrecheck.GetWeight(iI), iGPT);
+						int iNewWeight = GetUnitProductionAI()->CheckUnitBuildSanity(eUnitType, true, NULL, m_BuildablesPrecheck.GetWeight(iI), iGPT, 0, 0, false, false, bInterruptBuildings);
 						if(iNewWeight > 0)
 						{
+							selection.m_iValue = iNewWeight;
 							m_Buildables.push_back(selection, iNewWeight);
 						}
 					}
@@ -1068,9 +1089,10 @@ void CvCityStrategyAI::ChooseProduction(BuildingTypes eIgnoreBldg /* = NO_BUILDI
 				case CITY_BUILDABLE_UNIT_FOR_ARMY:
 				{
 					UnitTypes eUnitType = (UnitTypes) selection.m_iIndex;
-					int iNewWeight = GetUnitProductionAI()->CheckUnitBuildSanity(eUnitType, true, NULL,  m_BuildablesPrecheck.GetWeight(iI), iGPT);
+					int iNewWeight = GetUnitProductionAI()->CheckUnitBuildSanity(eUnitType, true, NULL, m_BuildablesPrecheck.GetWeight(iI), iGPT, 0, 0, false, false, bInterruptBuildings);
 					if(iNewWeight > 0)
 					{
+						selection.m_iValue = iNewWeight;
 						m_Buildables.push_back(selection, iNewWeight);
 					}
 					break;
@@ -1078,9 +1100,10 @@ void CvCityStrategyAI::ChooseProduction(BuildingTypes eIgnoreBldg /* = NO_BUILDI
 				case CITY_BUILDABLE_UNIT:
 				{
 					UnitTypes eUnitType = (UnitTypes) selection.m_iIndex;
-					int iNewWeight = GetUnitProductionAI()->CheckUnitBuildSanity(eUnitType, false, NULL,  m_BuildablesPrecheck.GetWeight(iI), iGPT, iWaterRoutes, iLandRoutes);
+					int iNewWeight = GetUnitProductionAI()->CheckUnitBuildSanity(eUnitType, false, NULL, m_BuildablesPrecheck.GetWeight(iI), iGPT, iWaterRoutes, iLandRoutes, false, false, bInterruptBuildings);
 					if(iNewWeight > 0)
 					{
+						selection.m_iValue = iNewWeight;
 						m_Buildables.push_back(selection, iNewWeight);
 					}
 					break;
@@ -1091,6 +1114,7 @@ void CvCityStrategyAI::ChooseProduction(BuildingTypes eIgnoreBldg /* = NO_BUILDI
 					int iNewWeight = GetBuildingProductionAI()->CheckBuildingBuildSanity(eBuildingType, m_BuildablesPrecheck.GetWeight(iI), iLandRoutes, iWaterRoutes, iGPT, bInterruptBuildings);
 					if(iNewWeight > 0)
 					{
+						selection.m_iValue = iNewWeight;
 						m_Buildables.push_back(selection, iNewWeight);
 					}
 					break;
@@ -1101,6 +1125,7 @@ void CvCityStrategyAI::ChooseProduction(BuildingTypes eIgnoreBldg /* = NO_BUILDI
 					int iNewWeight = m_pProcessProductionAI->CheckProcessBuildSanity(eProcessType, m_BuildablesPrecheck.GetWeight(iI), m_BuildablesPrecheck.size(), iGPT);
 					if(iNewWeight > 0)
 					{
+						selection.m_iValue = iNewWeight;
 						m_Buildables.push_back(selection, iNewWeight);
 					}
 					break;
@@ -1111,6 +1136,7 @@ void CvCityStrategyAI::ChooseProduction(BuildingTypes eIgnoreBldg /* = NO_BUILDI
 					int iNewWeight = m_pProjectProductionAI->CheckProjectBuildSanity(eProjectType, m_BuildablesPrecheck.GetWeight(iI));
 					if(iNewWeight > 0)
 					{
+						selection.m_iValue = iNewWeight;
 						m_Buildables.push_back(selection, iNewWeight);
 					}
 					break;
@@ -1124,6 +1150,9 @@ void CvCityStrategyAI::ChooseProduction(BuildingTypes eIgnoreBldg /* = NO_BUILDI
 	m_Buildables.SortItems();
 
 	LogPossibleBuildsPostCheck();
+
+	if (m_Buildables.size() <= 0)
+		m_Buildables = m_BuildablesPrecheck;
 
 	if(m_Buildables.size() > 0)
 	{
@@ -1221,32 +1250,50 @@ CvCityBuildable CvCityStrategyAI::ChooseHurry(bool bUnitOnly, bool bFaithPurchas
 		eUnitForOperation = m_pCity->GetUnitForOperation();
 		if (eUnitForOperation != NO_UNIT)
 		{
-			buildable.m_eBuildableType = CITY_BUILDABLE_UNIT_FOR_OPERATION;
-			buildable.m_iIndex = (int)eUnitForOperation;
-			buildable.m_iTurnsToConstruct = GetCity()->getProductionTurnsLeft(eUnitForOperation, 0);
-			iTempWeight = GC.getAI_CITYSTRATEGY_OPERATION_UNIT_BASE_WEIGHT();
-			int iOffenseFlavor = kPlayer.GetGrandStrategyAI()->GetPersonalityAndGrandStrategy((FlavorTypes)GC.getInfoTypeForString("FLAVOR_OFFENSE")) + kPlayer.GetMilitaryAI()->GetNumberOfTimesOpsBuildSkippedOver();
-			iTempWeight += (GC.getAI_CITYSTRATEGY_OPERATION_UNIT_FLAVOR_MULTIPLIER() * iOffenseFlavor);
-			iTempWeight += m_pUnitProductionAI->GetWeight(eUnitForOperation);
-			if (iTempWeight > 0)
+			CvUnitEntry* pUnitEntry = GC.getUnitInfo((UnitTypes)eUnitForOperation);
+			if (pUnitEntry)
 			{
-				m_BuildablesPrecheck.push_back(buildable, iTempWeight);
-				kPlayer.GetMilitaryAI()->BumpNumberOfTimesOpsBuildSkippedOver();
+				bool bOoS = (kPlayer.GetNumUnitsOutOfSupply() > 0 && pUnitEntry->IsMilitarySupport() && !pUnitEntry->IsNoSupply());
+				if (!bOoS)
+				{
+					buildable.m_eBuildableType = CITY_BUILDABLE_UNIT_FOR_OPERATION;
+					buildable.m_iIndex = (int)eUnitForOperation;
+					buildable.m_iTurnsToConstruct = GetCity()->getProductionTurnsLeft(eUnitForOperation, 0);
+					iTempWeight = GC.getAI_CITYSTRATEGY_OPERATION_UNIT_BASE_WEIGHT();
+					int iOffenseFlavor = kPlayer.GetGrandStrategyAI()->GetPersonalityAndGrandStrategy((FlavorTypes)GC.getInfoTypeForString("FLAVOR_OFFENSE")) + kPlayer.GetMilitaryAI()->GetNumberOfTimesOpsBuildSkippedOver();
+					iTempWeight += (GC.getAI_CITYSTRATEGY_OPERATION_UNIT_FLAVOR_MULTIPLIER() * iOffenseFlavor);
+					iTempWeight += m_pUnitProductionAI->GetWeight(eUnitForOperation);
+					if (iTempWeight > 0)
+					{
+						buildable.m_iValue = iTempWeight;
+						m_BuildablesPrecheck.push_back(buildable, iTempWeight);
+						kPlayer.GetMilitaryAI()->BumpNumberOfTimesOpsBuildSkippedOver();
+					}
+				}
 			}
 		}
 		// Next units for sneak attack armies
 		eUnitForArmy = kPlayer.GetMilitaryAI()->GetUnitForArmy(GetCity());
 		if (eUnitForArmy != NO_UNIT)
 		{
-			buildable.m_eBuildableType = CITY_BUILDABLE_UNIT_FOR_ARMY;
-			buildable.m_iIndex = (int)eUnitForArmy;
-			buildable.m_iTurnsToConstruct = GetCity()->getProductionTurnsLeft(eUnitForArmy, 0);
-			iTempWeight = GC.getAI_CITYSTRATEGY_ARMY_UNIT_BASE_WEIGHT();
-			int iOffenseFlavor = kPlayer.GetGrandStrategyAI()->GetPersonalityAndGrandStrategy((FlavorTypes)GC.getInfoTypeForString("FLAVOR_OFFENSE"));
-			iTempWeight += (GC.getAI_CITYSTRATEGY_OPERATION_UNIT_FLAVOR_MULTIPLIER() * iOffenseFlavor);
-			if (iTempWeight > 0)
+			CvUnitEntry* pUnitEntry = GC.getUnitInfo((UnitTypes)eUnitForArmy);
+			if(pUnitEntry)
 			{
-				m_BuildablesPrecheck.push_back(buildable, iTempWeight);
+				bool bOoS = (kPlayer.GetNumUnitsOutOfSupply() > 0 && pUnitEntry->IsMilitarySupport() && !pUnitEntry->IsNoSupply());
+				if (!bOoS)
+				{
+					buildable.m_eBuildableType = CITY_BUILDABLE_UNIT_FOR_ARMY;
+					buildable.m_iIndex = (int)eUnitForArmy;
+					buildable.m_iTurnsToConstruct = GetCity()->getProductionTurnsLeft(eUnitForArmy, 0);
+					iTempWeight = GC.getAI_CITYSTRATEGY_ARMY_UNIT_BASE_WEIGHT();
+					int iOffenseFlavor = kPlayer.GetGrandStrategyAI()->GetPersonalityAndGrandStrategy((FlavorTypes)GC.getInfoTypeForString("FLAVOR_OFFENSE"));
+					iTempWeight += (GC.getAI_CITYSTRATEGY_OPERATION_UNIT_FLAVOR_MULTIPLIER() * iOffenseFlavor);
+					if (iTempWeight > 0)
+					{
+						buildable.m_iValue = iTempWeight;
+						m_BuildablesPrecheck.push_back(buildable, iTempWeight);
+					}
+				}
 			}
 		}
 	}
@@ -1254,9 +1301,9 @@ CvCityBuildable CvCityStrategyAI::ChooseHurry(bool bUnitOnly, bool bFaithPurchas
 	// Loop through adding the available units
 	for(iUnitLoop = 0; iUnitLoop < GC.GetGameUnits()->GetNumUnits(); iUnitLoop++)
 	{
+		CvUnitEntry* pUnitEntry = GC.getUnitInfo((UnitTypes)iUnitLoop);
 		if (bFaithPurchase)
 		{
-			CvUnitEntry* pUnitEntry = GC.getUnitInfo((UnitTypes)iUnitLoop);
 			if (pUnitEntry)
 			{
 				if (pUnitEntry->IsSpreadReligion() || pUnitEntry->IsRemoveHeresy())
@@ -1266,18 +1313,26 @@ CvCityBuildable CvCityStrategyAI::ChooseHurry(bool bUnitOnly, bool bFaithPurchas
 					continue;
 			}
 		}
-		// Make sure this unit can be built now
-		if (m_pCity->IsCanPurchase(true, true, (UnitTypes)iUnitLoop, NO_BUILDING, NO_PROJECT, ePurchaseYield))
+		if (pUnitEntry)
 		{
-			buildable.m_eBuildableType = CITY_BUILDABLE_UNIT;
-			buildable.m_iIndex = iUnitLoop;
-			buildable.m_iTurnsToConstruct = GetCity()->getProductionTurnsLeft((UnitTypes)iUnitLoop, 0);
-
-			iTempWeight = m_pUnitProductionAI->GetWeight((UnitTypes)iUnitLoop);	
-			
-			if(iTempWeight > 0)
+			bool bOoS = (kPlayer.GetNumUnitsOutOfSupply() > 0 && pUnitEntry->IsMilitarySupport() && !pUnitEntry->IsNoSupply());
+			if (!bOoS)
 			{
-				m_BuildablesPrecheck.push_back(buildable, iTempWeight);
+				// Make sure this unit can be built now
+				if (m_pCity->IsCanPurchase(true, true, (UnitTypes)iUnitLoop, NO_BUILDING, NO_PROJECT, ePurchaseYield))
+				{
+					buildable.m_eBuildableType = CITY_BUILDABLE_UNIT;
+					buildable.m_iIndex = iUnitLoop;
+					buildable.m_iTurnsToConstruct = GetCity()->getProductionTurnsLeft((UnitTypes)iUnitLoop, 0);
+
+					iTempWeight = m_pUnitProductionAI->GetWeight((UnitTypes)iUnitLoop);
+
+					if (iTempWeight > 0)
+					{
+						buildable.m_iValue = iTempWeight;
+						m_BuildablesPrecheck.push_back(buildable, iTempWeight);
+					}
+				}
 			}
 		}
 	}
@@ -1306,6 +1361,7 @@ CvCityBuildable CvCityStrategyAI::ChooseHurry(bool bUnitOnly, bool bFaithPurchas
 				// Save it for later
 				if (iTempWeight > 0)
 				{
+					buildable.m_iValue = iTempWeight;
 					m_BuildablesPrecheck.push_back(buildable, iTempWeight);
 				}
 			}
@@ -1358,6 +1414,7 @@ CvCityBuildable CvCityStrategyAI::ChooseHurry(bool bUnitOnly, bool bFaithPurchas
 							int iNewWeight = GetUnitProductionAI()->CheckUnitBuildSanity(eUnitType, true, pThisArmy,  m_BuildablesPrecheck.GetWeight(iI), iGPT, true);
 							if(iNewWeight > 0)
 							{
+								selection.m_iValue = iNewWeight;
 								m_Buildables.push_back(selection, iNewWeight);
 							}
 						}
@@ -1366,6 +1423,7 @@ CvCityBuildable CvCityStrategyAI::ChooseHurry(bool bUnitOnly, bool bFaithPurchas
 							int iNewWeight = GetUnitProductionAI()->CheckUnitBuildSanity(eUnitType, true, NULL, m_BuildablesPrecheck.GetWeight(iI), iGPT, true);
 							if(iNewWeight > 0)
 							{
+								selection.m_iValue = iNewWeight;
 								m_Buildables.push_back(selection, iNewWeight);
 							}
 						}
@@ -1375,6 +1433,7 @@ CvCityBuildable CvCityStrategyAI::ChooseHurry(bool bUnitOnly, bool bFaithPurchas
 						int iNewWeight = GetUnitProductionAI()->CheckUnitBuildSanity(eUnitType, true, NULL, m_BuildablesPrecheck.GetWeight(iI), iGPT, true);
 						if(iNewWeight > 0)
 						{
+							selection.m_iValue = iNewWeight;
 							m_Buildables.push_back(selection, iNewWeight);
 						}
 					}
@@ -1386,6 +1445,7 @@ CvCityBuildable CvCityStrategyAI::ChooseHurry(bool bUnitOnly, bool bFaithPurchas
 					int iNewWeight = GetUnitProductionAI()->CheckUnitBuildSanity(eUnitType, true, NULL, m_BuildablesPrecheck.GetWeight(iI), iGPT, true);
 					if(iNewWeight > 0)
 					{
+						selection.m_iValue = iNewWeight;
 						m_Buildables.push_back(selection, iNewWeight);
 					}
 					break;
@@ -1396,6 +1456,7 @@ CvCityBuildable CvCityStrategyAI::ChooseHurry(bool bUnitOnly, bool bFaithPurchas
 					int iNewWeight = GetUnitProductionAI()->CheckUnitBuildSanity(eUnitType, false, NULL, m_BuildablesPrecheck.GetWeight(iI), iGPT, iWaterRoutes, iLandRoutes, true);
 					if(iNewWeight > 0)
 					{
+						selection.m_iValue = iNewWeight;
 						m_Buildables.push_back(selection, iNewWeight);
 					}
 					break;
@@ -1417,6 +1478,7 @@ CvCityBuildable CvCityStrategyAI::ChooseHurry(bool bUnitOnly, bool bFaithPurchas
 					}
 					if(iNewWeight > 0)
 					{
+						selection.m_iValue = iNewWeight;
 						m_Buildables.push_back(selection, iNewWeight);
 					}
 					break;
@@ -1851,8 +1913,8 @@ void CvCityStrategyAI::UpdateBestYields()
 			continue;
 		}
 
-		CvCity* pWorkingCity = pPlot->getWorkingCity();
-		if(!pWorkingCity || pWorkingCity->GetID() != m_pCity->GetID())
+		CvCity* pOwningCity = pPlot->getOwningCity();
+		if(!pOwningCity || pOwningCity->GetID() != m_pCity->GetID())
 		{
 			continue;
 		}
@@ -3294,6 +3356,8 @@ bool CityStrategyAIHelpers::IsTestCityStrategy_EnoughTileImprovers(AICityStrateg
 	}
 	
 	int iNumBuilders = kPlayer.GetNumUnitsWithUnitAI(UNITAI_WORKER, true, false);
+	if (iNumBuilders <= 0)
+		return false;
 
 #if defined(MOD_BALANCE_CORE)
 	int iX = pCity->getX(); int iY = pCity->getY(); int iOwner = pCity->getOwner();
@@ -3321,8 +3385,8 @@ bool CityStrategyAIHelpers::IsTestCityStrategy_EnoughTileImprovers(AICityStrateg
 					iNumWorkersHere++;
 				}
 			}
-			//Already improved? Continue.
-			if(pLoopPlot->getImprovementType() != NO_IMPROVEMENT)
+			//Already improved and not pillaged? Continue.
+			if (pLoopPlot->getImprovementType() != NO_IMPROVEMENT && !pLoopPlot->IsImprovementPillaged() && !pLoopPlot->IsRoutePillaged())
 				continue;
 
 			//Skip cities.
@@ -3367,9 +3431,6 @@ bool CityStrategyAIHelpers::IsTestCityStrategy_EnoughTileImprovers(AICityStrateg
 	{
 		return true;
 	}
-	//Gotta have at least one!
-	if(iNumBuilders <= 1)
-		return false;
 
 	//Not enough workers here? 4:1 ratio is good ratio.
 	if((iNumWorkersHere * 4) < iCanImprove)
@@ -4351,7 +4412,7 @@ bool CityStrategyAIHelpers::IsTestCityStrategy_GoodGPCity(CvCity* pCity)
 		}
 	}
 #if defined(MOD_BALANCE_CORE)
-	if (iTotalGPPChange >= 2000)
+	if (iTotalGPPChange >= 2500)
 #else
 	if (iTotalGPPChange >= 800)
 #endif
@@ -4454,7 +4515,7 @@ bool CityStrategyAIHelpers::IsTestCityStrategy_NeedTourismBuilding(CvCity *pCity
 	iTourismValue += pCity->GetCityCulture()->GetCultureFromImprovements();
 #endif
 #if defined(MOD_BALANCE_CORE)
-	iTourismValue += pCity->GetBaseTourism();
+	iTourismValue += pCity->GetBaseTourism() / 100;
 #else
 	iTourismValue += pCity->GetCityCulture()->GetBaseTourism();
 #endif
@@ -4693,8 +4754,8 @@ int CityStrategyAIHelpers::GetBuildingYieldValue(CvCity *pCity, BuildingTypes eB
 	}
 	if (pkBuildingInfo->GetYieldChangePerPop(eYield) > 0)
 	{
-		//Since this is going to grow, let's boost the pop.
-		int iValue = ((pkBuildingInfo->GetYieldChangePerPop(eYield) * pCity->getPopulation()) / 50);
+		//Since this is going to grow, let's boost the pop by Era (earlier more: Anc x6, Cla x3, Med x2, Ren x1.5, Mod x1.2)
+		int iValue = (pCity->getPopulation() * pkBuildingInfo->GetYieldChangePerPop(eYield) * (60/(iEra+1)) / (1 * 100 * 10));
 		if (iValue > 0)
 		{
 			iFlatYield += iValue;
@@ -4727,8 +4788,16 @@ int CityStrategyAIHelpers::GetBuildingYieldValue(CvCity *pCity, BuildingTypes eB
 	{
 		if (iYieldRate > pkBuildingInfo->GetScienceFromYield(eYield))
 		{
-			iFlatYield += (iYieldRate / pkBuildingInfo->GetScienceFromYield(eYield));
+			iFlatYield += (iYieldRate * pkBuildingInfo->GetScienceFromYield(eYield) / 100);
 		}
+	}
+	if (pkBuildingInfo->GetGreatWorkYieldChange(eYield) > 0)
+	{
+		iFlatYield += pkBuildingInfo->GetGreatWorkYieldChange(eYield) * (kPlayer.GetCulture()->GetNumGreatWorkSlots() / 2);
+	}
+	if (pkBuildingInfo->GetGreatWorkYieldChangeLocal(eYield) > 0)
+	{
+		iFlatYield += pkBuildingInfo->GetGreatWorkYieldChange(eYield) * pCity->GetCityBuildings()->GetNumAvailableGreatWorkSlots();
 	}
 
 	int iNumBuildingInfos = GC.getNumBuildingInfos();
@@ -4751,10 +4820,19 @@ int CityStrategyAIHelpers::GetBuildingYieldValue(CvCity *pCity, BuildingTypes eB
 				{
 					iFlatYield += (pkBuildingInfo->GetBuildingClassLocalYieldChange(pkLoopBuilding->GetBuildingClassType(), eYield) * 5);
 				}
-				else
+				else if (pCity->canConstruct(eBuildingLoop))
 				{
 					iFlatYield += (pkBuildingInfo->GetBuildingClassLocalYieldChange(pkLoopBuilding->GetBuildingClassType(), eYield) * 2);
 				}
+				else
+				{
+					iFlatYield += (pkBuildingInfo->GetBuildingClassLocalYieldChange(pkLoopBuilding->GetBuildingClassType(), eYield));
+				}
+			}
+			//Stick this modifier here...okay?
+			if (pkBuildingInfo->GetBuildingClassYieldModifier(pkLoopBuilding->GetBuildingClassType(), eYield) > 0)
+			{
+				iModifier += (pkBuildingInfo->GetBuildingClassYieldModifier(pkLoopBuilding->GetBuildingClassType(), eYield) * kPlayer.getNumCities() * 2);
 			}
 		}
 	}
@@ -4776,14 +4854,14 @@ int CityStrategyAIHelpers::GetBuildingYieldValue(CvCity *pCity, BuildingTypes eB
 			{
 				if (pCity->GetNearbyMountains() > 0)
 				{
-					iFlatYield += (pkBuildingInfo->GetYieldPerXTerrain(eTerrain, eYield) / pCity->GetNearbyMountains());
+					iFlatYield += (pkBuildingInfo->GetYieldPerXTerrain(eTerrain, eYield) * pCity->GetNearbyMountains() / 100);
 				}
 			}
 			else
 			{
 				if (iNumTerrain > 0)
 				{
-					iFlatYield += (pkBuildingInfo->GetYieldPerXTerrain(eTerrain, eYield) / iNumTerrain);
+					iFlatYield += (pkBuildingInfo->GetYieldPerXTerrain(eTerrain, eYield) * iNumTerrain / 100);
 				}
 			}
 		}
@@ -4802,13 +4880,20 @@ int CityStrategyAIHelpers::GetBuildingYieldValue(CvCity *pCity, BuildingTypes eB
 		if (eFeature == NO_FEATURE)
 			continue;
 
+		if (pkBuildingInfo->GetFeatureYieldChange(eFeature, eYield) == 0 && pkBuildingInfo->GetYieldPerXFeature(eFeature, eYield) == 0)
+			continue;
+
+		int iCount = pCity->CountFeature(eFeature);
+		if (iCount <= 0)
+			continue;
+		
 		if (pkBuildingInfo->GetFeatureYieldChange(eFeature, eYield) > 0)
+		{	
+			iFlatYield += (iCount * pkBuildingInfo->GetFeatureYieldChange(eFeature, eYield));
+		}
+		if (pkBuildingInfo->GetYieldPerXFeature(eFeature, eYield) > 0)
 		{
-			int iCount = pCity->CountFeature(eFeature);
-			if (iCount > 0)
-			{
-				iFlatYield += (iCount * pkBuildingInfo->GetFeatureYieldChange(eFeature, eYield));
-			}
+			iFlatYield += (iCount * pkBuildingInfo->GetFeatureYieldChange(eFeature, eYield) * iCount / 100);
 		}
 	}
 	int iNumResourceInfos = GC.getNumResourceInfos();
@@ -4823,7 +4908,11 @@ int CityStrategyAIHelpers::GetBuildingYieldValue(CvCity *pCity, BuildingTypes eB
 			continue;
 
 		bool bWater = false;
-		if (pkResourceInfo->isTerrain(TERRAIN_COAST) || pkResourceInfo->isTerrain(TERRAIN_OCEAN))
+		if ( (pkResourceInfo->isTerrain(TERRAIN_COAST) || pkResourceInfo->isTerrain(TERRAIN_OCEAN)) &&
+			// Oil can be on sea tiles and land tiles, without the below part Oil is never valued in non-coastal cities
+			 !(pkResourceInfo->isTerrain(TERRAIN_DESERT) || pkResourceInfo->isTerrain(TERRAIN_GRASS) ||
+			  pkResourceInfo->isTerrain(TERRAIN_HILL) || pkResourceInfo->isTerrain(TERRAIN_PLAINS) ||
+			  pkResourceInfo->isTerrain(TERRAIN_SNOW) || pkResourceInfo->isTerrain(TERRAIN_TUNDRA)) )
 		{
 			bWater = true;
 			if (!pCity->isCoastal())
@@ -5087,7 +5176,7 @@ int CityStrategyAIHelpers::GetBuildingYieldValue(CvCity *pCity, BuildingTypes eB
 	}
 	if (pkBuildingInfo->GetYieldFromBirth(eYield) > 0)
 	{
-		iInstant += pkBuildingInfo->GetYieldFromBirth(eYield) + pCity->GetGrowthExtraYield(eYield) + kPlayer.GetCityGrowthMod();
+		iInstant += pkBuildingInfo->GetYieldFromBirth(eYield) + pCity->foodDifference() + pCity->GetGrowthExtraYield(eYield) + kPlayer.GetCityGrowthMod();
 		if (pCity->isCapital())
 		{
 			iInstant += kPlayer.GetCapitalGrowthMod();
@@ -5201,8 +5290,8 @@ int CityStrategyAIHelpers::GetBuildingYieldValue(CvCity *pCity, BuildingTypes eB
 	//If we are deficient in this yield, increase the flat yield's value to compensate.
 	if (pCity->GetCityStrategyAI()->GetFocusYield() == eYield || pCity->GetCityStrategyAI()->IsYieldDeficient(eYield))
 	{
-		iFlatYield *= 2;
-		iModifier *= 2;
+		iFlatYield *= 5;
+		iModifier *= 5;
 	}
 
 	//Math time! Let's see how this affects our city.
@@ -5214,12 +5303,13 @@ int CityStrategyAIHelpers::GetBuildingYieldValue(CvCity *pCity, BuildingTypes eB
 		if (iDelta <= 0)
 		{
 			//Yield value here greater than our yield output in this city? We need this badly!
-			iFlatYield *= 4;
+			iFlatYield *= 5;
 		}
 
 		//And here's what the value represents.
 		//Era = higher era, less valuable in game.
-		iActualIncrease = (iFlatYield * (400 - (iEra * 25)));
+		iActualIncrease = (iFlatYield * (100 - (iEra * 5)));
+		iActualIncrease /= 100; // fix for #3870
 		iActualIncrease /= max(1, iDelta);
 
 		iYieldValue += iActualIncrease;
@@ -5250,13 +5340,15 @@ int CityStrategyAIHelpers::GetBuildingYieldValue(CvCity *pCity, BuildingTypes eB
 
 		iYieldValue += (iActualIncrease * iEra * 2);
 	}
+	
+	AICityStrategyTypes eNeedCulture = (AICityStrategyTypes)GC.getInfoTypeForString("AICITYSTRATEGY_FIRST_CULTURE_BUILDING");
+	EconomicAIStrategyTypes eStrategyBuildingReligion = (EconomicAIStrategyTypes)GC.getInfoTypeForString("ECONOMICAISTRATEGY_DEVELOPING_RELIGION", true);
 
 	if (iYieldValue > 0)
 	{
-		//Grand Strategy Modifiers
-		if (eYield == YIELD_CULTURE)
+		switch (eYield)
 		{
-			AICityStrategyTypes eNeedCulture = (AICityStrategyTypes)GC.getInfoTypeForString("AICITYSTRATEGY_FIRST_CULTURE_BUILDING");
+		case YIELD_CULTURE:
 			if (eNeedCulture != NO_AICITYSTRATEGY && pCity->GetCityStrategyAI()->IsUsingCityStrategy(eNeedCulture))
 			{
 				iYieldValue *= 2;
@@ -5285,12 +5377,9 @@ int CityStrategyAIHelpers::GetBuildingYieldValue(CvCity *pCity, BuildingTypes eB
 					}
 				}
 			}
-		}
-
-		if (eYield == YIELD_SCIENCE)
-		{
-			AICityStrategyTypes eNeedScience = (AICityStrategyTypes)GC.getInfoTypeForString("AICITYSTRATEGY_FIRST_SCIENCE_BUILDING");
-			if (eNeedScience != NO_AICITYSTRATEGY && pCity->GetCityStrategyAI()->IsUsingCityStrategy(eNeedScience))
+			break;
+		case YIELD_SCIENCE:
+			if (pCity->GetJONSCulturePerTurnFromBuildings() <= 0)
 			{
 				iYieldValue *= 2;
 			}
@@ -5298,35 +5387,46 @@ int CityStrategyAIHelpers::GetBuildingYieldValue(CvCity *pCity, BuildingTypes eB
 			{
 				iYieldValue *= 2;
 			}
-		}
-		if (eYield == YIELD_PRODUCTION)
-		{
+			break;
+		case YIELD_PRODUCTION:
 			if (kPlayer.GetDiplomacyAI()->IsCloseToSSVictory())
 			{
 				iYieldValue *= 2;
 			}
-		}
-		if (eYield == YIELD_TOURISM)
-		{
+			break;
+		case YIELD_TOURISM:
 			if (kPlayer.GetDiplomacyAI()->IsCloseToCultureVictory())
 			{
 				iYieldValue *= 2;
 			}
-		}
-
-		if (eYield == YIELD_FAITH)
-		{
-			AICityStrategyTypes eNeedFaith = (AICityStrategyTypes)GC.getInfoTypeForString("AICITYSTRATEGY_FIRST_FAITH_BUILDING");
-			if (eNeedFaith != NO_AICITYSTRATEGY && pCity->GetCityStrategyAI()->IsUsingCityStrategy(eNeedFaith))
+			break;
+		case YIELD_FAITH:
+			
+			int iFlavorReligion = kPlayer.GetFlavorManager()->GetPersonalityIndividualFlavor((FlavorTypes)GC.getInfoTypeForString("FLAVOR_RELIGION"));
+			
+			if (kPlayer.GetPlayerTraits()->IsReligious())
 			{
-				iYieldValue *= 3;
+				iFlavorReligion *= 3;
+				iFlavorReligion /= 2;
 			}
-			EconomicAIStrategyTypes eStrategyBuildingReligion = (EconomicAIStrategyTypes)GC.getInfoTypeForString("ECONOMICAISTRATEGY_DEVELOPING_RELIGION", true);
+			else
+			{
+				iFlavorReligion *= 2;
+				iFlavorReligion /= 3;
+			}
+
+			if (pCity->GetFaithPerTurnFromBuildings() <= 0 && !kPlayer.GetReligions()->HasCreatedPantheon())
+			{		
+				iYieldValue *= max(1, iFlavorReligion);
+			}
+			
 			if (eStrategyBuildingReligion != NO_ECONOMICAISTRATEGY && kPlayer.GetEconomicAI()->IsUsingStrategy(eStrategyBuildingReligion))
 			{
-				iYieldValue *= 2;
+				iYieldValue *= max(1, iFlavorReligion);
 			}
+			break;
 		}
+
 		AIGrandStrategyTypes eGrandStrategy = kPlayer.GetGrandStrategyAI()->GetActiveGrandStrategy();
 		bool bSeekingDiploVictory = eGrandStrategy == GC.getInfoTypeForString("AIGRANDSTRATEGY_UNITED_NATIONS");
 		bool bSeekingConquestVictory = eGrandStrategy == GC.getInfoTypeForString("AIGRANDSTRATEGY_CONQUEST");
@@ -5416,6 +5516,27 @@ int CityStrategyAIHelpers::GetBuildingGrandStrategyValue(CvCity *pCity, Building
 		{
 			iScienceInterest += kPlayer.GetGrandStrategyAI()->GetGrandStrategyPriority(eGrandStrategy);
 		}
+	}
+
+	if (kPlayer.GetPlayerTraits()->IsExpansionist() || kPlayer.GetPlayerTraits()->IsWarmonger())
+	{
+		iConquestInterest *= 3;
+		iDiploInterest *= 2;
+	}
+	if (kPlayer.GetPlayerTraits()->IsNerd())
+	{
+		iConquestInterest *= 2;
+		iScienceInterest *= 3;
+	}
+	if (kPlayer.GetPlayerTraits()->IsDiplomat() || kPlayer.GetPlayerTraits()->IsSmaller())
+	{
+		iCultureInterest *= 2;
+		iDiploInterest *= 3;
+	}
+	if (kPlayer.GetPlayerTraits()->IsTourism() || kPlayer.GetPlayerTraits()->IsReligious())
+	{
+		iCultureInterest *= 3;
+		iScienceInterest *= 2;
 	}
 
 	//Let's look at building special traits.
@@ -5538,7 +5659,7 @@ int CityStrategyAIHelpers::GetBuildingGrandStrategyValue(CvCity *pCity, Building
 	}
 	if(pkBuildingInfo->GetInstantMilitaryIncrease() > 0)
 	{
-		iConquestValue += 50;
+		iConquestValue += 500;
 	}
 	if(pkBuildingInfo->GetUnitUpgradeCostMod() != 0)
 	{
@@ -5577,7 +5698,7 @@ int CityStrategyAIHelpers::GetBuildingGrandStrategyValue(CvCity *pCity, Building
 	}
 	if(pkBuildingInfo->GetFreePolicies() > 0)
 	{
-		iCultureValue += kPlayer.GetNumPolicies() * 25;
+		iCultureValue += kPlayer.GetNumPolicies() * kPlayer.getNumCities() * 500;
 	}	
 	if(pkBuildingInfo->GetGreatWorkCount() > 0)
 	{
@@ -5611,6 +5732,7 @@ int CityStrategyAIHelpers::GetBuildingGrandStrategyValue(CvCity *pCity, Building
 	{
 		iCultureValue += (pkBuildingInfo->GetTechEnhancedTourism() * 10);
 	}
+
 	if(pCity != NULL && (pkBuildingInfo->GetLandmarksTourismPercent() > 0 || pkBuildingInfo->GetLandmarksTourismPercentGlobal() > 0))
 	{
 		int iFromWonders = pCity->GetCityCulture()->GetCultureFromWonders();
@@ -5733,15 +5855,19 @@ int CityStrategyAIHelpers::GetBuildingPolicyValue(CvCity *pCity, BuildingTypes e
 
 	if(pkBuildingInfo->GetPlotCultureCostModifier() < 0)
 	{
-		iValue += 3 * (((kPlayer.GetPlotCultureCostModifier() + pkBuildingInfo->GetPlotCultureCostModifier())) * ((kPlayer.GetPlotCultureCostModifier() + pkBuildingInfo->GetPlotCultureCostModifier())));
+		iValue += 5 * abs((kPlayer.GetPlotCultureCostModifier() + pkBuildingInfo->GetPlotCultureCostModifier()) * abs(kPlayer.GetPlotCultureCostModifier() + pkBuildingInfo->GetPlotCultureCostModifier()));
 	}
 	if(pkBuildingInfo->GetPlotBuyCostModifier() < 0)
 	{
-		iValue += 3 * (((kPlayer.GetPlotGoldCostMod() + pkBuildingInfo->GetPlotBuyCostModifier())) * ((kPlayer.GetPlotGoldCostMod() + pkBuildingInfo->GetPlotBuyCostModifier())));
+		iValue += 5 * abs((kPlayer.GetPlotGoldCostMod() + pkBuildingInfo->GetPlotBuyCostModifier())) * abs((kPlayer.GetPlotGoldCostMod() + pkBuildingInfo->GetPlotBuyCostModifier()));
 	}
 	if(pkBuildingInfo->GetNumTradeRouteBonus())
 	{
 		iValue += ((pkBuildingInfo->GetNumTradeRouteBonus() + kPlayer.GetTrade()->GetNumTradeRoutesPossible()) * 25);
+	}
+	if (pkBuildingInfo->GetResourceDiversityModifier())
+	{
+		iValue += ((pkBuildingInfo->GetResourceDiversityModifier() + kPlayer.GetTrade()->GetNumTradeRoutesPossible()) * 25);
 	}
 	if(pkBuildingInfo->GetPolicyCostModifier() <= 0)
 	{
@@ -5988,7 +6114,7 @@ int CityStrategyAIHelpers::GetBuildingBasicValue(CvCity *pCity, BuildingTypes eB
 	if (pkBuildingInfo->GetNumThemingBonuses() > 0 || pkBuildingInfo->GetGreatWorkCount() > 0)
 	{
 		int iNumWorks = max(1, pCity->GetCityBuildings()->GetNumGreatWorks());
-		iValue += (iNumWorks * pkBuildingInfo->GetNumThemingBonuses() * 25);
+		iValue += (pkBuildingInfo->GetNumThemingBonuses());
 		iValue += (pkBuildingInfo->GetGreatWorkCount() * iNumWorks * 25);
 		if (kPlayer.GetPlayerTraits()->GetCapitalThemingBonusModifier() > 0)
 		{
@@ -6037,7 +6163,7 @@ int CityStrategyAIHelpers::GetBuildingBasicValue(CvCity *pCity, BuildingTypes eB
 	if (pkBuildingInfo->GetFreeTechs() > 0)
 	{
 		//Earlier techs pretty useful...
-		iValue += (200 + (GC.getNumTechInfos() - GET_TEAM(kPlayer.getTeam()).GetTeamTechs()->GetNumTechsKnown()));
+		iValue += (1000 + (GC.getNumTechInfos() - GET_TEAM(kPlayer.getTeam()).GetTeamTechs()->GetNumTechsKnown()));
 	}
 	for (int iUnitLoop = 0; iUnitLoop < GC.getNumUnitInfos(); iUnitLoop++)
 	{
@@ -6098,9 +6224,10 @@ int CityStrategyAIHelpers::GetBuildingBasicValue(CvCity *pCity, BuildingTypes eB
 		if (eFreeBuildingThisCity != NO_BUILDING)
 		{
 			if(pCity->GetCityBuildings()->GetNumBuilding(eFreeBuildingThisCity) <= 0)
-			{
+				iValue += pCity->getPopulation() * 20;
+			else
 				iValue += pCity->getPopulation() * 10;
-			}
+
 		}
 	}
 	if(pkBuildingInfo->GetCultureRateModifier() > 0)
@@ -6120,6 +6247,35 @@ int CityStrategyAIHelpers::GetBuildingBasicValue(CvCity *pCity, BuildingTypes eB
 		int iNumNearbyCities = kPlayer.GetReligionAI()->GetNumCitiesWithReligionCalculator();
 
 		iValue += (iNumNearbyCities / 10);
+	}
+
+	if (pkBuildingInfo->GetExtraMissionarySpreadsGlobal() > 0)
+	{
+		int iNumNearbyCities = kPlayer.GetReligionAI()->GetNumCitiesWithReligionCalculator();
+
+		iValue += (iNumNearbyCities * 2);
+	}
+
+	if (pkBuildingInfo->GetExtraMissionaryStrength() > 0)
+	{
+		int iNumNearbyCities = kPlayer.GetReligionAI()->GetNumCitiesWithReligionCalculator();
+
+		iValue += (iNumNearbyCities / 10);
+	}
+
+	//Is this a prereq for another building we can build right now? 
+	for (int iBuildingLoop = 0; iBuildingLoop < GC.getNumBuildingInfos(); iBuildingLoop++)
+	{
+		const BuildingTypes eBuilding2 = static_cast<BuildingTypes>(iBuildingLoop);
+		CvBuildingEntry* pkBuildingInfo2 = GC.getBuildingInfo(eBuilding2);
+
+		if (pkBuildingInfo2 && pkBuildingInfo2->GetPrereqAndTech() != NO_TECH && kPlayer.HasTech((TechTypes)pkBuildingInfo2->GetPrereqAndTech()))
+		{
+			if (pkBuildingInfo2->GetNeedBuildingThisCity() == eBuilding)
+			{
+				iValue += 1000;
+			}
+		}
 	}
 
 	return iValue;
@@ -6149,11 +6305,11 @@ int  CityStrategyAIHelpers::GetBuildingTraitValue(CvCity *pCity, YieldTypes eYie
 		iBonus += (pkBuildingInfo->GetGreatWorkCount() * kPlayer.GetPlayerTraits()->GetArtifactYieldChanges(eYield) * 15);
 		iBonus += (pkBuildingInfo->GetGreatWorkCount() * kPlayer.GetPlayerTraits()->GetArtYieldChanges(eYield) * 15);
 	}
-	if(pkBuildingInfo->GetGreatWorkSlotType() == eWritingSlot)
+	else if(pkBuildingInfo->GetGreatWorkSlotType() == eWritingSlot)
 	{
 		iBonus += (pkBuildingInfo->GetGreatWorkCount() * kPlayer.GetPlayerTraits()->GetLitYieldChanges(eYield) * 15);
 	}
-	if(pkBuildingInfo->GetGreatWorkSlotType() == eMusicSlot)
+	else if(pkBuildingInfo->GetGreatWorkSlotType() == eMusicSlot)
 	{
 		iBonus += (pkBuildingInfo->GetGreatWorkCount() * kPlayer.GetPlayerTraits()->GetMusicYieldChanges(eYield) * 15);
 	}
@@ -6163,6 +6319,14 @@ int  CityStrategyAIHelpers::GetBuildingTraitValue(CvCity *pCity, YieldTypes eYie
 	if(kPlayer.GetPlayerTraits()->GetBuildingClassYieldChange((BuildingClassTypes)pkBuildingInfo->GetBuildingClassType(), eYield) > 0)
 	{
 		iBonus += (kPlayer.GetPlayerTraits()->GetBuildingClassYieldChange((BuildingClassTypes)pkBuildingInfo->GetBuildingClassType(), eYield) * 15);
+	}
+
+	if (isWorldWonderClass(pkBuildingInfo->GetBuildingClassInfo()))
+	{
+		if (kPlayer.GetPlayerTraits()->GetYieldChangeWorldWonder(eYield) > 0)
+		{
+			iBonus += (kPlayer.GetPlayerTraits()->GetYieldChangeWorldWonder(eYield) * 15);
+		}
 	}
 
 	if(kPlayer.GetPlayerTraits()->GetGreatWorkYieldChanges(eYield) > 0 && pkBuildingInfo->GetGreatWorkCount() > 0)
@@ -6253,6 +6417,6 @@ int  CityStrategyAIHelpers::GetBuildingTraitValue(CvCity *pCity, YieldTypes eYie
 		}
 	}
 
-	return (iBonus * 2);
+	return (iBonus * 10);
 }
 #endif

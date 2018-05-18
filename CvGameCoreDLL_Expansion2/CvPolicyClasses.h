@@ -101,7 +101,7 @@ public:
 	bool IsCorporationFreeFranchiseAbovePopular() const;
 	bool IsCorporationRandomForeignFranchise() const;
 	int GetAdditionalNumFranchisesMod() const;
-	bool IsUpgradeCSTerritory() const;
+	bool IsUpgradeCSVassalTerritory() const;
 	int GetArchaeologicalDigTourism() const;
 	int GetGoldenAgeTourism() const;
 	int GetExtraCultureandScienceTradeRoutes() const;
@@ -183,6 +183,7 @@ public:
 	int GetInternalTradeRouteYieldModifierCapital() const;
 	int GetTradeRouteYieldModifierCapital() const;
 	BuildingClassTypes GetNewCityFreeBuilding() const;
+	BuildingClassTypes GetAllCityFreeBuilding() const;
 	
 	bool IsNoCSDecayAtWar() const;
 	bool CanBullyFriendlyCS() const;
@@ -220,6 +221,7 @@ public:
 	bool IsFinisher() const;
 	int GetCityStateCombatModifier() const;
 	int GetGreatEngineerRateModifier() const;
+	int GetDefenseBoost() const;
 #endif
 	bool IsMilitaryFoodProduction() const;
 	int GetWoundedUnitDamageMod() const;
@@ -255,6 +257,8 @@ public:
 	int* GetCapitalYieldChangeArray() const;
 	int GetCapitalYieldPerPopChange(int i) const;
 	int* GetCapitalYieldPerPopChangeArray() const;
+	int GetCapitalYieldPerPopChangeEmpire(int i) const;
+	int* GetCapitalYieldPerPopChangeEmpireArray() const;
 	int GetCapitalYieldModifier(int i) const;
 	int* GetCapitalYieldModifierArray() const;
 	int GetGreatWorkYieldChange(int i) const;
@@ -300,7 +304,7 @@ public:
 	int GetGreatEngineerHurryModifier() const;
 	int GetTechCostXCitiesMod() const;
 	int GetTourismCostXCitiesMod() const;
-	int GetCitadelBoost() const;
+	int GetCultureBombBoost() const;
 	int GetPuppetProdMod() const;
 	int GetOccupiedProdMod() const;
 	int GetInternalTradeGold() const;
@@ -375,6 +379,11 @@ public:
 	int GetLitYieldChanges(int i) const;
 	int* GetLitYieldChangesArray() const;
 
+	int GetRelicYieldChanges(int i) const;
+	int* GetRelicYieldChangesArray() const;
+	int GetFilmYieldChanges(int i) const;
+	int* GetFilmYieldChangesArray() const;
+
 	bool IsOnlyTradeSameIdeology() const;
 
 	int GetYieldFromNonSpecialistCitizens(int i) const;
@@ -394,6 +403,12 @@ public:
 	bool IsCSResourcesForMonopolies() const;
 	
 	int GetHappinessPerActiveTradeRoute() const;
+	int GetNeedsModifierFromAirUnits() const;
+	int GetFlatDefenseFromAirUnits() const;
+	int GetPuppetYieldPenaltyMod() const;
+	int GetConquestPerEraBuildingProductionMod() const;
+	int GetAdmiralLuxuryBonus() const;
+
 #endif
 #if defined(HH_MOD_API_TRADEROUTE_MODIFIERS)
 	int GetInternationalRouteYieldModifier(int i) const;
@@ -423,6 +438,7 @@ public:
 	int GetNoUnhappfromXSpecialists() const;
 	int GetHappfromXSpecialists() const;
 	int GetNoUnhappfromXSpecialistsCapital() const;
+	int GetSpecialistFoodChange() const;
 
 	int GetWarWearinessModifier() const;
 	int GetWarScoreModifier() const;
@@ -564,6 +580,7 @@ private:
 	int m_iInternalTradeRouteYieldModifierCapital;
 	int m_iTradeRouteYieldModifierCapital;
 	BuildingClassTypes m_eNewCityFreeBuilding;
+	BuildingClassTypes m_eAllCityFreeBuilding;
 
 	bool m_bNoCSDecayAtWar;
 	bool m_bBullyFriendlyCS;
@@ -607,6 +624,7 @@ private:
 	bool m_bFinisher;
 	int m_iCityStateCombatModifier;
 	int m_iGreatEngineerRateModifier;
+	int m_iDefenseBoost;
 #endif
 	bool m_bMilitaryFoodProduction;
 	bool m_bAlwaysSeeBarbCamps;
@@ -638,6 +656,7 @@ private:
 	int m_iNoUnhappfromXSpecialists;
 	int m_iHappfromXSpecialists;
 	int m_iNoUnhappfromXSpecialistsCapital;
+	int m_iSpecialistFoodChange;
 	int m_iWarWearinessModifier;
 	int m_iWarScoreModifier;
 
@@ -662,6 +681,7 @@ private:
 	int* m_piCoastalCityYieldChange;
 	int* m_piCapitalYieldChange;
 	int* m_piCapitalYieldPerPopChange;
+	int* m_piCapitalYieldPerPopChangeEmpire;
 	int* m_piCapitalYieldModifier;
 	int* m_piGreatWorkYieldChange;
 	int* m_piSpecialistExtraYield;
@@ -699,7 +719,7 @@ private:
 	int m_iIncreasedQuestInfluence;
 	int m_iPuppetProdMod;
 	int m_iOccupiedProdMod;
-	int m_iCitadelBoost;
+	int m_iCultureBombBoost;
 	int m_iInternalTradeGold;
 	int m_iFreeWCVotes;
 	int m_iInfluenceGPExpend;
@@ -726,7 +746,7 @@ private:
 	bool m_bCorporationFreeFranchiseAbovePopular;
 	bool m_bCorporationRandomForeignFranchise;
 	int m_iAdditionalNumFranchisesMod;
-	bool m_bUpgradeCSTerritory;
+	bool m_bUpgradeCSVassalTerritory;
 	int m_iArchaeologicalDigTourism;
 	int m_iGoldenAgeTourism;
 	int m_iExtraCultureandScienceTradeRoutes;
@@ -774,6 +794,8 @@ private:
 	int* m_piArtYieldChanges;
 	int* m_piLitYieldChanges;
 	int* m_piMusicYieldChanges;
+	int* m_piRelicYieldChanges;
+	int* m_piFilmYieldChanges;
 	int* m_piYieldFromNonSpecialistCitizens;
 	int* m_piYieldModifierFromGreatWorks;
 	int* m_piYieldModifierFromActiveSpies;
@@ -781,6 +803,11 @@ private:
 	int m_iMissionInfluenceModifier;
 	int m_iHappinessPerActiveTradeRoute;
 	bool m_bCSResourcesForMonopolies;
+	int m_iNeedsModifierFromAirUnits;
+	int m_iFlatDefenseFromAirUnits;
+	int m_iPuppetYieldPenaltyMod;
+	int m_iConquestPerEraBuildingProductionMod;
+	int m_iAdmiralLuxuryBonus;
 #endif
 #if defined(HH_MOD_API_TRADEROUTE_MODIFIERS)
 	int* m_piInternationalRouteYieldModifiers;
@@ -916,6 +943,7 @@ enum PolicyModifierType
 	POLICYMOD_STEAL_GW_SLOWER_MODIFIER,
 	POLICYMOD_STEAL_GW_FASTER_MODIFIER,
 	POLICYMOD_GREAT_ENGINEER_RATE,
+	POLICYMOD_CITY_DEFENSE_BOOST,
 #endif
 #if defined(MOD_DIPLOMACY_CITYSTATES)
 	POLICYMOD_GREAT_DIPLOMAT_RATE,

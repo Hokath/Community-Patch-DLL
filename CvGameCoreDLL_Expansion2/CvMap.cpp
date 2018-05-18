@@ -244,6 +244,7 @@ CvMap::CvMap()
 	m_pResourceForceReveal = NULL;
 #if defined(MOD_BALANCE_CORE)
 	m_pIsImpassable = NULL;
+	m_pIsStrategic = NULL;
 #endif
 
 	m_iAIMapHints = 0;
@@ -291,6 +292,9 @@ void CvMap::InitPlots()
 #if defined(MOD_BALANCE_CORE)
 	m_pIsImpassable = FNEW(bool[iNumTeams*iNumPlots], c_eCiv5GameplayDLL, 0);
 	memset(m_pIsImpassable, 0, iNumTeams*iNumPlots *sizeof(bool));
+
+	m_pIsStrategic = FNEW(bool[iNumTeams*iNumPlots], c_eCiv5GameplayDLL, 0);
+	memset(m_pIsStrategic, 0, iNumTeams*iNumPlots *sizeof(bool));
 #endif
 
 	uint8* pYields = m_pYields;
@@ -303,6 +307,7 @@ void CvMap::InitPlots()
 	bool* pResourceForceReveal = m_pResourceForceReveal;
 #if defined(MOD_BALANCE_CORE)
 	bool* pIsImpassable = m_pIsImpassable;
+	bool* pIsStrategic = m_pIsStrategic;
 #endif
 
 	for(int i = 0; i < iNumPlots; i++)
@@ -317,6 +322,7 @@ void CvMap::InitPlots()
 		m_pMapPlots[i].m_abResourceForceReveal = pResourceForceReveal;
 #if defined(MOD_BALANCE_CORE)
 		m_pMapPlots[i].m_abIsImpassable = pIsImpassable;
+		m_pMapPlots[i].m_abStrategicRoute = pIsStrategic;
 #endif
 
 		pYields					+= NUM_YIELD_TYPES;
@@ -329,6 +335,7 @@ void CvMap::InitPlots()
 		pResourceForceReveal	+= iNumTeams;
 #if defined(MOD_BALANCE_CORE)
 		pIsImpassable			+= iNumTeams;
+		m_pIsStrategic			+= iNumTeams;
 #endif
 
 	}
@@ -471,6 +478,7 @@ void CvMap::uninit()
 #if defined(MOD_BALANCE_CORE)
 	SAFE_DELETE_ARRAY(m_pIsImpassable);
 	SAFE_DELETE_ARRAY(m_pPlotNeighbors);
+	SAFE_DELETE_ARRAY(m_pIsStrategic);
 #endif
 
 	m_iGridWidth = 0;
@@ -628,6 +636,8 @@ void CvMap::setAllPlotTypes(PlotTypes ePlotType)
 //	--------------------------------------------------------------------------------
 void CvMap::doTurn()
 {
+	m_plotPopupCount.clear();
+
 	for(int iI = 0; iI < numPlots(); iI++)
 	{
 		plotByIndexUnchecked(iI)->doTurn();
@@ -700,7 +710,7 @@ void CvMap::updateCenterUnit()
 
 
 //	--------------------------------------------------------------------------------
-void CvMap::updateWorkingCity(CvPlot* pPlot, int iRange)
+void CvMap::updateOwningCity(CvPlot* pPlot, int iRange)
 {
 	if(pPlot && iRange > 0)
 	{
@@ -711,7 +721,7 @@ void CvMap::updateWorkingCity(CvPlot* pPlot, int iRange)
 				CvPlot* pLoopPlot = plotXYWithRangeCheck(pPlot->getX(), pPlot->getY(), iX, iY, iRange);
 				if(pLoopPlot)
 				{
-					pLoopPlot->updateWorkingCity();
+					pLoopPlot->updateOwningCity();
 				}
 			}
 		}
@@ -720,7 +730,7 @@ void CvMap::updateWorkingCity(CvPlot* pPlot, int iRange)
 	{
 		for(int iI = 0; iI < numPlots(); iI++)
 		{
-			plotByIndexUnchecked(iI)->updateWorkingCity();
+			plotByIndexUnchecked(iI)->updateOwningCity();
 		}
 	}
 }
@@ -739,14 +749,7 @@ void CvMap::updateYield()
 //	Update the adjacency cache values
 void CvMap::updateAdjacency()
 {
-	for (int iI = 0; iI < numPlots(); iI++)
-	{
-		CvPlot* pPlot = plotByIndexUnchecked(iI);
-		pPlot->m_bIsAdjacentToLand = pPlot->isAdjacentToLand();
-#if defined(MOD_BALANCE_CORE)
-		pPlot->UpdatePlotsWithLOS();
-#endif
-	}
+	GC.getMap().ClearPlotsAtRange(NULL);
 }
 
 //	--------------------------------------------------------------------------------
@@ -845,7 +848,7 @@ CvPlot* CvMap::syncRandPlot(int iFlags, int iArea, int iMinUnitDistance, int iTi
 			{
 				if(iFlags & RANDPLOT_ADJACENT_LAND)
 				{
-					if(!(pTestPlot->isAdjacentToLand()))
+					if(!(pTestPlot->isAdjacentToLand(false)))
 					{
 						bValid = false;
 					}
@@ -1106,7 +1109,7 @@ bool CvMap::findWater(CvPlot* pPlot, int iRange, bool bFreshWater)
 			{
 				if(bFreshWater)
 				{
-					if(pLoopPlot->isFreshWater())
+					if(pLoopPlot->isFreshWater(false))
 					{
 						return true;
 					}
@@ -1412,26 +1415,6 @@ void CvMap::recalculateAreas()
 	recalculateLandmasses();
 }
 
-
-//	--------------------------------------------------------------------------------
-int CvMap::calculateInfluenceDistance(CvPlot* pSource, CvPlot* pDest, int iMaxRange)
-{
-	if(pSource == NULL || pDest == NULL)
-	{
-		return -1;
-	}
-
-	SPathFinderUserData data(NO_PLAYER, PT_CITY_INFLUENCE, iMaxRange);
-	SPath path = GC.GetStepFinder().GetPath(pSource->getX(), pSource->getY(), pDest->getX(), pDest->getY(), data);
-	if (!path)
-		return -1; // no passable path exists
-	else
-		return (path.iNormalizedDistance<INT_MAX) ? path.iNormalizedDistance : -1;
-
-}
-
-
-
 //	--------------------------------------------------------------------------------
 //
 // read object from a stream
@@ -1487,7 +1470,6 @@ void CvMap::Read(FDataStream& kStream)
 
 	kStream >> m_landmasses;
 
-	m_iAIMapHints = 0;
 	kStream >> m_iAIMapHints;
 
 	setup();
@@ -1546,7 +1528,6 @@ void CvMap::Write(FDataStream& kStream) const
 	kStream << m_landmasses;
 
 	kStream << m_iAIMapHints;
-
 }
 
 
@@ -1827,7 +1808,7 @@ void CvMap::DoPlaceNaturalWonders()
 					{
 						if(pLoopPlot->isWater())
 						{
-							if(!pLoopPlot->isLake())
+							if(!pLoopPlot->isLake(false))
 							{
 								// Found a Plot within 2 plots of "the Ocean"
 								bValid = true;
@@ -1861,11 +1842,7 @@ void CvMap::DoPlaceNaturalWonders()
 
 				if(pLoopPlot != NULL)
 				{
-#if defined(MOD_PSEUDO_NATURAL_WONDER)
-					if(pLoopPlot->IsNaturalWonder(true))
-#else
 					if(pLoopPlot->IsNaturalWonder())
-#endif
 					{
 						// Found a NW too close
 						bValid = false;
@@ -1889,7 +1866,7 @@ void CvMap::DoPlaceNaturalWonders()
 		// see if we can add the volcano
 		if(featureVolcano != NO_FEATURE)
 		{
-			if(!pRandPlot->isAdjacentToLand())
+			if(!pRandPlot->isAdjacentToLand(false))
 			{
 				pRandPlot->setPlotType(PLOT_MOUNTAIN);
 				pRandPlot->setFeatureType(featureVolcano);
@@ -1998,7 +1975,7 @@ void CvMap::DoPlaceNaturalWonders()
 		}
 
 		// randomly pick one of the other three - but not if this is a coastal plot, because they look terrible there
-		if(pRandPlot->isCoastalLand())
+		if(pRandPlot->isCoastalLand(-1,false))
 		{
 			continue;
 		}
@@ -2401,3 +2378,169 @@ void CvMap::DoKillCountDecay(float fDecayFactor)
 			itPlot->second = int(itPlot->second*fDecayFactor);
 }
 #endif
+
+void CvMap::ClearPlotsAtRange(const CvPlot* pPlot)
+{
+	if (pPlot == NULL)
+	{
+		m_vPlotsWithLineOfSightFromPlot2.clear();
+		m_vPlotsWithLineOfSightFromPlot3.clear();
+		m_vPlotsWithLineOfSightToPlot2.clear();
+		m_vPlotsWithLineOfSightToPlot3.clear();
+	}
+	else
+	{
+		m_vPlotsWithLineOfSightFromPlot2.erase(pPlot->GetPlotIndex());
+		m_vPlotsWithLineOfSightFromPlot3.erase(pPlot->GetPlotIndex());
+		m_vPlotsWithLineOfSightToPlot2.erase(pPlot->GetPlotIndex());
+		m_vPlotsWithLineOfSightToPlot3.erase(pPlot->GetPlotIndex());
+	}
+}
+
+std::vector<CvPlot*> CvMap::GetPlotsAtRange(const CvPlot* pPlot, int iRange, bool bFromPlot, bool bWithLOS)
+{
+	if (!pPlot)
+		return vector<CvPlot*>();
+
+	//for now, we can only do up to range 3
+	if (iRange<1 || iRange>3)
+		OutputDebugString("GetPlotsAtRangeX() called with invalid parameter\n");
+
+	iRange = max(1, iRange);
+	iRange = min(3, iRange);
+
+	if (bWithLOS)
+	{
+		switch (iRange)
+		{
+		case 1:
+			{
+				//just take all direct neighbors
+				CvPlot** aDirectNeighbors = getNeighborsUnchecked(pPlot);
+				return vector<CvPlot*>(aDirectNeighbors, aDirectNeighbors + NUM_DIRECTION_TYPES);
+			}
+		case 2:
+			if (bFromPlot)
+			{
+				PlotNeighborLookup::iterator it = m_vPlotsWithLineOfSightFromPlot2.find(pPlot->GetPlotIndex());
+				if (it != m_vPlotsWithLineOfSightFromPlot2.end())
+					return it->second;
+
+				//not found? update cache
+				m_vPlotsWithLineOfSightFromPlot2[pPlot->GetPlotIndex()] = vector<CvPlot*>();
+				for (int i = RING1_PLOTS; i<RING2_PLOTS; i++)
+				{
+					CvPlot* pLoopPlot = iterateRingPlots(pPlot, i);
+					if (!pLoopPlot)
+						continue;
+
+					if (pPlot->canSeePlot(pLoopPlot, NO_TEAM, 2, NO_DIRECTION))
+						m_vPlotsWithLineOfSightFromPlot2[pPlot->GetPlotIndex()].push_back(pLoopPlot);
+				}
+			}
+			else
+			{
+				PlotNeighborLookup::iterator it = m_vPlotsWithLineOfSightToPlot2.find(pPlot->GetPlotIndex());
+				if (it != m_vPlotsWithLineOfSightToPlot2.end())
+					return it->second;
+
+				//not found? update cache
+				m_vPlotsWithLineOfSightToPlot2[pPlot->GetPlotIndex()] = vector<CvPlot*>();
+				for (int i = RING1_PLOTS; i<RING2_PLOTS; i++)
+				{
+					CvPlot* pLoopPlot = iterateRingPlots(pPlot, i);
+					if (!pLoopPlot)
+						continue;
+
+					if (pLoopPlot->canSeePlot(pPlot, NO_TEAM, 2, NO_DIRECTION))
+						m_vPlotsWithLineOfSightToPlot2[pPlot->GetPlotIndex()].push_back(pLoopPlot);
+				}
+			}
+		case 3:
+			if (bFromPlot)
+			{
+				PlotNeighborLookup::iterator it = m_vPlotsWithLineOfSightFromPlot3.find(pPlot->GetPlotIndex());
+				if (it != m_vPlotsWithLineOfSightFromPlot3.end())
+					return it->second;
+
+				//not found? update cache
+				m_vPlotsWithLineOfSightFromPlot3[pPlot->GetPlotIndex()] = vector<CvPlot*>();
+				for (int i = RING2_PLOTS; i<RING3_PLOTS; i++)
+				{
+					CvPlot* pLoopPlot = iterateRingPlots(pPlot, i);
+					if (!pLoopPlot)
+						continue;
+
+					if (pPlot->canSeePlot(pLoopPlot, NO_TEAM, 3, NO_DIRECTION))
+						m_vPlotsWithLineOfSightFromPlot3[pPlot->GetPlotIndex()].push_back(pLoopPlot);
+				}
+			}
+			else
+			{
+				PlotNeighborLookup::iterator it = m_vPlotsWithLineOfSightToPlot3.find(pPlot->GetPlotIndex());
+				if (it != m_vPlotsWithLineOfSightToPlot3.end())
+					return it->second;
+
+				//not found? update cache
+				m_vPlotsWithLineOfSightToPlot3[pPlot->GetPlotIndex()] = vector<CvPlot*>();
+				for (int i = RING2_PLOTS; i<RING3_PLOTS; i++)
+				{
+					CvPlot* pLoopPlot = iterateRingPlots(pPlot, i);
+					if (!pLoopPlot)
+						continue;
+
+					if (pLoopPlot->canSeePlot(pPlot, NO_TEAM, 3, NO_DIRECTION))
+						m_vPlotsWithLineOfSightToPlot3[pPlot->GetPlotIndex()].push_back(pLoopPlot);
+				}
+			}
+		}
+	}
+	else //no LOS - not cached, rarely accessed (should be only for units with indirect fire promotion)
+	{
+		switch (iRange)
+		{
+		case 1:
+		{
+			//just take all direct neighbors
+			CvPlot** aDirectNeighbors = getNeighborsUnchecked(pPlot);
+			return vector<CvPlot*>(aDirectNeighbors, aDirectNeighbors + NUM_DIRECTION_TYPES);
+		}
+		case 2:
+		{
+			vector<CvPlot*> vResult;
+			vResult.reserve(RING2_PLOTS - RING1_PLOTS);
+			for (int i = RING1_PLOTS; i < RING2_PLOTS; i++)
+			{
+				CvPlot* pCandidate = iterateRingPlots(pPlot, i);
+				if (pCandidate)
+					vResult.push_back(pCandidate);
+			}
+			return vResult;
+		}
+		case 3:
+		{
+			vector<CvPlot*> vResult;
+			vResult.reserve(RING3_PLOTS - RING2_PLOTS);
+			for (int i = RING2_PLOTS; i < RING3_PLOTS; i++)
+			{
+				CvPlot* pCandidate = iterateRingPlots(pPlot, i);
+				if (pCandidate)
+					vResult.push_back(pCandidate);
+			}
+			return vResult;
+		}
+		}
+	}
+
+	return vector<CvPlot*>();
+}
+
+int CvMap::GetPopupCount(int iPlotIndex)
+{
+	return m_plotPopupCount[iPlotIndex];
+}
+
+void CvMap::IncreasePopupCount(int iPlotIndex)
+{
+	m_plotPopupCount[iPlotIndex] += 1;
+}

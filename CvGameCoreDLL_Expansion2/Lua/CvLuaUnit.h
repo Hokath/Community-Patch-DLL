@@ -375,6 +375,9 @@ protected:
 	static int lUnitClassDefenseModifier(lua_State* L);
 	static int lUnitCombatModifier(lua_State* L);
 #if defined(MOD_BALANCE_CORE)
+	static int lPerAdjacentUnitCombatModifier(lua_State* L);
+	static int lPerAdjacentUnitCombatAttackMod(lua_State* L);
+	static int lPerAdjacentUnitCombatDefenseMod(lua_State* L);
 	static int lBarbarianCombatBonus(lua_State* L);
 	static int lIsMounted(lua_State* L);
 	static int lIsStrongerDamaged(lua_State* L);
@@ -515,6 +518,7 @@ protected:
 	static int lGetLeaderUnitType(lua_State* L);
 	static int lSetLeaderUnitType(lua_State* L);
 	static int lIsNearGreatGeneral(lua_State* L);
+	static int lGetGreatGeneralAuraBonus(lua_State* L);
 	static int lIsStackedGreatGeneral(lua_State* L);
 	static int lIsIgnoreGreatGeneralBenefit(lua_State* L);
 	static int lGetReverseGreatGeneralModifier(lua_State* L);
@@ -527,6 +531,9 @@ protected:
 #if defined(MOD_BALANCE_CORE)
 	static int lIsHalfNearSapper(lua_State* L);
 	static int lGetNearbyUnitClassModifierFromUnitClass(lua_State* L);
+	static int lGetSapperAreaEffectBonus(lua_State* L);
+	static int lGetGiveCombatModToUnit(lua_State* L);
+	static int lGetNearbyCityBonusCombatMod(lua_State* L);
 #endif
 	static int lGetNearbyImprovementModifier(lua_State* L);
 	static int lIsFriendlyUnitAdjacent(lua_State* L);
@@ -567,6 +574,10 @@ protected:
 	static int lIsPromotionValid(lua_State* L);
 	static int lIsHasPromotion(lua_State* L);
 	static int lSetHasPromotion(lua_State* L);
+#if defined(MOD_API_LUA_EXTENSIONS)
+	static int lGetPromotionDuration(lua_State* L);
+	static int lGetTurnPromotionGained(lua_State* L);
+#endif
 
 #if defined(MOD_API_LUA_EXTENSIONS)
 	LUAAPIEXTN(SetActivityType, void, iActivityType, bClearFortify);
@@ -578,6 +589,7 @@ protected:
 	static int lGetReligion(lua_State* L);
 	static int lGetConversionStrength(lua_State* L);
 	static int lGetSpreadsLeft(lua_State* L);
+	static int lGetChargesLeft(lua_State* L);
 	static int lGetNumFollowersAfterSpread(lua_State* L);
 	static int lGetMajorityReligionAfterSpread(lua_State* L);
 #if defined(MOD_API_LUA_EXTENSIONS)

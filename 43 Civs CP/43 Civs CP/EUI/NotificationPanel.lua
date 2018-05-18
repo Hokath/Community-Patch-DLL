@@ -465,9 +465,8 @@ local function SetupNotification( instance, sequence, Id, type, toolTip, strSumm
 			itemImage = instance.TechAwardImage
 
 		elseif type == NotificationTypes.NOTIFICATION_PLAYER_DEAL_RECEIVED then
-			itemInfo = GameInfo.Leaders[ iGameValue ]
-			itemImage = instance.DiplomacyPlayerImage
-
+			local index = iGameValue;
+			CivIconHookup( index, 80, instance.DiplomacyPlayerImage, instance.CivIconBG, instance.CivIconShadow, false, true );
 		elseif type == NotificationTypes.NOTIFICATION_GREAT_WORK_COMPLETED_ACTIVE_PLAYER then
 			smallCivFrame = instance.WonderSmallCivFrame
 
@@ -1561,7 +1560,7 @@ end
 for playerID = 0, GameDefines.MAX_CIV_PLAYERS-1 do
 
 	local player = Players[ playerID ]
-	if player and player:IsEverAlive() then
+	if player and player:IsEverAlive(true) then
 		--print( "Setting up civilization ribbon player ID", playerID )
 		local instance = { -playerID, 0, 0, 0 }
 

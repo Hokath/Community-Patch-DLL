@@ -13,7 +13,7 @@
 #include "CvDangerPlots.h"
 //	-----------------------------------------------------------------------------------------------
 //	Loop through all the players and update cached values
-void CvPlayerManager::Refresh(bool bWarDeclaration)
+void CvPlayerManager::Refresh(bool bWarStateChanged)
 {
 	//include the barbarians!
 	for(int iPlayerCivLoop = 0; iPlayerCivLoop < MAX_PLAYERS; iPlayerCivLoop++)
@@ -29,11 +29,17 @@ void CvPlayerManager::Refresh(bool bWarDeclaration)
 		kPlayer.SetDangerPlotsDirty();
 		kPlayer.UpdateAreaEffectUnits();
 		kPlayer.UpdateAreaEffectPlots();
-		kPlayer.UpdateFractionOriginalCapitalsUnderControl();
+		kPlayer.UpdateMilitaryStats();
 		kPlayer.UpdateCurrentAndFutureWars();
 
-		//only after loading, force danger update (danger plots are not serialized!)
-		if(!bWarDeclaration && kPlayer.m_pDangerPlots)
+		//only after loading, force danger update (only known enemy units are serialized)
+		if(!bWarStateChanged && kPlayer.m_pDangerPlots)
 			kPlayer.UpdateDangerPlots(true);
+
+		if (bWarStateChanged)
+		{
+			kPlayer.GetTacticalAI()->GetTacticalAnalysisMap()->Invalidate();
+			GC.getGame().GetGameTrade()->InvalidateTradePathCache(iPlayerCivLoop);
+		}
 	}
 }

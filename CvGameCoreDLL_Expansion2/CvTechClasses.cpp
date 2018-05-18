@@ -1275,10 +1275,10 @@ void CvPlayerTechs::SetGSPriorities()
 	}
 	// == Grand Strategy ==
 	AIGrandStrategyTypes eGrandStrategy = m_pPlayer->GetGrandStrategyAI()->GetActiveGrandStrategy();
-	bool bSeekingDiploVictory = (eGrandStrategy == GC.getInfoTypeForString("AIGRANDSTRATEGY_UNITED_NATIONS")) || m_pPlayer->GetDiplomacyAI()->IsCloseToDiploVictory();
-	bool bSeekingConquestVictory = (eGrandStrategy == GC.getInfoTypeForString("AIGRANDSTRATEGY_CONQUEST") ) || m_pPlayer->GetDiplomacyAI()->IsCloseToDominationVictory();
-	bool bSeekingCultureVictory = (eGrandStrategy == GC.getInfoTypeForString("AIGRANDSTRATEGY_CULTURE") ) || m_pPlayer->GetDiplomacyAI()->IsCloseToCultureVictory();
-	bool bSeekingScienceVictory = (eGrandStrategy == GC.getInfoTypeForString("AIGRANDSTRATEGY_SPACESHIP") ) || m_pPlayer->GetDiplomacyAI()->IsCloseToSSVictory();
+	bool bSeekingDiploVictory = (eGrandStrategy == GC.getInfoTypeForString("AIGRANDSTRATEGY_UNITED_NATIONS")) || m_pPlayer->GetDiplomacyAI()->IsCloseToDiploVictory() || m_pPlayer->GetPlayerTraits()->IsDiplomat();
+	bool bSeekingConquestVictory = (eGrandStrategy == GC.getInfoTypeForString("AIGRANDSTRATEGY_CONQUEST") ) || m_pPlayer->GetDiplomacyAI()->IsCloseToDominationVictory() || m_pPlayer->GetPlayerTraits()->IsWarmonger();
+	bool bSeekingCultureVictory = (eGrandStrategy == GC.getInfoTypeForString("AIGRANDSTRATEGY_CULTURE") ) || m_pPlayer->GetDiplomacyAI()->IsCloseToCultureVictory() || m_pPlayer->GetPlayerTraits()->IsTourism();
+	bool bSeekingScienceVictory = (eGrandStrategy == GC.getInfoTypeForString("AIGRANDSTRATEGY_SPACESHIP") ) || m_pPlayer->GetDiplomacyAI()->IsCloseToSSVictory() || m_pPlayer->GetPlayerTraits()->IsNerd();
 	for(int iTechLoop = 0; iTechLoop < GetTechs()->GetNumTechs(); iTechLoop++)
 	{
 		TechTypes eTech = (TechTypes)iTechLoop;
@@ -1297,19 +1297,48 @@ void CvPlayerTechs::SetGSPriorities()
 
 			if(pkTechInfo->GetFlavorValue(eFlavor) > 0)
 			{
-				if (bSeekingDiploVictory && (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_DIPLOMACY" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_GOLD"))
+				if (bSeekingDiploVictory && (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_DIPLOMACY"
+					|| GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_GOLD"
+					|| GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_ESPIONAGE"))
 				{
 					m_piGSTechPriority[iTechLoop]++;
 				}
-				if(bSeekingConquestVictory && (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_OFFENSE" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_MILITARY_TRAINING"))
+				if(bSeekingConquestVictory && (
+					GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_OFFENSE" || 
+					GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_MILITARY_TRAINING" ||
+					GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_MOBILE" ||
+					GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_RANGED" ||
+					GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_DEFENSE" ||
+					GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_AIR" ||
+					GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_NAVAL" ))
 				{
 					m_piGSTechPriority[iTechLoop]++;
 				}
-				if(bSeekingCultureVictory && (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_CULTURE" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_WONDER"))
+				if(bSeekingCultureVictory && (
+					GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_CULTURE" || 
+					GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_GREAT_PEOPLE" ||
+					GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_WONDER"))
 				{
 					m_piGSTechPriority[iTechLoop]++;
 				}
 				if(bSeekingScienceVictory && (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_SCIENCE" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_SPACESHIP"))
+				{
+					m_piGSTechPriority[iTechLoop]++;
+				}
+				if (m_pPlayer->GetPlayerTraits()->IsSmaller() && (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_GROWTH" ||
+					GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_NAVAL_GROWTH"
+					|| GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_CITY_DEFENSE"
+					))
+				{
+					m_piGSTechPriority[iTechLoop]++;
+				}
+				if (m_pPlayer->GetPlayerTraits()->IsReligious() && (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_RELIGION" ||
+					GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_GREAT_PEOPLE"))
+				{
+					m_piGSTechPriority[iTechLoop]++;
+				}
+				if (m_pPlayer->GetPlayerTraits()->IsExpansionist() && (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_INFRASTRUCTURE" ||
+					GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_EXPANSION"))
 				{
 					m_piGSTechPriority[iTechLoop]++;
 				}
@@ -1353,7 +1382,7 @@ void CvPlayerTechs::SetGSPriorities()
 				{
 					m_piGSTechPriority[iTechLoop]++;
 				}
-				if (bSeekingDiploVictory && pkUnitInfo->IsTrade())
+				if (bSeekingDiploVictory && pkUnitInfo->IsTrade() || pkUnitInfo->GetBaseGold() > 0)
 				{
 					m_piGSTechPriority[iTechLoop]++;
 				}
@@ -1770,8 +1799,8 @@ int CvPlayerTechs::GetResearchCost(TechTypes eTech) const
 	int iResearchCost = GET_TEAM(m_pPlayer->getTeam()).GetTeamTechs()->GetResearchCost(eTech);
 	
 	// Adjust to the player's research modifier
-	int iResearchMod = std::max(1, m_pPlayer->calculateResearchModifier(eTech));
-	iResearchCost = ((iResearchCost * 10000) / iResearchMod);
+	int iResearchMod = std::max(1, m_pPlayer->calculateResearchModifier(eTech)) - 100;
+	//iResearchCost = ((iResearchCost * 10000) / iResearchMod);
 
 	// Mod for City Count
 	int iMod = GC.getMap().getWorldInfo().GetNumCitiesTechCostMod();	// Default is 40, gets smaller on larger maps
@@ -1793,7 +1822,7 @@ int CvPlayerTechs::GetResearchCost(TechTypes eTech) const
 #else
 	iMod = iMod * m_pPlayer->GetMaxEffectiveCities(/*bIncludePuppets*/ true);
 #endif
-	iResearchCost = iResearchCost * (100 + iMod) / 100;
+	iResearchCost = iResearchCost * (100 + iMod - iResearchMod);
 
 	// We're going to round up so that the user wont get confused when the research progress seems to be equal to the research cost, but it is not acutally done.
 	// This is because the 'real' calculations use the GameCore's fixed point math where things are multiplied by 100
@@ -1801,13 +1830,6 @@ int CvPlayerTechs::GetResearchCost(TechTypes eTech) const
 		iResearchCost = (iResearchCost / 100) + 1;
 	else
 		iResearchCost = (iResearchCost / 100);
-
-#if defined(MOD_BALANCE_CORE)
-	if(iResearchCost >= MAX_INT)
-	{
-		iResearchCost = (MAX_INT - 1);
-	}
-#endif
 
 	return iResearchCost;
 }

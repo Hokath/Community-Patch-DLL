@@ -188,6 +188,7 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(IsCoastal);
 #if defined(MOD_API_LUA_EXTENSIONS)
 	Method(IsAddsFreshWater);
+	Method(FoodConsumptionSpecialistTimes100);
 #endif
 
 	Method(FoodConsumption);
@@ -273,6 +274,7 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(GetJONSCulturePerTurnFromTraits);
 #if defined(MOD_BALANCE_CORE)
 	Method(GetYieldPerTurnFromTraits);
+	Method(GetYieldFromUnitsInCity);
 #endif
 #if defined(MOD_BUGFIX_LUA_API)
 	Method(ChangeJONSCulturePerTurnFromReligion);
@@ -295,6 +297,8 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(GetBaseTourism);
 #if defined(MOD_BALANCE_CORE)
 	Method(RefreshTourism);
+	Method(GetNumGreatWorksFilled);
+	Method(GetNumAvailableGreatWorkSlots);
 #endif
 	Method(GetTourismMultiplier);
 	Method(GetTourismTooltip);
@@ -316,6 +320,7 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(ChangeFaithPerTurnFromReligion);
 #endif
 
+	Method(HasConvertedToReligionEver);
 	Method(IsReligionInCity);
 	Method(IsHolyCityForReligion);
 	Method(IsHolyCityAnyReligion);
@@ -464,6 +469,10 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(GetBaseYieldRateFromMisc);
 	Method(ChangeBaseYieldRateFromMisc);
 
+#if defined(MOD_API_LUA_EXTENSIONS)
+	Method(GetBaseYieldRateFromProcess);
+	Method(GetBaseYieldRateFromTradeRoutes);
+#endif
 #if defined(MOD_API_LUA_EXTENSIONS) && defined(MOD_DIPLOMACY_CITYSTATES)
 	// Base yield rate from League
 	Method(GetBaseYieldRateFromLeague);
@@ -583,6 +592,8 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(GetBuildingClassCultureChange);
 	Method(GetReligionYieldRateModifier);
 	Method(GetReligionBuildingYieldRateModifier);
+	Method(GetYieldPerTurnFromMinors);
+	Method(SetYieldPerTurnFromMinors);
 #endif
 #if defined(MOD_API_LUA_EXTENSIONS) && defined(MOD_BALANCE_CORE)
 	Method(GetBaseYieldRateFromCSAlliance);
@@ -1171,7 +1182,7 @@ int CvLuaCity::lGetPurchaseUnitTooltip(lua_State* L)
 		else if(pkCity->GetUnitPurchaseCooldown(true) > 0)
 		{
 			Localization::String localizedText = Localization::Lookup("TXT_KEY_COOLDOWN_X_TURNS_REMAINING");
-			localizedText << pkCity->GetUnitPurchaseCooldown();
+			localizedText << pkCity->GetUnitPurchaseCooldown(true);
 
 			const char* const localized = localizedText.toUTF8();
 			if (localized)
@@ -1295,6 +1306,41 @@ int CvLuaCity::lGetFaithPurchaseUnitTooltip(lua_State* L)
 			toolTip += localized;
 		}
 	}
+#if defined(MOD_BALANCE_CORE)
+	// Local faith purchase cooldown for combat units
+	if (GC.getUnitInfo(eUnit)->GetCombat() > 0 || GC.getUnitInfo(eUnit)->GetRangedCombat() > 0)
+	{
+		if (pkCity->GetUnitFaithPurchaseCooldown() > 0)
+		{
+			Localization::String localizedText = Localization::Lookup("TXT_KEY_COOLDOWN_X_TURNS_REMAINING_FAITH_LOCAL");
+			localizedText << pkCity->GetUnitFaithPurchaseCooldown();
+
+			const char* const localized = localizedText.toUTF8();
+			if (localized)
+			{
+				if (!toolTip.IsEmpty())
+					toolTip += "[NEWLINE]";
+
+				toolTip += localized;
+			}
+		}
+	}
+	// Local faith purchase cooldown for civilian units
+	else if (pkCity->GetUnitFaithPurchaseCooldown(true) > 0)
+	{
+		Localization::String localizedText = Localization::Lookup("TXT_KEY_COOLDOWN_X_TURNS_REMAINING_FAITH_LOCAL");
+		localizedText << pkCity->GetUnitFaithPurchaseCooldown(true);
+
+		const char* const localized = localizedText.toUTF8();
+		if (localized)
+		{
+			if (!toolTip.IsEmpty())
+				toolTip += "[NEWLINE]";
+
+			toolTip += localized;
+		}
+	}
+#endif
 #if defined(MOD_BALANCE_CORE_UNIT_INVESTMENTS)
 	if(MOD_BALANCE_CORE_UNIT_INVESTMENTS && eUnit != NO_UNIT)
 	{
@@ -1790,26 +1836,30 @@ int CvLuaCity::lGetWorldWonderCost(lua_State* L)
 					{
 						if (isWorldWonderClass(pkeBuildingInfo->GetBuildingClassInfo()))
 						{
-							if (pkeBuildingInfo->GetPrereqAndTech() != NO_TECH)
-							{
-								CvTechEntry* pkTechInfo = GC.getTechInfo((TechTypes)pkeBuildingInfo->GetPrereqAndTech());
-								if (pkTechInfo)
-								{
-									// Loop through all eras and apply Building production mod based on how much time has passed
-									EraTypes eBuildingUnlockedEra = (EraTypes)pkTechInfo->GetEra();
+							if (pkeBuildingInfo->GetPrereqAndTech() == NO_TECH)
+								continue;
 
-									if (eBuildingUnlockedEra == GET_PLAYER(pkCity->getOwner()).GetCurrentEra())
-									{
-										iNumWorldWonderPercent += GC.getBALANCE_CORE_WORLD_WONDER_SAME_ERA_COST_MODIFIER();
-									}
-									else if ((GET_PLAYER(pkCity->getOwner()).GetCurrentEra() - eBuildingUnlockedEra) == 1)
-									{
-										iNumWorldWonderPercent += GC.getBALANCE_CORE_WORLD_WONDER_PREVIOUS_ERA_COST_MODIFIER();
-									}
-									else if ((GET_PLAYER(pkCity->getOwner()).GetCurrentEra() - eBuildingUnlockedEra) > 1)
-									{
-										iNumWorldWonderPercent += GC.getBALANCE_CORE_WORLD_WONDER_EARLIER_ERA_COST_MODIFIER();
-									}
+							CvTechEntry* pkTechInfo = GC.getTechInfo((TechTypes)pkeBuildingInfo->GetPrereqAndTech());
+							if (pkTechInfo)
+							{
+								// Loop through all eras and apply Building production mod based on how much time has passed
+								EraTypes eBuildingUnlockedEra = (EraTypes)pkTechInfo->GetEra();
+
+								if (eBuildingUnlockedEra == NO_ERA)
+									continue;
+
+								int iEraDivisor = GET_PLAYER(pkCity->getOwner()).GetCurrentEra() - eBuildingUnlockedEra;
+								switch (iEraDivisor)
+								{
+								case 0:
+									iNumWorldWonderPercent += GC.getBALANCE_CORE_WORLD_WONDER_SAME_ERA_COST_MODIFIER();
+									break;
+								case 1:
+									iNumWorldWonderPercent += GC.getBALANCE_CORE_WORLD_WONDER_PREVIOUS_ERA_COST_MODIFIER();
+									break;
+								case 2:
+									iNumWorldWonderPercent += GC.getBALANCE_CORE_WORLD_WONDER_EARLIER_ERA_COST_MODIFIER();
+									break;
 								}
 							}
 						}
@@ -2072,11 +2122,8 @@ int CvLuaCity::lGetYieldModifierTooltip(lua_State* L)
 	CvCity* pkCity = GetInstance(L);
 	const YieldTypes eYield = (YieldTypes) lua_tointeger(L, 2);
 
-	// City Food Modifier
-	if(eYield == YIELD_FOOD)
-	{	
-		pkCity->foodDifferenceTimes100(true, &toolTip);
-	}
+	// City Yield Rate Modifier
+	pkCity->getBaseYieldRateModifier(eYield, 0, &toolTip);
 
 	// City Production Modifier
 	if(eYield == YIELD_PRODUCTION)
@@ -2084,13 +2131,16 @@ int CvLuaCity::lGetYieldModifierTooltip(lua_State* L)
 		pkCity->getProductionModifier(&toolTip);
 	}
 
-	// City Yield Rate Modifier
-	pkCity->getBaseYieldRateModifier(eYield, 0, &toolTip);
+	// Trade Yield Modifier
+	// This is actually added after all modifiers, except for Food (added after Consumption) and Culture (added to Base)
+	//pkCity->GetTradeYieldModifier(eYield, &toolTip);
 
-	if (eYield != YIELD_FOOD)
-	{
-		// Trade Yield Modifier
-		pkCity->GetTradeYieldModifier(eYield, &toolTip);
+	// City Food Modifier
+	if(eYield == YIELD_FOOD)
+	{	
+		GC.getGame().BuildProdModHelpText(&toolTip, "TXT_KEY_FOODMOD_EATEN_FOOD", pkCity->foodConsumption());
+		pkCity->GetTradeYieldModifier(YIELD_FOOD, &toolTip);
+		pkCity->foodDifferenceTimes100(true, &toolTip);
 	}
 
 	lua_pushstring(L, toolTip.c_str());
@@ -2327,6 +2377,11 @@ int CvLuaCity::lIsCoastal(lua_State* L)
 int CvLuaCity::lIsAddsFreshWater(lua_State* L)
 {
 	return BasicLuaMethod(L, &CvCity::isAddsFreshWater);
+}
+//int foodConsumptionSpecialistTimes100();
+int CvLuaCity::lFoodConsumptionSpecialistTimes100(lua_State* L)
+{
+	return BasicLuaMethod(L, &CvCity::foodConsumptionSpecialistTimes100);
 }
 #endif
 //------------------------------------------------------------------------------
@@ -2988,6 +3043,27 @@ int CvLuaCity::lGetYieldPerTurnFromTraits(lua_State* L)
 {
 	return BasicLuaMethod(L, &CvCity::GetYieldPerTurnFromTraits);
 }
+
+//int GetYieldPerTurnFromTraits() const;
+int CvLuaCity::lGetYieldFromUnitsInCity(lua_State* L)
+{
+	CvCity* pkCity = GetInstance(L);
+	YieldTypes eYieldType = (YieldTypes)lua_tointeger(L, 2);
+
+	int Total = 0;
+	CvPlot* pCityPlot = pkCity->plot();
+	for (int iUnitLoop = 0; iUnitLoop < pCityPlot->getNumUnits(); iUnitLoop++)
+	{
+		int iTempVal = pCityPlot->getUnitByIndex(iUnitLoop)->GetYieldChange(eYieldType);
+		if (iTempVal != 0)
+		{
+			Total += iTempVal;
+		}
+	}
+
+	lua_pushinteger(L, Total);
+	return 1;
+}
 #endif
 //------------------------------------------------------------------------------
 //int GetJONSCulturePerTurnFromReligion() const;
@@ -3044,7 +3120,7 @@ int CvLuaCity::lGetCityYieldModFromMonopoly(lua_State* L)
 			if(GET_PLAYER(pkCity->getOwner()).HasGlobalMonopoly(eResourceLoop) && pInfo->getCityYieldModFromMonopoly(eYieldType) > 0)
 			{
 				int iTemp = pInfo->getCityYieldModFromMonopoly(eYieldType);
-				iTemp *= max(1, GET_PLAYER(pkCity->getOwner()).GetMonopolyModPercent());
+				iTemp += GET_PLAYER(pkCity->getOwner()).GetMonopolyModPercent();
 				iModifier += iTemp;
 			}
 		}
@@ -3108,6 +3184,27 @@ int CvLuaCity::lRefreshTourism(lua_State* L)
 	pkCity->GetCityCulture()->CalculateBaseTourism();
 	return 0;
 }
+//------------------------------------------------------------------------------
+//int GetNumGreatWorksFilled();
+int CvLuaCity::lGetNumGreatWorksFilled(lua_State* L)
+{
+	CvCity* pkCity = GetInstance(L);
+	GreatWorkSlotType eGreatWorkSlot = static_cast<GreatWorkSlotType>(lua_tointeger(L, 2));
+
+	lua_pushinteger(L, pkCity->GetCityCulture()->GetNumFilledGreatWorkSlots(eGreatWorkSlot));
+	return 1;
+}
+
+int CvLuaCity::lGetNumAvailableGreatWorkSlots(lua_State* L)
+{
+	CvCity* pkCity = GetInstance(L);
+	GreatWorkSlotType eGreatWorkSlot = static_cast<GreatWorkSlotType>(lua_tointeger(L, 2));
+
+	lua_pushinteger(L, pkCity->GetCityCulture()->GetNumAvailableGreatWorkSlots(eGreatWorkSlot));
+	return 1;
+}
+
+
 #endif
 //------------------------------------------------------------------------------
 //int GetTourismMultiplier(PlayerTypes ePlayer);
@@ -3269,6 +3366,18 @@ int CvLuaCity::lIsReligionInCity(lua_State* L)
 {
 	CvCity* pkCity = GetInstance(L);
 	const bool bResult = pkCity->GetCityReligions()->IsReligionInCity();
+
+	lua_pushboolean(L, bResult);
+	return 1;
+}
+
+//------------------------------------------------------------------------------
+//int HasConvertedToReligionEver() const;
+int CvLuaCity::lHasConvertedToReligionEver(lua_State* L)
+{
+	CvCity* pkCity = GetInstance(L);
+	ReligionTypes eReligion = (ReligionTypes)lua_tointeger(L, 2);
+	const bool bResult = pkCity->HasPaidAdoptionBonus(eReligion);
 
 	lua_pushboolean(L, bResult);
 	return 1;
@@ -4225,6 +4334,24 @@ int CvLuaCity::lGetBaseYieldRate(lua_State* L)
 	lua_pushinteger(L, iResult);
 	return 1;
 }
+//-------------------------------------------------------------------------
+int CvLuaCity::lGetYieldPerTurnFromMinors(lua_State* L)
+{
+	CvCity* pkCity = GetInstance(L);
+	const YieldTypes eYield = (YieldTypes)lua_tointeger(L, 2);
+	const int iResult = pkCity->GetYieldFromMinors(eYield);
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+//-------------------------------------------------------------------------
+int CvLuaCity::lSetYieldPerTurnFromMinors(lua_State* L)
+{
+	CvCity* pkCity = GetInstance(L);
+	const YieldTypes eYield = (YieldTypes)lua_tointeger(L, 2);
+	const int iValue = lua_tointeger(L, 3);
+	pkCity->SetYieldFromMinors(eYield, iValue);
+	return 1;
+}
 #if defined(MOD_API_LUA_EXTENSIONS) && defined(MOD_GLOBAL_GREATWORK_YIELDTYPES)
 //------------------------------------------------------------------------------
 int CvLuaCity::lGetBaseYieldRateFromGreatWorks(lua_State* L)
@@ -4272,6 +4399,22 @@ int CvLuaCity::lChangeBaseYieldRateFromMisc(lua_State* L)
 {
 	return BasicLuaMethod(L, &CvCity::ChangeBaseYieldRateFromMisc);
 }
+#if defined(MOD_API_LUA_EXTENSIONS)
+// Base yield rate from active conversion process
+int CvLuaCity::lGetBaseYieldRateFromProcess(lua_State* L)
+{
+	return BasicLuaMethod(L, &CvCity::GetBaseYieldRateFromProcess);
+}
+//	Base yield rate from trade routes established with this city
+int CvLuaCity::lGetBaseYieldRateFromTradeRoutes(lua_State* L)
+{
+	CvCity* pkCity = GetInstance(L);
+	YieldTypes eIndex = (YieldTypes)lua_tointeger(L, 2);
+	int iReturnValue = GET_PLAYER(pkCity->getOwner()).GetTrade()->GetTradeValuesAtCityTimes100(pkCity, eIndex);
+	lua_pushinteger(L, iReturnValue);
+	return 1;
+}
+#endif
 #if defined(MOD_API_LUA_EXTENSIONS) && defined(MOD_DIPLOMACY_CITYSTATES)
 // Base yield rate from League
 int CvLuaCity::lGetBaseYieldRateFromLeague(lua_State* L)
@@ -4815,7 +4958,7 @@ int CvLuaCity::lSetFocusType(lua_State* L)
 	CvCity* pkCity = GetInstance(L);
 	const int iFocus = lua_tointeger(L, 2);
 
-	pkCity->GetCityCitizens()->SetFocusType((CityAIFocusTypes) iFocus);
+	pkCity->GetCityCitizens()->SetFocusType((CityAIFocusTypes) iFocus, true);
 
 	return 1;
 }
@@ -5781,7 +5924,8 @@ int CvLuaCity::lCountNumWorkedImprovement(lua_State* L)
 {
 	CvCity* pkCity = GetInstance(L);
 	const ImprovementTypes eImprovement = (ImprovementTypes) lua_tointeger(L, 2);
-	const int iValue = pkCity->CountNumWorkedImprovement(eImprovement);
+	const bool bIgnorePillaged = luaL_optbool(L, 3, true);
+	const int iValue = pkCity->CountNumWorkedImprovement(eImprovement, bIgnorePillaged);
 
 	lua_pushinteger(L, iValue);
 

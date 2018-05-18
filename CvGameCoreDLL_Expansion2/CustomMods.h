@@ -40,6 +40,11 @@
 //END MULTIPLAYER INSTRUCTIONS
 ////////////////////////////////////////
 
+
+
+// Enables not showing, during pregame, the details of the civs that have not been met by the local player, i.e. as it doesn't during the game
+#define MOD_KEEP_CIVS_UNKNOWN_PREGAME	(true)
+
 ///////////////////////
 // BATTLE ROYALE CODE
 //////////////////////
@@ -58,8 +63,12 @@
 #define MOD_BALANCE_RANGED_ATTACK_ONLY_IN_NATIVE_DOMAIN
 
 /// radical rewrite
-#define MOD_BALANCE_CORE_NEW_TACTICAL_AI
 #define MOD_CORE_NEW_DEPLOYMENT_LOGIC
+
+//this needs a reassignment of move priorities to work properly, especially concerning global moves
+//#define MOD_CORE_TACTICAL_MOVE_DELAY_SORT
+
+// for debugging only
 //#define MOD_UNIT_KILL_STATS
 
 /// visible tiles stay visible until the end of the turn
@@ -397,11 +406,18 @@
 #define MOD_BALANCE_DYNAMIC_UNIT_SUPPLY				(MOD_COMMUNITY_PATCH && gCustomMods.isBALANCE_DYNAMIC_UNIT_SUPPLY())
 #define MOD_BALANCE_CORE_UNIQUE_BELIEFS_ONLY_FOR_CIV	(MOD_COMMUNITY_PATCH && gCustomMods.isBALANCE_CORE_UNIQUE_BELIEFS_ONLY_FOR_CIV())
 #define MOD_BALANCE_DEFENSIVE_PACTS_AGGRESSION_ONLY	(MOD_COMMUNITY_PATCH && gCustomMods.isBALANCE_DEFENSIVE_PACTS_AGGRESSION_ONLY())
+#define MOD_BALANCE_CORE_SCALING_TRADE_DISTANCE	(MOD_COMMUNITY_PATCH && gCustomMods.isBALANCE_CORE_SCALING_TRADE_DISTANCE())
+#define MOD_BALANCE_CORE_SCALING_XP				(MOD_COMMUNITY_PATCH && gCustomMods.isBALANCE_CORE_SCALING_XP())
+#define MOD_BALANCE_CORE_HALF_XP_PURCHASE				(MOD_COMMUNITY_PATCH && gCustomMods.isBALANCE_CORE_HALF_XP_PURCHASE())
+#define MOD_BALANCE_CORE_QUEST_CHANGES				(MOD_COMMUNITY_PATCH && gCustomMods.isBALANCE_CORE_QUEST_CHANGES())
+#define MOD_BALANCE_CORE_PUPPET_CHANGES				(MOD_COMMUNITY_PATCH && gCustomMods.isBALANCE_CORE_PUPPET_CHANGES())
+#define MOD_BALANCE_CORE_CITY_DEFENSE_SWITCH		(MOD_COMMUNITY_PATCH && gCustomMods.isBALANCE_CORE_CITY_DEFENSE_SWITCH())
+#define MOD_BALANCE_CORE_ARCHAEOLOGY_FROM_GP		(MOD_COMMUNITY_PATCH && gCustomMods.isBALANCE_CORE_ARCHAEOLOGY_FROM_GP())
 #endif
 // activate eureka for tech cost bonus 'quest'
 #define MOD_CIV6_EUREKA								gCustomMods.isCIV6_EUREKAS()
 // Add a "worker cost" to improvement and delete the worker when he expands all his "strength"
-#define MOD_CIV6_WORKER								gCustomMods.isCIV6_TYPE_WORKER()
+#define MOD_CIV6_WORKER								gCustomMods.isCIV6_WORKER()
 // Roads are created by trade routes.
 #define MOD_CIV6_ROADS								gCustomMods.isCIV6_ROADS()
 // scale city-state yield per city owned
@@ -615,6 +631,7 @@
 
 // Event sent upon a City State giving a gift (v73)
 //   GameEvents.MinorGift.Add(function(iMinor, iMajor, iGift, iFriendshipBoost, 0, bFirstMajorCiv, false, szTxtKeySuffix) end)
+//   GameEvents.MinorGiftUnit.Add(function(iMinor, iMajor, iUnitType) end)
 #define MOD_EVENTS_MINORS_GIFTS                     gCustomMods.isEVENTS_MINORS_GIFTS()
 
 // Events sent on interaction with City States (v68)
@@ -626,7 +643,7 @@
 //   GameEvents.PlayerBoughtOut.Add(function(iPlayer, iCS) end)
 //   GameEvents.PlayerCanBullyGold.Add(function(iPlayer, iCS) return true end)
 //   GameEvents.PlayerCanBullyUnit.Add(function(iPlayer, iCS) return true end)
-//   GameEvents.PlayerBullied.Add(function(iPlayer, iCS, iGold, iUnitType, iPlotX, iPlotY) end)
+//   GameEvents.PlayerBullied.Add(function(iPlayer, iCS, iValue, eUnitType, iPlotX, iPlotY, eYield) end)
 //   GameEvents.PlayerCanGiftGold.Add(function(iPlayer, iCS) return true end)
 //   GameEvents.PlayerCanGiftUnit.Add(function(iPlayer, iCS, iUnit) return true end)
 //   GameEvents.PlayerCanGiftImprovement.Add(function(iPlayer, iCS) return true end)
@@ -646,6 +663,7 @@
 
 // Event sent when a Goody Hut is entered (v33)
 //   GameEvents.GoodyHutCanNotReceive.Add(function(iPlayer, iUnit, eGoody, bPick) return false end)
+//   GameEvents.GoodyHutReceivedBonus.Add(function(iPlayer, iUnit, eGoody, iX, iY) end)
 #define MOD_EVENTS_GOODY_CHOICE                     gCustomMods.isEVENTS_GOODY_CHOICE()
 
 // Events sent if a Goody Hut is giving a tech
@@ -779,6 +797,7 @@
 
 // Events sent by golden ages (v52)
 //   GameEvents.PlayerGoldenAge.Add(function(iPlayer, bStart, iTurns) end)
+//   GameEvents.PlayerEndOfMayaLongCount.Add(function(iPlayer, iBaktun, iBaktunPreviousTurn) end)
 #define MOD_EVENTS_GOLDEN_AGE                       gCustomMods.isEVENTS_GOLDEN_AGE()
 
 // Events sent after a city produces/buys something
@@ -948,6 +967,12 @@
 #define MOD_BUGFIX_NO_HOVERING_REBELS               gCustomMods.isBUGFIX_NO_HOVERING_REBELS()
 // Fixes some bugs/regressions that disable the effect of IsNoMinorCivs of some strategies
 #define MOD_BUGFIX_MINOR_CIV_STRATEGIES				gCustomMods.isBUGFIX_MINOR_CIV_STRATEGIES()
+// Fixes the ExtraMissionarySpreads column to affect naturally born Prophets
+#define MOD_BUGFIX_EXTRA_MISSIONARY_SPREADS			gCustomMods.isBUGFIX_EXTRA_MISSIONARY_SPREADS()
+// Workaround for the AI double turn when loading MP games with simultaneous/hybrid turns
+#define MOD_BUGFIX_AI_DOUBLE_TURN_MP_LOAD (true)
+// Fixes issue where explore plot list was not being consistently updated when a plot was revealed
+#define MOD_BUGFIX_EXPLORE_REVEALED_PLOT	(true)
 
 #endif // ACHIEVEMENT_HACKS
 
@@ -1129,12 +1154,16 @@ enum BattleTypeTypes
 #define GAMEEVENT_EspionageCanMoveSpyTo			"EspionageCanMoveSpyTo",		"iii"
 #define GAMEEVENT_EspionageCanStageCoup			"EspionageCanStageCoup",		"iii"
 #define GAMEEVENT_EspionageResult				"EspionageResult",				"iiiii"
+#define GAMEEVENT_ElectionResultSuccess			"ElectionResultSuccess",		"iiiii"
+#define GAMEEVENT_ElectionResultFailure			"ElectionResultFailure",		"iiiii"
 #define GAMEEVENT_EspionageNotificationData		"EspionageNotificationData",	"iiiiiiiibiibi"
 #define GAMEEVENT_EspionageState				"EspionageState",				"iiiii"
 #define GAMEEVENT_GetDiploModifier				"GetDiploModifier",				"iii"
 #define GAMEEVENT_GetBombardRange				"GetBombardRange",				"ii"
 #define GAMEEVENT_GetReligionToFound			"GetReligionToFound",			"iib"
+#define GAMEEVENT_GetBeliefToFound				"GetBeliefToFound",				"ii"
 #define GAMEEVENT_GoodyHutCanNotReceive			"GoodyHutCanNotReceive",		"iiib"
+#define GAMEEVENT_GoodyHutReceivedBonus			"GoodyHutReceivedBonus",		"iiiii"
 #define GAMEEVENT_GoodyHutCanResearch			"GoodyHutCanResearch",			"ii"
 #define GAMEEVENT_GoodyHutTechResearched		"GoodyHutTechResearched",		"ii"
 #define GAMEEVENT_GreatPersonExpended			"GreatPersonExpended",			"iiiii"
@@ -1144,6 +1173,7 @@ enum BattleTypeTypes
 #define GAMEEVENT_MinorAlliesChanged			"MinorAlliesChanged",			"iibii"
 #define GAMEEVENT_MinorFriendsChanged			"MinorFriendsChanged",			"iibii"
 #define GAMEEVENT_MinorGift						"MinorGift",					"iiiiibbs"
+#define GAMEEVENT_MinorGiftUnit					"MinorGiftUnit",				"iii"
 #define GAMEEVENT_NaturalWonderDiscovered		"NaturalWonderDiscovered",		"iiiibii"
 #define GAMEEVENT_NuclearDetonation				"NuclearDetonation",			"iiibb"
 #define GAMEEVENT_PantheonFounded				"PantheonFounded",				"iiii"
@@ -1152,7 +1182,7 @@ enum BattleTypeTypes
 #define GAMEEVENT_PlayerBoughtOut				"PlayerBoughtOut",				"ii"
 #define GAMEEVENT_PlayerBuilding				"PlayerBuilding",				"iiiiib"
 #define GAMEEVENT_PlayerBuilt					"PlayerBuilt",					"iiiii"
-#define GAMEEVENT_PlayerBullied					"PlayerBullied",				"iiiiii"
+#define GAMEEVENT_PlayerBullied					"PlayerBullied",				"iiiiiii"
 #define GAMEEVENT_PlayerCanAdoptIdeology		"PlayerCanAdoptIdeology",		"ii"
 #define GAMEEVENT_PlayerCanAdoptTenet			"PlayerCanAdoptTenet",			"ii"
 #define GAMEEVENT_PlayerCanBuild				"PlayerCanBuild",				"iiiii"
@@ -1181,6 +1211,7 @@ enum BattleTypeTypes
 #define GAMEEVENT_PlayerCanTransitMinorCity		"PlayerCanTransitMinorCity",	"iiiii"
 #define GAMEEVENT_PlayerGifted					"PlayerGifted",					"iiiiii"
 #define GAMEEVENT_PlayerGoldenAge				"PlayerGoldenAge",				"ibi"
+#define GAMEEVENT_PlayerEndOfMayaLongCount		"PlayerEndOfMayaLongCount",		"iii"
 #define GAMEEVENT_PlayerLiberated				"PlayerLiberated",				"iii"
 #define GAMEEVENT_PlayerPlunderedTradeRoute		"PlayerPlunderedTradeRoute",	"iiiiiiiii"
 #define GAMEEVENT_PlayerProtected				"PlayerProtected",				"ii"
@@ -1245,6 +1276,7 @@ enum BattleTypeTypes
 #define GAMEEVENT_LoyaltyStateChanged       "LoyaltyStateChanged", "iiii"
 //Other
 #define GAMEEVENT_CityBeginsWLTKD			"CityBeginsWLTKD", "iiii"
+#define GAMEEVENT_CityEndsWLTKD				"CityEndsWLTKD", "iiii"
 #define GAMEEVENT_CityRazed					"CityRazed", "iii"
 #define GAMEEVENT_CityInvestedBuilding		"CityInvestedBuilding", "iiii"
 #define GAMEEVENT_CityInvestedUnit			"CityInvestedUnit", "iiii"
@@ -1266,6 +1298,10 @@ enum BattleTypeTypes
 #define GAMEEVENT_EventCanTake				"EventCanTake", "ii"
 #define GAMEEVENT_CityEventCanTake			"CityEventCanTake", "iii"
 #define GAMEEVENT_EventUnitCreated			"EventUnitCreated", "iii"
+#define GAMEEVENT_CityFlipped				"CityFlipped", "iii"
+#define GAMEEVENT_CityFlipChance			"CityFlipChance", "ii"
+#define GAMEEVENT_CityFlipRecipientChance	"CityFlipChance", "iii"
+#define GAMEEVENT_FreeCitySelector			"SetFreeCityType", "ii"
 
 // Serialization wrappers
 #define MOD_SERIALIZE
@@ -1480,6 +1516,13 @@ public:
 	MOD_OPT_DECL(BALANCE_DYNAMIC_UNIT_SUPPLY);
 	MOD_OPT_DECL(BALANCE_CORE_UNIQUE_BELIEFS_ONLY_FOR_CIV);
 	MOD_OPT_DECL(BALANCE_DEFENSIVE_PACTS_AGGRESSION_ONLY);
+	MOD_OPT_DECL(BALANCE_CORE_SCALING_TRADE_DISTANCE);
+	MOD_OPT_DECL(BALANCE_CORE_SCALING_XP);
+	MOD_OPT_DECL(BALANCE_CORE_HALF_XP_PURCHASE);
+	MOD_OPT_DECL(BALANCE_CORE_QUEST_CHANGES);
+	MOD_OPT_DECL(BALANCE_CORE_PUPPET_CHANGES);
+	MOD_OPT_DECL(BALANCE_CORE_CITY_DEFENSE_SWITCH);
+	MOD_OPT_DECL(BALANCE_CORE_ARCHAEOLOGY_FROM_GP);
 
 	MOD_OPT_DECL(CIV6_WORKER);
 	MOD_OPT_DECL(CIV6_ROADS);
@@ -1661,6 +1704,7 @@ public:
 	MOD_OPT_DECL(BUGFIX_HOVERING_PATHFINDER);
 	MOD_OPT_DECL(BUGFIX_EMBARKING_PATHFINDER);
 	MOD_OPT_DECL(BUGFIX_MINOR_CIV_STRATEGIES);
+	MOD_OPT_DECL(BUGFIX_EXTRA_MISSIONARY_SPREADS);
 
 protected:
 	bool m_bInit;

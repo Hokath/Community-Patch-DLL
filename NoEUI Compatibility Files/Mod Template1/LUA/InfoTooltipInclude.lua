@@ -305,6 +305,10 @@ function GetHelpTextForBuilding(iBuildingID, bExcludeName, bExcludeHeader, bNoMa
 		iCulture = iCulture + pCity:GetLocalBuildingClassYield(buildingClassID, YieldTypes.YIELD_CULTURE);
 		iCulture = iCulture + pCity:GetReligionBuildingYieldRateModifier(buildingClassID, YieldTypes.YIELD_CULTURE);
 		iCulture = iCulture + pCity:GetBuildingYieldChangeFromCorporationFranchises(buildingClassID, YieldTypes.YIELD_CULTURE);
+		-- Yield bonuses to World Wonders
+		if Game.IsWorldWonderClass(buildingClassID) then
+			iCulture = iCulture + pActivePlayer:GetExtraYieldWorldWonder(buildingID, YieldTypes.YIELD_CULTURE)
+		end
 -- END
 		-- Events
 		iCulture = iCulture + pCity:GetEventBuildingClassYield(buildingClassID, YieldTypes.YIELD_CULTURE);
@@ -323,6 +327,10 @@ function GetHelpTextForBuilding(iBuildingID, bExcludeName, bExcludeHeader, bNoMa
 -- CBP
 		iFaith = iFaith + pCity:GetReligionBuildingYieldRateModifier(buildingClassID, YieldTypes.YIELD_FAITH);
 		iFaith = iFaith + pCity:GetBuildingYieldChangeFromCorporationFranchises(buildingClassID, YieldTypes.YIELD_FAITH);
+		-- Yield bonuses to World Wonders
+		if Game.IsWorldWonderClass(buildingClassID) then
+			iFaith = iFaith + pActivePlayer:GetExtraYieldWorldWonder(buildingID, YieldTypes.YIELD_FAITH)
+		end
 -- END
 		-- Events
 		iFaith = iFaith + pCity:GetEventBuildingClassYield(buildingClassID, YieldTypes.YIELD_FAITH);
@@ -366,6 +374,10 @@ function GetHelpTextForBuilding(iBuildingID, bExcludeName, bExcludeHeader, bNoMa
 		iFood = iFood + pCity:GetReligionBuildingYieldRateModifier(buildingClassID, YieldTypes.YIELD_FOOD);
 		iFood = iFood + pCity:GetLocalBuildingClassYield(buildingClassID, YieldTypes.YIELD_FOOD);
 		iFood = iFood + pCity:GetBuildingYieldChangeFromCorporationFranchises(buildingClassID, YieldTypes.YIELD_FOOD);
+		-- Yield bonuses to World Wonders
+		if Game.IsWorldWonderClass(buildingClassID) then
+			iFood = iFood + pActivePlayer:GetExtraYieldWorldWonder(buildingID, YieldTypes.YIELD_FOOD)
+		end
 -- END
 		-- Events
 		iFood = iFood + pCity:GetEventBuildingClassYield(buildingClassID, YieldTypes.YIELD_FOOD);
@@ -391,6 +403,9 @@ function GetHelpTextForBuilding(iBuildingID, bExcludeName, bExcludeHeader, bNoMa
 		iGold = iGold + pCity:GetReligionBuildingYieldRateModifier(buildingClassID, YieldTypes.YIELD_GOLD);
 		iGold = iGold + pCity:GetLocalBuildingClassYield(buildingClassID, YieldTypes.YIELD_GOLD);
 		iGold = iGold + pCity:GetBuildingYieldChangeFromCorporationFranchises(buildingClassID, YieldTypes.YIELD_GOLD);
+		if Game.IsWorldWonderClass(buildingClassID) then
+			iGold = iGold + pActivePlayer:GetExtraYieldWorldWonder(buildingID, YieldTypes.YIELD_GOLD)
+		end
 -- END
 		-- Events
 		iGold = iGold + pCity:GetEventBuildingClassYield(buildingClassID, YieldTypes.YIELD_GOLD);
@@ -419,6 +434,12 @@ function GetHelpTextForBuilding(iBuildingID, bExcludeName, bExcludeHeader, bNoMa
 	if (pCity ~= nil) then
 		iScienceChange = iScienceChange + pCity:GetReligionBuildingClassYieldChange(buildingClassID, YieldTypes.YIELD_SCIENCE) + pActivePlayer:GetPlayerBuildingClassYieldChange(buildingClassID, YieldTypes.YIELD_SCIENCE);
 		iScienceChange = iScienceChange + pCity:GetLeagueBuildingClassYieldChange(buildingClassID, YieldTypes.YIELD_SCIENCE);
+-- Start Vox Populi
+		-- Yield bonuses to World Wonders
+		if Game.IsWorldWonderClass(buildingClassID) then
+			iScienceChange = iScienceChange + pActivePlayer:GetExtraYieldWorldWonder(buildingID, YieldTypes.YIELD_SCIENCE)
+		end
+-- End Vox Populi
 		-- Events
 		iScienceChange = iScienceChange + pCity:GetEventBuildingClassYield(buildingClassID, YieldTypes.YIELD_SCIENCE);
 		-- End 
@@ -442,6 +463,12 @@ function GetHelpTextForBuilding(iBuildingID, bExcludeName, bExcludeHeader, bNoMa
 		iProd = iProd + pCity:GetReligionBuildingYieldRateModifier(buildingClassID, YieldTypes.YIELD_PRODUCTION);
 		iProd = iProd + pCity:GetLocalBuildingClassYield(buildingClassID, YieldTypes.YIELD_PRODUCTION);
 		iProd = iProd + pCity:GetBuildingYieldChangeFromCorporationFranchises(buildingClassID, YieldTypes.YIELD_PRODUCTION);
+-- Start Vox Populi
+		-- Yield bonuses to World Wonders
+		if Game.IsWorldWonderClass(buildingClassID) then
+			iProd = iProd + pActivePlayer:GetExtraYieldWorldWonder(buildingID, YieldTypes.YIELD_PRODUCTION)
+		end
+-- End Vox Populi
 	end
 -- END	
 	if (pCity ~= nil) then
@@ -743,6 +770,13 @@ end
 function GetProductionTooltip(pCity)
 
 	local iBaseProductionPT = pCity:GetBaseYieldRate(YieldTypes.YIELD_PRODUCTION);
+	local iYieldPerPop = pCity:GetYieldPerPopTimes100(YieldTypes.YIELD_PRODUCTION);
+	if (iYieldPerPop ~= 0) then
+		iYieldPerPop = iYieldPerPop * pCity:GetPopulation();
+		iYieldPerPop = iYieldPerPop / 100;
+		
+		iBaseProductionPT = iBaseProductionPT + iYieldPerPop;
+	end
 	local iProductionPerTurn = pCity:GetCurrentProductionDifferenceTimes100(false, false) / 100;--pCity:GetYieldRate(YieldTypes.YIELD_PRODUCTION);
 	local strCodeToolTip = pCity:GetYieldModifierTooltip(YieldTypes.YIELD_PRODUCTION);
 	
@@ -1065,12 +1099,12 @@ function GetCultureTooltip(pCity)
 		end
 -- END		
 		-- Puppet modifier
-		if (pCity:IsPuppet() and not Players[pCity:GetOwner()]:IsIgnorePuppetPenalties()) then
-			iAmount = GameDefines.PUPPET_CULTURE_MODIFIER;
+		if (pCity:IsPuppet()) then
+			local puppetMod = Players[pCity:GetOwner()]:GetPuppetYieldPenalty(YieldTypes.YIELD_CULTURE);
 			
-			if (iAmount ~= 0) then
+			if (puppetMod ~= 0) then
 				strCultureToolTip = strCultureToolTip .. "[NEWLINE]";
-				strCultureToolTip = strCultureToolTip .. Locale.ConvertTextKey("TXT_KEY_PRODMOD_PUPPET", iAmount);
+				strCultureToolTip = strCultureToolTip .. Locale.ConvertTextKey("TXT_KEY_PRODMOD_PUPPET", puppetMod);
 			end
 		end
 	end
@@ -1241,12 +1275,17 @@ function GetFaithTooltip(pCity)
 		end
 		
 		-- Puppet modifier
-		if (pCity:IsPuppet() and not Players[pCity:GetOwner()]:IsIgnorePuppetPenalties()) then
-			local iAmount = GameDefines.PUPPET_FAITH_MODIFIER;
+		if (pCity:IsPuppet()) then
+			local puppetMod = Players[pCity:GetOwner()]:GetPuppetYieldPenalty(YieldTypes.YIELD_FAITH);
 		
-			if (iAmount ~= 0) then
-				table.insert(faithTips, Locale.ConvertTextKey("TXT_KEY_PRODMOD_PUPPET", iAmount));
+			if (puppetMod ~= 0) then
+				table.insert(faithTips, Locale.ConvertTextKey("TXT_KEY_PRODMOD_PUPPET", puppetMod));
 			end
+		end
+
+		local trfaith = pCity:GetYieldModifierTooltip(YieldTypes.YIELD_FAITH)
+		if(trfaith ~= "") then
+			table.insert(faithTips, trfaith);
 		end
 	
 		-- Citizens breakdown
@@ -1279,17 +1318,19 @@ function GetCityHappinessTooltip(pCity)
 		local iScienceUnhappiness = pCity:GetUnhappinessFromScience();
 		local iCultureUnhappiness = pCity:GetUnhappinessFromCulture();
 		local iResistanceUnhappiness = 0;
+		local iOccupationUnhappiness = 0;
+		local iPuppetUnhappiness = 0;
 		if(pCity:IsRazing()) then
 			iResistanceUnhappiness = (pCity:GetPopulation() / 2);
 		elseif(pCity:IsResistance()) then
 			iResistanceUnhappiness = (pCity:GetPopulation() / 2);
-		end
-		local iOccupationUnhappiness = 0;
-		if(pCity:IsOccupied() and not pCity:IsNoOccupiedUnhappiness()) then
+		elseif(pCity:IsPuppet()) then
+			iPuppetUnhappiness = (pCity:GetPopulation() / GameDefines.BALANCE_HAPPINESS_PUPPET_THRESHOLD_MOD);
+		elseif(pCity:IsOccupied() and not pCity:IsNoOccupiedUnhappiness()) then
 			iOccupationUnhappiness = (pCity:GetPopulation() * GameDefines.UNHAPPINESS_PER_OCCUPIED_POPULATION);
 		end
 			
-		local iTotalUnhappiness = iScienceUnhappiness + iCultureUnhappiness + iDefenseUnhappiness + iGoldUnhappiness + iConnectionUnhappiness + iPillagedUnhappiness + iStarvingUnhappiness + iMinorityUnhappiness + iOccupationUnhappiness + iResistanceUnhappiness;
+		local iTotalUnhappiness = iScienceUnhappiness + iCultureUnhappiness + iDefenseUnhappiness + iGoldUnhappiness + iConnectionUnhappiness + iPillagedUnhappiness + iStarvingUnhappiness + iMinorityUnhappiness + iOccupationUnhappiness + iResistanceUnhappiness + iPuppetUnhappiness;
 
 		local iPuppetMod = 0;
 		if(pCity:IsPuppet()) then
@@ -1345,6 +1386,12 @@ function GetCityHappinessTooltip(pCity)
 		if (iOccupationUnhappiness ~= 0) then
 			strHappinessBreakdown = strHappinessBreakdown .. "[NEWLINE]" .. Locale.ConvertTextKey("TXT_KEY_OCCUPATION_UNHAPPINESS", iOccupationUnhappiness);
 		end
+
+		-- Puppet tooltip
+		if (iPuppetUnhappiness ~= 0) then
+			strHappinessBreakdown = strHappinessBreakdown .. "[NEWLINE]" .. Locale.ConvertTextKey("TXT_KEY_PUPPET_UNHAPPINESS", iPuppetUnhappiness);
+		end
+
 		-- Resistance tooltip
 		if (iResistanceUnhappiness ~= 0) then
 			strHappinessBreakdown = strHappinessBreakdown .. "[NEWLINE]" .. Locale.ConvertTextKey("TXT_KEY_RESISTANCE_UNHAPPINESS", iResistanceUnhappiness);

@@ -688,15 +688,10 @@ void CvUnitMission::ContinueMission(CvUnit* hUnit, int iSteps, int iETA)
 
 			else if(kMissionData.eMissionType == CvTypes::getMISSION_SWAP_UNITS())
 			{
-				CvPlot* pOriginationPlot;
-				CvPlot* pTargetPlot;
-
-				// Get target plot
-				pTargetPlot = GC.getMap().plot(kMissionData.iData1, kMissionData.iData2);
-
+				CvPlot* pTargetPlot = GC.getMap().plot(kMissionData.iData1, kMissionData.iData2);
 				if(pTargetPlot != NULL)
 				{
-					pOriginationPlot = hUnit->plot();
+					CvPlot* pOriginationPlot = hUnit->plot();
 
 					if(pTargetPlot->getNumUnits() < 1)
 					{
@@ -713,11 +708,18 @@ void CvUnitMission::ContinueMission(CvUnit* hUnit, int iSteps, int iETA)
 						if(pUnit2->AreUnitsOfSameType(*(hUnit)) && pUnit2->ReadyToMove())
 						{
 							// Start the swap
-							hUnit->UnitPathTo(HeadMissionData(kMissionQueue)->iData1, HeadMissionData(kMissionQueue)->iData2, CvUnit::MOVEFLAG_IGNORE_STACKING);
+							if (hUnit->GeneratePath(pTargetPlot, CvUnit::MOVEFLAG_IGNORE_STACKING, 0) && pUnit2->GeneratePath(pOriginationPlot, CvUnit::MOVEFLAG_IGNORE_STACKING, 0))
+							{
+								int iResult = 0;
+								while (iResult >= 0)
+									iResult = hUnit->UnitPathTo(pTargetPlot->getX(), pTargetPlot->getY(), 1, CvUnit::MOVEFLAG_IGNORE_STACKING);
+								int iResult2 = 0;
+								while (iResult2 >= 0)
+									iResult2 = pUnit2->UnitPathTo(pOriginationPlot->getX(), pOriginationPlot->getY(), 1, CvUnit::MOVEFLAG_IGNORE_STACKING);
 
-							// Move the other unit back out
-							pUnit2->UnitPathTo(pOriginationPlot->getX(), pOriginationPlot->getY(), 0);
-							bDone = true;
+								bDone = true;
+								break;
+							}
 						}
 					}
 				}
@@ -803,7 +805,8 @@ void CvUnitMission::ContinueMission(CvUnit* hUnit, int iSteps, int iETA)
 			        kMissionData.eMissionType == CvTypes::getMISSION_EMBARK() ||
 			        kMissionData.eMissionType == CvTypes::getMISSION_DISEMBARK())
 			{
-				if(hUnit->at(kMissionData.iData1, kMissionData.iData2))
+				//don't check against the target plot directly in case of approximate pathfinding
+				if(hUnit->m_kLastPath.empty())
 				{
 					bDone = true;
 #ifdef LOG_UNIT_MOVES
@@ -891,7 +894,7 @@ void CvUnitMission::ContinueMission(CvUnit* hUnit, int iSteps, int iETA)
 			}
 
 #if defined(MOD_EVENTS_CUSTOM_MISSIONS)
-			else if (MOD_EVENTS_CUSTOM_MISSIONS) {
+			if (MOD_EVENTS_CUSTOM_MISSIONS) {
 				if (GAMEEVENTINVOKE_TESTANY(GAMEEVENT_CustomMissionCompleted, hUnit->getOwner(), hUnit->GetID(), kMissionData.eMissionType, kMissionData.iData1, kMissionData.iData2, kMissionData.iFlags, kMissionData.iPushTurn) == GAMEEVENTRETURN_TRUE) {
 					bDone = true;
 				}
@@ -946,7 +949,7 @@ void CvUnitMission::ContinueMission(CvUnit* hUnit, int iSteps, int iETA)
 							GC.GetEngineUserInterface()->changeCycleSelectionCounter(iCameraTime);
 						}
 #if defined(MOD_EVENTS_CUSTOM_MISSIONS)
-						else if (MOD_EVENTS_CUSTOM_MISSIONS) {
+						if (MOD_EVENTS_CUSTOM_MISSIONS) {
 							int iCameraTime = 0;
 							if (GAMEEVENTINVOKE_VALUE(iCameraTime, GAMEEVENT_CustomMissionCameraTime, hUnit->getOwner(), hUnit->GetID(), kMissionData.eMissionType, kMissionData.iData1, kMissionData.iData2, kMissionData.iFlags, kMissionData.iPushTurn) == GAMEEVENTRETURN_VALUE) {
 								if (iCameraTime > 0 && iCameraTime <= 10) {
@@ -1006,7 +1009,7 @@ bool CvUnitMission::CanStartMission(CvUnit* hUnit, int iMission, int iData1, int
 		// Attempt to execute the game events.
 		// Will return false if there are no registered listeners.
 		bool bResult = false;
-		if(LuaSupport::CallTestAll(pkScriptSystem, "CanStartMission", args.get(), bResult))
+		if (LuaSupport::CallTestAll(pkScriptSystem, "CanStartMission", args.get(), bResult))
 		{
 			// Check the result.
 			if(bResult == false)
@@ -1379,7 +1382,7 @@ bool CvUnitMission::CanStartMission(CvUnit* hUnit, int iMission, int iData1, int
 	}
 #endif
 #if defined(MOD_EVENTS_CUSTOM_MISSIONS)
-	else if (MOD_EVENTS_CUSTOM_MISSIONS) {
+	if (MOD_EVENTS_CUSTOM_MISSIONS) {
 		if (GAMEEVENTINVOKE_TESTANY(GAMEEVENT_CustomMissionPossible, hUnit->getOwner(), hUnit->GetID(), iMission, iData1, iData2, 0, -1, pPlot->getX(), pPlot->getY(), bTestVisible) == GAMEEVENTRETURN_TRUE) {
 			return true;
 		}
@@ -1488,7 +1491,7 @@ void CvUnitMission::StartMission(CvUnit* hUnit)
 		}
 
 #if defined(MOD_EVENTS_CUSTOM_MISSIONS)
-		else if (MOD_EVENTS_CUSTOM_MISSIONS) {
+		if (MOD_EVENTS_CUSTOM_MISSIONS) {
 			int iValue = 0;
 			if (GAMEEVENTINVOKE_VALUE(iValue, GAMEEVENT_CustomMissionSetActivity, hUnit->getOwner(), hUnit->GetID(), pkQueueData->eMissionType, pkQueueData->iData1, pkQueueData->iData2, pkQueueData->iFlags, pkQueueData->iPushTurn) == GAMEEVENTRETURN_VALUE) {
 				if (iValue == CUSTOM_MISSION_ACTION ) {
@@ -1512,6 +1515,23 @@ void CvUnitMission::StartMission(CvUnit* hUnit)
 
 		if(hUnit->canMove())
 		{
+			if (pkQueueData->eMissionType == CvTypes::getMISSION_FORTIFY() ||
+				pkQueueData->eMissionType == CvTypes::getMISSION_HEAL() ||
+				pkQueueData->eMissionType == CvTypes::getMISSION_ALERT() ||
+				pkQueueData->eMissionType == CvTypes::getMISSION_SKIP() )
+			{
+				//start the animation right now to give feedback to the player
+				if (!hUnit->IsFortified() && !hUnit->hasMoved() && hUnit->canFortify(hUnit->plot()))
+					hUnit->triggerFortifyAnimation(true);
+			}
+			else if (hUnit->IsFortified())
+			{
+				// unfortify for any other mission
+				hUnit->triggerFortifyAnimation(false);
+			}
+
+			// ---------- now the real missions with action -----------------------
+
 			if( pkQueueData->eMissionType == CvTypes::getMISSION_MOVE_TO() ||
 				pkQueueData->eMissionType == CvTypes::getMISSION_MOVE_TO_UNIT() ||
 				pkQueueData->eMissionType == CvTypes::getMISSION_ROUTE_TO())
@@ -1525,16 +1545,6 @@ void CvUnitMission::StartMission(CvUnit* hUnit)
 					auto_ptr<ICvUnit1> pDllUnit(new CvDllUnit(hUnit));
 					gDLL->GameplayUnitWork(pDllUnit.get(), 0);
 				}
-			}
-			else if(pkQueueData->eMissionType == CvTypes::getMISSION_FORTIFY())
-			{
-				hUnit->SetFortifiedThisTurn(true);
-			}
-
-			else if(pkQueueData->eMissionType == CvTypes::getMISSION_HEAL() ||
-			        pkQueueData->eMissionType == CvTypes::getMISSION_ALERT())
-			{
-				hUnit->SetFortifiedThisTurn(true);
 			}
 
 			else if(pkQueueData->eMissionType == CvTypes::getMISSION_SET_UP_FOR_RANGED_ATTACK())
@@ -1760,6 +1770,12 @@ void CvUnitMission::StartMission(CvUnit* hUnit)
 				CvAssertMsg(pPlot, "pPlot is null! OH NOES, JOEY!");
 				if (pPlot)
 				{
+					if (GC.getGame().isNetworkMultiPlayer())
+					{
+						// This should fix TR/cargo unit related desyncs (different paths etc). I suspect there is still the potential for desyncs if the user opens the TR popup but something changes before they issue the command. Even just opening the popup could cause problems. I think a net message is in order for a real fix.
+						GC.getGame().GetGameTrade()->InvalidateTradePathCache(hUnit->getOwner()); // although we are only interested in one trade route, we invalidate all since the originating client has updated their whole cache when opening the popup
+					}
+
 					if(hUnit->makeTradeRoute(pPlot->getX(), pPlot->getY(), (TradeConnectionType)pkQueueData->iData2))
 					{
 						bAction = true;
@@ -1871,7 +1887,7 @@ void CvUnitMission::StartMission(CvUnit* hUnit)
 #endif
 
 #if defined(MOD_EVENTS_CUSTOM_MISSIONS)
-			else if (MOD_EVENTS_CUSTOM_MISSIONS) {
+			if (MOD_EVENTS_CUSTOM_MISSIONS) {
 				int iValue = 0;
 				if (GAMEEVENTINVOKE_VALUE(iValue, GAMEEVENT_CustomMissionStart, hUnit->getOwner(), hUnit->GetID(), pkQueueData->eMissionType, pkQueueData->iData1, pkQueueData->iData2, pkQueueData->iFlags, pkQueueData->iPushTurn) == GAMEEVENTRETURN_VALUE) {
 					if (iValue == CUSTOM_MISSION_ACTION) {
@@ -1944,7 +1960,7 @@ CvPlot* CvUnitMission::LastMissionPlot(CvUnit* hUnit)
 		}
 
 #if defined(MOD_EVENTS_CUSTOM_MISSIONS)
-		else if (MOD_EVENTS_CUSTOM_MISSIONS) {
+		if (MOD_EVENTS_CUSTOM_MISSIONS) {
 			int iPlotIndex = -1;
 			if (GAMEEVENTINVOKE_VALUE(iPlotIndex, GAMEEVENT_CustomMissionTargetPlot, hUnit->getOwner(), hUnit->GetID(), pMissionNode->eMissionType, pMissionNode->iData1, pMissionNode->iData2, pMissionNode->iFlags, pMissionNode->iPushTurn) == GAMEEVENTRETURN_VALUE) {
 				if (iPlotIndex >= 0 ) {
@@ -2021,7 +2037,7 @@ int CvUnitMission::CalculateMissionTimer(CvUnit* hUnit, int iSteps)
 			}
 		}
 #if defined(MOD_EVENTS_CUSTOM_MISSIONS)
-		else if (MOD_EVENTS_CUSTOM_MISSIONS) {
+		if (MOD_EVENTS_CUSTOM_MISSIONS) {
 			int iValue = 0;
 			if (GAMEEVENTINVOKE_VALUE(iValue, GAMEEVENT_CustomMissionTimerInc, hUnit->getOwner(), hUnit->GetID(), kMissionData.eMissionType, kMissionData.iData1, kMissionData.iData2, kMissionData.iFlags, kMissionData.iPushTurn) == GAMEEVENTRETURN_VALUE) {
 				if (iValue != 0) {
@@ -2320,7 +2336,7 @@ bool CvUnitMission::HasCompletedMoveMission(CvUnit* hUnit)
 			}
 		}
 #if defined(MOD_EVENTS_CUSTOM_MISSIONS)
-		else if (MOD_EVENTS_CUSTOM_MISSIONS) {
+		if (MOD_EVENTS_CUSTOM_MISSIONS) {
 			if (GAMEEVENTINVOKE_TESTANY(GAMEEVENT_CustomMissionCompleted, hUnit->getOwner(), hUnit->GetID(), kMissionData.eMissionType, kMissionData.iData1, kMissionData.iData2, kMissionData.iFlags, kMissionData.iPushTurn) == GAMEEVENTRETURN_TRUE) {
 				return true;
 			}

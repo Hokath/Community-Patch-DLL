@@ -21,31 +21,25 @@ typedef std::set<std::pair<PlayerTypes,int>> UnitSet;
 
 struct SUnitInfo
 {
-	SUnitInfo(const CvUnit* pUnit=NULL, const set<int>& enemyUnitsToIgnore=set<int>())
+	SUnitInfo(const CvUnit* pUnit=NULL, const set<int>& enemyUnitsToIgnore=set<int>()) : m_enemyUnitsToIgnore(enemyUnitsToIgnore)
 	{
-		m_pUnit = pUnit;
+		m_iUnitID = pUnit ? pUnit->GetID() : 0;
 		m_x = pUnit ? pUnit->plot()->getX() : 0;
 		m_y = pUnit ? pUnit->plot()->getY() : 0;
 		m_damage = pUnit ? pUnit->getDamage() : 0;
-		m_enemyUnitsToIgnore = enemyUnitsToIgnore;
-	}
-	const bool operator<(const SUnitInfo& rhs) const
-	{
-		return m_pUnit<rhs.m_pUnit;
 	}
 	const bool operator==(const SUnitInfo& rhs) const
 	{
-		return (m_pUnit==rhs.m_pUnit && m_x==rhs.m_x && m_y==rhs.m_y && m_damage==rhs.m_damage && m_enemyUnitsToIgnore==rhs.m_enemyUnitsToIgnore);
+		return (m_iUnitID==rhs.m_iUnitID && m_x==rhs.m_x && m_y==rhs.m_y && m_damage==rhs.m_damage && m_enemyUnitsToIgnore==rhs.m_enemyUnitsToIgnore);
 	}
 
-	const CvUnit* m_pUnit;
+	int m_iUnitID;
 	int m_x;
 	int m_y;
 	int m_damage;
 	set<int> m_enemyUnitsToIgnore;
 };
 
-#define DANGER_MAX_CACHE_SIZE 5
 struct CvDangerPlotContents
 {
 	CvDangerPlotContents()
@@ -86,7 +80,7 @@ struct CvDangerPlotContents
 	int GetDanger(const CvUnit* pUnit, const set<int>& unitsToIgnore, AirActionType iAirAction);
 	int GetDanger(CvCity* pCity, const CvUnit* pPretendGarrison = NULL);
 	std::vector<CvUnit*> GetPossibleAttackers() const;
-	bool isEnemyUnitAdjacent() const { return m_bEnemyAdjacent; }
+	bool isEnemyCombatUnitAdjacent(PlayerTypes ePlayer, bool bSameDomain) const;
 
 	// should not normally be used, primarily for compatibility
 	int GetDanger(PlayerTypes ePlayer);
@@ -150,17 +144,16 @@ public:
 	void Uninit();
 	void Reset();
 
-	void UpdateDanger(bool bPretendWarWithAllCivs = false, bool bIgnoreVisibility = false, bool bKeepKnownUnits = false);
+	void UpdateDanger(bool bKeepKnownUnits=true);
 	int GetDanger(const CvPlot& pPlot, const CvUnit* pUnit, const set<int>& unitsToIgnore, AirActionType iAirAction = AIR_ACTION_ATTACK);
 	int GetDanger(const CvPlot& pPlot, CvCity* pCity, const CvUnit* pPretendGarrison = NULL);
 	int GetDanger(const CvPlot& pPlot, PlayerTypes ePlayer);
-	bool isEnemyUnitAdjacent(const CvPlot& pPlot) const;
+	bool isEnemyCombatUnitAdjacent(const CvPlot& pPlot, bool bSameDomain) const;
 
 	std::vector<CvUnit*> GetPossibleAttackers(const CvPlot& Plot) const;
-	void ResetDangerCache(const CvPlot& Plot);
-	bool UpdateDangerSingleUnit(CvUnit* pUnit, bool bIgnoreVisibility, bool bRemember);
-	bool IsKnownAttacker(PlayerTypes eOwner, int iUnitID) const;
-	void AddKnownAttacker(PlayerTypes eOwner, int iUnitID);
+	void ResetDangerCache(const CvPlot* pCenterPlot, int iRange);
+	bool IsKnownAttacker(const CvUnit* pUnit) const;
+	void AddKnownAttacker(const CvUnit* pUnit);
 
 	void SetDirty();
 	bool IsDirty() const
@@ -173,30 +166,21 @@ public:
 
 protected:
 
-	bool IsDangerByRelationshipZero(PlayerTypes ePlayer, CvPlot* pPlot);
+	void AddFogDanger(CvPlot* pOrigin, TeamTypes eTeam);
+	void UpdateDangerInternal(bool bKeepKnownUnits, const set<int>& plotsToIgnoreForZOC);
+	bool UpdateDangerSingleUnit(const CvUnit* pUnit, bool bIgnoreVisibility, const set<int>& plotsToIgnoreForZOC);
 
 	bool ShouldIgnorePlayer(PlayerTypes ePlayer);
-	bool ShouldIgnoreUnit(CvUnit* pUnit, bool bIgnoreVisibility = false);
-	bool ShouldIgnoreCity(CvCity* pCity, bool bIgnoreVisibility = false);
+	bool ShouldIgnoreUnit(const CvUnit* pUnit, bool bIgnoreVisibility = false);
+	bool ShouldIgnoreCity(const CvCity* pCity, bool bIgnoreVisibility = false);
 	bool ShouldIgnoreCitadel(CvPlot* pCitadelPlot, bool bIgnoreVisibility = false);
 
-	void AssignUnitDangerValue(CvUnit* pUnit, CvPlot* pPlot);
-	void AssignCityDangerValue(CvCity* pCity, CvPlot* pPlot);
+	void AssignUnitDangerValue(const CvUnit* pUnit, CvPlot* pPlot);
+	void AssignCityDangerValue(const CvCity* pCity, CvPlot* pPlot);
 
 	PlayerTypes m_ePlayer;
 	bool m_bArrayAllocated;
 	bool m_bDirty;
-	double m_fMajorWarMod;
-	double m_fMajorHostileMod;
-	double m_fMajorDeceptiveMod;
-	double m_fMajorGuardedMod;
-	double m_fMajorAfraidMod;
-	double m_fMajorFriendlyMod;
-	double m_fMajorNeutralMod;
-	double m_fMinorNeutralMinorMod;
-	double m_fMinorFriendlyMod;
-	double m_fMinorBullyMod;
-	double m_fMinorConquestMod;
 
 	CvDangerPlotContents* m_DangerPlots;
 	UnitSet m_knownUnits;

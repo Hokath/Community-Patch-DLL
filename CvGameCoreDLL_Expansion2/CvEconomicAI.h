@@ -197,6 +197,7 @@ public:
 
 	void LogMonitor();
 	void LogCityMonitor();
+	void LogPossibleHurries(CvWeightedVector<CvCityBuildable, (SAFE_ESTIMATE_NUM_BUILDINGS + SAFE_ESTIMATE_NUM_UNITS), true> m_Buildables);
 
 	ReconState GetReconState() const
 	{
@@ -250,6 +251,7 @@ private:
 #if defined(MOD_BALANCE_CORE)
 	void DisbandExtraWorkboats();
 	void DisbandUselessSettlers();
+	void DisbandMiscUnits();
 	CvUnit* FindSettlerToScrap(bool bMayBeInOperation);
 	CvUnit* FindSeaWorkerToScrap();
 #endif

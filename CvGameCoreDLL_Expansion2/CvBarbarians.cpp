@@ -139,7 +139,16 @@ void CvBarbarians::DoCampActivationNotice(CvPlot* pPlot)
 	CvGame& kGame = GC.getGame();
 	// Default to between 8 and 12 turns per spawn
 #if defined(MOD_CORE_REDUCE_RANDOMNESS)
-	int iNumTurnsToSpawn = 8 + kGame.getSmallFakeRandNum(10,*pPlot);
+	int iSpawnTurnAddition = 0;
+	if (kGame.getHandicapInfo().getAIDifficultyBonusBase() == 0)
+	{
+		iSpawnTurnAddition = 10;
+	}
+	else
+	{
+		iSpawnTurnAddition = 14 - kGame.getHandicapInfo().getAIDifficultyBonusBase();
+	}
+	int iNumTurnsToSpawn = iSpawnTurnAddition + kGame.getSmallFakeRandNum(10, *pPlot);
 #else
 	int iNumTurnsToSpawn = 8 + kGame.getJonRandNum(5, "Barb Spawn Rand call");
 #endif
@@ -589,7 +598,9 @@ void CvBarbarians::DoCamps()
 				// Do a random roll to bias in favor of Coastal land Tiles so that the Barbs will spawn Boats :) - required 1/6 of the time
 #if defined(MOD_CORE_REDUCE_RANDOMNESS)
 				// make sure we have suitable coastal plots!
-				bool bWantsCoastal = kGame.getSmallFakeRandNum(/*6*/ GC.getBARBARIAN_CAMP_COASTAL_SPAWN_ROLL(), iNumValidCampPlots) == 0 ? !vCoastalPlots.empty() : false;
+				bool bWantsCoastal = false;
+				if (!vCoastalPlots.empty() && vCoastalPlots.size() * 3 > vAllPlots.size())
+					bWantsCoastal = true;
 
 				// if we don't have any valid plots left at all, then bail
 				if (vAllPlots.empty())
@@ -597,7 +608,7 @@ void CvBarbarians::DoCamps()
 
 				std::vector<CvPlot*>& vRelevantPlots = bWantsCoastal ? vCoastalPlots : vAllPlots;
 
-				int iPlotIndex = kGame.getSmallFakeRandNum( min(9u, vRelevantPlots.size()), (int)vRelevantPlots.size() );
+				int iPlotIndex = kGame.getSmallFakeRandNum( vRelevantPlots.size(), vRelevantPlots.size() );
 #else
 				bool bWantsCoastal = kGame.getJonRandNum(/*6*/ GC.getBARBARIAN_CAMP_COASTAL_SPAWN_ROLL(), "Barb Camp Plot-Finding Roll - Coastal Bias") == 0 ? true : false;
 				int iPlotIndex = kGame.getJonRandNum( bWantsCoastal ? vCoastalPlots.size() : vAllPlots.size(), "Barb Camp Plot-Finding Roll");
@@ -907,12 +918,13 @@ void CvBarbarians::DoUnits()
 {
 	CvGame& kGame = GC.getGame();
 
-	if(kGame.isOption(GAMEOPTION_NO_BARBARIANS))
+	if(!CanBarbariansSpawn())
 	{
 		return;
 	}
 
-	if(!CanBarbariansSpawn())
+
+	if (kGame.isOption(GAMEOPTION_NO_BARBARIANS))
 	{
 		return;
 	}

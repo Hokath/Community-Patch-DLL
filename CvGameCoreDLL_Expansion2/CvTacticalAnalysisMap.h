@@ -101,14 +101,6 @@ public:
 	{
 		SetBit(TACTICAL_FLAG_VISIBLE_TO_ENEMY, bNewValue);
 	};
-	bool IsSubjectToAttack()
-	{
-		return GetBit(TACTICAL_FLAG_SUBJECT_TO_ENEMY_ATTACK);
-	};
-	void SetSubjectToAttack(bool bNewValue)
-	{
-		SetBit(TACTICAL_FLAG_SUBJECT_TO_ENEMY_ATTACK, bNewValue);
-	};
 	bool IsFriendlyTurnEndTile()
 	{
 		return GetBit(TACTICAL_FLAG_FRIENDLY_TURN_END_TILE);
@@ -230,11 +222,11 @@ public:
 	};
 	int GetDominanceZone() const
 	{
-		return m_iDominanceZoneID;
+		return m_iZoneID;
 	};
 	void SetDominanceZone(int iZone)
 	{
-		m_iDominanceZoneID = iZone;
+		m_iZoneID = iZone;
 	};
 	AITacticalTargetType GetTargetType() const
 	{
@@ -272,7 +264,7 @@ public:
 private:
 	int m_iDeploymentScore;
 	AITacticalTargetType m_eTargetType;
-	int m_iDominanceZoneID;
+	int m_iZoneID;
 	int m_iTargetDistance;
 	bool m_bHasLOSToTarget;
 };
@@ -316,13 +308,13 @@ public:
 	}
 
 	// Accessor functions
-	inline int GetDominanceZoneID() const
+	inline int GetZoneID() const
 	{
-		return m_iDominanceZoneID;
+		return m_iZoneID;
 	};
-	inline void SetDominanceZoneID(int iID)
+	inline void SetZoneID(int iID)
 	{
-		m_iDominanceZoneID = iID;
+		m_iZoneID = iID;
 	};
 	inline eDominanceTerritoryTypes GetTerritoryType() const
 	{
@@ -368,11 +360,13 @@ public:
 	};
 	inline int GetOverallFriendlyStrength() const
 	{
-		return m_iFriendlyMeleeStrength + m_iFriendlyNavalStrength + m_iFriendlyRangedStrength + m_iFriendlyNavalRangedStrength;
+		//siege units are very vulnerable to melee units, so give a bonus to melee
+		return (m_iFriendlyMeleeStrength*4)/3 + m_iFriendlyNavalStrength + m_iFriendlyRangedStrength + m_iFriendlyNavalRangedStrength;
 	};
 	inline int GetOverallEnemyStrength() const
 	{
-		return m_iEnemyMeleeStrength + m_iEnemyNavalStrength + m_iEnemyRangedStrength + m_iEnemyNavalRangedStrength;
+		//siege units are very vulnerable to melee units, so give a bonus to melee
+		return (m_iEnemyMeleeStrength*4)/3 + m_iEnemyNavalStrength + m_iEnemyRangedStrength + m_iEnemyNavalRangedStrength;
 	};
 	inline int GetFriendlyMeleeStrength() const
 	{
@@ -512,7 +506,6 @@ public:
 	{
 		m_bIsNavalInvasion = bIsNavalInvasion;
 	};
-	TacticalMoveZoneType GetZoneType() const;
 
 #if defined(MOD_BALANCE_CORE_MILITARY)
 	void Extend(CvPlot* pPlot);
@@ -522,10 +515,11 @@ public:
 	const std::vector<int>& GetNeighboringZones() const { return m_vNeighboringZones; }
 	void AddNeighboringZone(int iZoneID);
 	void ClearNeighboringZones() { m_vNeighboringZones.clear(); }
+	int GetBorderScore() const;
 #endif
 
 private:
-	int m_iDominanceZoneID;
+	int m_iZoneID;
 	eDominanceTerritoryTypes m_eTerritoryType;
 	eTacticalDominanceFlags m_eOverallDominanceFlag;
 	PlayerTypes m_eOwner;
@@ -568,51 +562,41 @@ public:
 	~CvTacticalAnalysisMap(void);
 
 	void Init(PlayerTypes ePlayer);
-	void Refresh();
+	void Refresh(bool force = false);
 	bool IsUpToDate();
-
-	void EstablishZoneNeighborhood();
-	int GetNumZones() const
-	{
-		return m_DominanceZones.size();
-	};
+	void Invalidate();
 
 	CvTacticalDominanceZone* GetZoneByIndex(int iIndex);
 	CvTacticalDominanceZone* GetZoneByCity(CvCity* pCity, bool bWater);
 	CvTacticalDominanceZone* GetZoneByID(int iID);
 	CvTacticalDominanceZone* GetZoneByPlot(CvPlot* pPlot);
 
-	CvTacticalAnalysisCell* GetCell(int iPlotIndex)
-	{
-		return (iPlotIndex>=0 && iPlotIndex<(int)m_pCells.size()) ? &m_pCells[iPlotIndex] : NULL;
-	}
-	int GetDominancePercentage() const
-	{
-		return m_iDominancePercentage;
-	}
 	bool IsInEnemyDominatedZone(CvPlot* pPlot);
+	CvTacticalAnalysisCell* GetCell(int iPlotIndex);
+	int GetNumZones();
 
 	// Routines to update the map
 	void ClearDynamicFlags();
 
-	// Range variable to keep dominance zones and tactical AI in sync
+	// quasi-const members
 	int GetTacticalRange() const {return m_iTacticalRange;}
+	int GetDominancePercentage() const { return m_iDominancePercentage; }
 
 #if defined(MOD_BALANCE_CORE_MILITARY_LOGGING)
 	void Dump();
 #endif
 
 protected:
-	void AddTemporaryZones();
 	bool PopulateCell(int iIndex, CvPlot* pPlot);
 	void AddToDominanceZones(int iIndex, CvTacticalAnalysisCell* pCell);
 	void CalculateMilitaryStrengths();
 	void PrioritizeZones();
 	void LogZones();
-	void BuildEnemyUnitList();
-	void MarkCellsNearEnemy();
+	void UpdateZoneIds();
 	CvTacticalDominanceZone* MergeWithExistingZone(CvTacticalDominanceZone* pNewZone);
 	eTacticalDominanceFlags ComputeDominance(CvTacticalDominanceZone* pZone);
+	CvTacticalDominanceZone* AddNewDominanceZone(CvTacticalDominanceZone& zone);
+	void EstablishZoneNeighborhood();
 
 	// Cached global define values
 	int m_iDominancePercentage;
@@ -620,12 +604,11 @@ protected:
 	int m_iTacticalRange;
 
 	PlayerTypes m_ePlayer;
-	std::vector<CvTacticalAnalysisCell> m_pCells;
+	std::vector<CvTacticalAnalysisCell> m_vCells;
 	int m_iTurnBuilt;
 
+	std::map<int, int> m_IdLookup;
 	std::vector<CvTacticalDominanceZone> m_DominanceZones;
-	std::vector<IDInfo> m_EnemyUnits;
-	std::vector<IDInfo> m_EnemyCities;
 
 	friend FDataStream& operator<<(FDataStream& saveTo, const CvTacticalAnalysisMap& readFrom);
 	friend FDataStream& operator>>(FDataStream& loadFrom, CvTacticalAnalysisMap& writeTo);

@@ -37,8 +37,9 @@ public:
 	void DoFoundCity();
 	void DoTurn();
 
+	int GetBonusPlotValue(CvPlot* pPlot, YieldTypes eYield);
 #if defined(MOD_BALANCE_CORE)
-	int GetPlotValue(CvPlot* pPlot, bool bUseAllowGrowthFlag, int iExcessFoodTimes100);
+	int GetPlotValue(CvPlot* pPlot, int iExcessFoodTimes100);
 #else
 	int GetPlotValue(CvPlot* pPlot, bool bUseAllowGrowthFlag);
 #endif
@@ -48,21 +49,21 @@ public:
 	void SetAutomated(bool bValue);
 
 	bool IsNoAutoAssignSpecialists() const;
-	void SetNoAutoAssignSpecialists(bool bValue);
+	void SetNoAutoAssignSpecialists(bool bValue, bool bReallocate = false);
 
 	bool IsAvoidGrowth();
 	bool IsForcedAvoidGrowth();
-	void SetForcedAvoidGrowth(bool bAvoidGrowth);
+	void SetForcedAvoidGrowth(bool bAvoidGrowth, bool bReallocate = false);
 	CityAIFocusTypes GetFocusType() const;
-	void SetFocusType(CityAIFocusTypes eFocus);
+	void SetFocusType(CityAIFocusTypes eFocus, bool bReallocate = false);
 
 	// Specialist AI
 	bool IsAIWantSpecialistRightNow();
-	BuildingTypes GetAIBestSpecialistBuilding(int& iSpecialistValue, std::map<SpecialistTypes, int>& specialistValueCache);
+	BuildingTypes GetAIBestSpecialistBuilding(int& iSpecialistValue, std::map<SpecialistTypes, int>& specialistValueCache, bool bLogging = false);
 #if defined(MOD_BALANCE_CORE)
 	BuildingTypes GetAIBestSpecialistCurrentlyInBuilding(int& iSpecialistValue, std::map<SpecialistTypes, int>& specialistValueCache);
 #endif
-	int GetSpecialistValue(SpecialistTypes eSpecialist);
+	int GetSpecialistValue(SpecialistTypes eSpecialist, int iExcessFoodTimes100);
 	bool IsBetterThanDefaultSpecialist(SpecialistTypes eSpecialist);
 
 	// Citizen Assignment
@@ -71,7 +72,7 @@ public:
 	int GetNumCitizensWorkingPlots() const;
 	void ChangeNumCitizensWorkingPlots(int iChange);
 
-	bool DoAddBestCitizenFromUnassigned(std::map<SpecialistTypes, int>& specialistValueCache);
+	bool DoAddBestCitizenFromUnassigned(std::map<SpecialistTypes, int>& specialistValueCache, bool bLogging = false);
 #if defined(MOD_BALANCE_CORE)
 	bool DoRemoveWorstCitizen(bool bRemoveForcedStatus = false, SpecialistTypes eDontChangeSpecialist = NO_SPECIALIST, int iCurrentCityPopulation = -1, bool bUpdateNow = true);
 #else
@@ -82,7 +83,7 @@ public:
 	bool IsBlockade();
 	void SetDirty(bool bValue);
 	bool IsDirty();
-	void DoReallocateCitizens(bool bForce = false);
+	void DoReallocateCitizens(bool bForce = false, bool bLogging = false);
 #else
 	void DoReallocateCitizens();
 #endif
@@ -90,7 +91,7 @@ public:
 	bool NeedReworkCitizens();
 #endif
 #if defined(MOD_BALANCE_CORE)
-	CvPlot* GetBestCityPlotWithValue(int& iValue, bool bWantBest, bool bWantWorked, bool bForced = false);
+	CvPlot* GetBestCityPlotWithValue(int& iValue, bool bWantBest, bool bWantWorked, bool bForced = false, bool Logging = false);
 #else
 	CvPlot* GetBestCityPlotWithValue(int& iValue, bool bWantBest, bool bWantWorked);
 #endif
@@ -125,7 +126,6 @@ public:
 	bool IsCanWork(CvPlot* pPlot) const;
 	bool IsAnyPlotBlockaded() const;
 
-	void DoVerifyWorkingPlot(CvPlot* pPlot);
 	void DoVerifyWorkingPlots();
 
 	const std::vector<int>& GetWorkedPlots() const { return m_vWorkedPlots; }
@@ -195,6 +195,8 @@ public:
 #else
 	void DoSpawnGreatPerson(UnitTypes eUnit, bool bIncrementCount, bool bCountAsProphet);
 #endif
+
+	YieldTypes GetFocusTypeYield(CityAIFocusTypes eFocus);
 
 private:
 

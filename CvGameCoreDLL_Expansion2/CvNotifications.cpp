@@ -426,6 +426,17 @@ int CvNotifications::Add(NotificationTypes eNotificationType, const char* strMes
 	newNotification.m_bDismissed = false;
 	newNotification.m_bWaitExtraTurn = false;
 
+#if defined(MOD_ACTIVE_DIPLOMACY)
+	// Hack to get human-human deals showing with the diplomacy icon with proper civ background - otherwise they have the question mark background.
+	// Deals from AI are coming through with the sending player ID in m_iGameDataIndex, but humans have it in iX (and m_iGameDataIndex is -1). I can't see iX myself where I need it in the Lua so I am hacking it across here.
+	// There is probably something else afoot but this seems to work for the minute and appears safe.
+	if (MOD_ACTIVE_DIPLOMACY && GC.getGame().isReallyNetworkMultiPlayer() && newNotification.m_eNotificationType == NOTIFICATION_PLAYER_DEAL_RECEIVED) {
+		if (newNotification.m_iGameDataIndex == -1) {
+			newNotification.m_iGameDataIndex = iX;
+		}
+	}
+#endif
+
 	// Is this notification being added during the player's auto-moves and will it expire at the end of the turn?
 	// If so, set a flag so the notification will stick around for an extra turn.
 	if (GET_PLAYER(m_ePlayer).isTurnActive() && GET_PLAYER(m_ePlayer).isAutoMoves() && IsNotificationTypeEndOfTurnExpired(eNotificationType))
@@ -1844,16 +1855,17 @@ bool CvNotifications::IsNotificationExpired(int iIndex)
 		CvGame& game = GC.getGame();
 
 #if defined(MOD_ACTIVE_DIPLOMACY)
-		if(GC.getGame().isReallyNetworkMultiPlayer() && MOD_ACTIVE_DIPLOMACY)
+		PlayerTypes eFrom = static_cast<PlayerTypes>(m_aNotifications[iIndex].m_iX);
+		if((!GET_PLAYER(m_ePlayer).isHuman() || !GET_PLAYER(eFrom).isHuman()) && GC.getGame().isReallyNetworkMultiPlayer() && MOD_ACTIVE_DIPLOMACY)
 		{
-			if (game.GetGameDeals().GetProposedMPDeal(m_ePlayer, (PlayerTypes)(m_aNotifications[iIndex].m_iX), true) == NULL)
+			if (game.GetGameDeals().GetProposedMPDeal(m_ePlayer, eFrom, true) == NULL)
 			{
 				return true;
 			}
 		}
 		else
 		{
-			if(!game.GetGameDeals().ProposedDealExists(m_ePlayer, (PlayerTypes)(m_aNotifications[iIndex].m_iX)))
+			if(!game.GetGameDeals().ProposedDealExists(m_ePlayer, eFrom))
 			{
 				return true;
 			}
@@ -1871,10 +1883,11 @@ bool CvNotifications::IsNotificationExpired(int iIndex)
 	{
 		CvGame& game = GC.getGame();
 #if defined(MOD_ACTIVE_DIPLOMACY)
-		if(GC.getGame().isReallyNetworkMultiPlayer() && MOD_ACTIVE_DIPLOMACY)
+		PlayerTypes eFrom = static_cast<PlayerTypes>(m_aNotifications[iIndex].m_iX);
+		// DN: Not understanding the rationale behind this code and it seems there is more to it but skipping it for human-human deals fixes not getting notifications for those deals and doesn't *seem* to break anything (although some code may be redundant now)
+		if((!GET_PLAYER(m_ePlayer).isHuman() || !GET_PLAYER(eFrom).isHuman()) && GC.getGame().isReallyNetworkMultiPlayer() && MOD_ACTIVE_DIPLOMACY)
 		{
-			// JdH =>
-			PlayerTypes eFrom = static_cast<PlayerTypes>(m_aNotifications[iIndex].m_iX);
+			// JdH =>			
 			if (!GET_PLAYER(m_ePlayer).GetDiplomacyRequests()->HasActiveRequestFrom(eFrom))
 			{
 				return true;
@@ -1891,7 +1904,7 @@ bool CvNotifications::IsNotificationExpired(int iIndex)
 		}
 		else
 		{
-			if(!game.GetGameDeals().ProposedDealExists((PlayerTypes)(m_aNotifications[iIndex].m_iX),  m_ePlayer))
+			if(!game.GetGameDeals().ProposedDealExists(eFrom,  m_ePlayer))
 			{
 				return true;
 			}

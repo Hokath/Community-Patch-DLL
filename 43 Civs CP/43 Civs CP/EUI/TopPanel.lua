@@ -184,9 +184,14 @@ local function ScanGP( player )
 						gpChange = gpChange + building.GreatPeopleRateChange
 					end
 				end
+				-- Vox Populi
+				gpChange = gpChange + city:GetExtraSpecialistPoints(specialist.ID);
 
 				local gpChangePlayerMod = player:GetGreatPeopleRateModifier()
 				local gpChangeCityMod = city:GetGreatPeopleRateModifier()
+				-- CBP
+				gpChangeCityMod = gpChangeCityMod + city:GetSpecialistCityModifier(specialist.ID);
+				--END
 				local gpChangePolicyMod = 0
 				local gpChangeWorldCongressMod = 0
 				local gpChangeGoldenAgeMod = 0
@@ -233,18 +238,41 @@ local function ScanGP( player )
 						if worldCongress then
 							gpChangeWorldCongressMod = gpChangeWorldCongressMod + worldCongress:GetScienceyGreatPersonRateModifier()
 						end
+--CBP
+						if isGoldenAge and player:GetGoldenAgeGreatScientistRateModifier() > 0 then
+							gpChangeGoldenAgeMod = gpChangeGoldenAgeMod + player:GetGoldenAgeGreatScientistRateModifier()
+						end
+-- END
 					elseif specialist.GreatPeopleUnitClass == "UNITCLASS_MERCHANT" then
 						gpChangePlayerMod = gpChangePlayerMod + player:GetGreatMerchantRateModifier()
 						gpChangePolicyMod = gpChangePolicyMod + player:GetPolicyGreatMerchantRateModifier()
 						if worldCongress then
 							gpChangeWorldCongressMod = gpChangeWorldCongressMod + worldCongress:GetScienceyGreatPersonRateModifier()
 						end
+--CBP
+						if isGoldenAge and player:GetGoldenAgeGreatMerchantRateModifier() > 0 then
+							gpChangeGoldenAgeMod = gpChangeGoldenAgeMod + player:GetGoldenAgeGreatMerchantRateModifier()
+						end
+-- END
 					elseif specialist.GreatPeopleUnitClass == "UNITCLASS_ENGINEER" then
 						gpChangePlayerMod = gpChangePlayerMod + player:GetGreatEngineerRateModifier()
 						gpChangePolicyMod = gpChangePolicyMod + player:GetPolicyGreatEngineerRateModifier()
 						if worldCongress then
 							gpChangeWorldCongressMod = gpChangeWorldCongressMod + worldCongress:GetScienceyGreatPersonRateModifier()
 						end
+--CBP
+						if isGoldenAge and player:GetGoldenAgeGreatEngineerRateModifier() > 0 then
+							gpChangeGoldenAgeMod = gpChangeGoldenAgeMod + player:GetGoldenAgeGreatEngineerRateModifier()
+						end
+-- END
+					-- Compatibility with Gazebo's City-State Diplomacy Mod (CSD) for Brave New World
+					elseif player.GetGreatDiplomatRateModifier and specialist.GreatPeopleUnitClass == "UNITCLASS_GREAT_DIPLOMAT" then
+						gpChangePlayerMod = gpChangePlayerMod + player:GetGreatDiplomatRateModifier()
+--CBP
+						if isGoldenAge and player:GetGoldenAgeGreatDiplomatRateModifier() > 0 then
+							gpChangeGoldenAgeMod = gpChangeGoldenAgeMod + player:GetGoldenAgeGreatDiplomatRateModifier()
+						end
+-- END
 					end
 
 					-- Player mod actually includes policy mod and World Congress mod, so separate them for tooltip
@@ -257,7 +285,8 @@ local function ScanGP( player )
 
 				end
 
-				gpChange = gpChange * (1 + (gpChangePlayerMod + gpChangePolicyMod + gpChangeWorldCongressMod + gpChangeCityMod + gpChangeGoldenAgeMod) / 100)
+				local gpChangeMod = gpChangePlayerMod + gpChangePolicyMod + gpChangeWorldCongressMod + gpChangeCityMod + gpChangeGoldenAgeMod
+				gpChange = (gpChangeMod / 100 + 1) * gpChange
 
 				if gpChange > 0 then
 					local gpTurns = math_ceil( (gpThreshold - gpProgress) / gpChange )
@@ -537,7 +566,7 @@ local function UpdateTopPanelNow()
 		-- Update Military
 		-----------------------------
 		local iUnitsSupplied = g_activePlayer:GetNumUnitsSupplied();
-		local iUnitsTotal = g_activePlayer:GetNumUnitsNoCivilian();
+		local iUnitsTotal = g_activePlayer:GetNumUnitsToSupply();
 
 		if(iUnitsTotal > iUnitsSupplied)then
 			Controls.UnitSupplyString:SetText( S("  [ICON_WAR] [COLOR_NEGATIVE_TEXT](%i/%i)[ENDCOLOR]", iUnitsTotal, iUnitsSupplied ) )
@@ -572,7 +601,7 @@ local function UpdateTopPanelNow()
 		-----------------------------
 		if bnw_mode then
 			Controls.InternationalTradeRoutes:SetText( S( "%i/%i[ICON_INTERNATIONAL_TRADE]", g_activePlayer:GetNumInternationalTradeRoutesUsed(), g_activePlayer:GetNumInternationalTradeRoutesAvailable() ) )
-			Controls.TourismString:SetText( S( "%+i[ICON_TOURISM]", g_activePlayer:GetTourism() ) )
+			Controls.TourismString:SetText( S( "%+i[ICON_TOURISM]", g_activePlayer:GetTourism() / 100 ) )
 		end
 	else
 		-----------------------------
@@ -1278,6 +1307,9 @@ if civ5_mode then
 --CBP
 		--local unhappinessFromPop = g_activePlayer:GetUnhappinessFromCityPopulation() - unhappinessFromSpecialists - unhappinessFromPupetCities
 			local unhappinessFromPop = (g_activePlayer:GetUnhappinessFromCityPopulation() - unhappinessFromPupetCities)
+			if(unhappinessFromPop < 0)then
+				unhappinessFromPop = 0
+			end
 --END	
 
 			tips:insert( "[COLOR:255:150:150:255]" .. L( "TXT_KEY_TP_UNHAPPINESS_TOTAL", g_activePlayer:GetUnhappiness() ) )
@@ -1354,12 +1386,11 @@ if civ5_mode then
 			tips:insert( "[ENDCOLOR]" )
 -- COMMUNITY PATCH CHANGE
 			-- Happiness/Population calculation.
-			local iPopulation = g_activePlayer:GetCurrentTotalPop()
-			local iPopNeeded = g_activePlayer:GetPopNeededForLux()
-			local iGetLuxuryBonus = g_activePlayer:GetLuxuryBonusPlusOne(0);
-			local iGetLuxuryBonusPlusOne = (100 + g_activePlayer:GetLuxuryBonusPlusOne(1));
-			if(iGetLuxuryBonusPlusOne > 0) then
-				tips:insert( L("TXT_KEY_TP_HAPPINESS_THRESHOLD_VALUE", iPopNeeded, iPopulation, Locale.ToNumber( ((iGetLuxuryBonusPlusOne - iGetLuxuryBonus) / 100), "#.##" )))
+			local iPopulation = g_activePlayer:GetCurrentTotalPop();
+			local iPopNeeded = g_activePlayer:GetPopNeededForLux();
+			local iGetLuxuryBonus = g_activePlayer:GetBaseLuxuryHappiness();
+			if(iGetLuxuryBonus > 0) then
+				tips:insert( L("TXT_KEY_TP_HAPPINESS_THRESHOLD_VALUE", iPopNeeded, iPopulation, iGetLuxuryBonus))
 				tips:insert("[NEWLINE][NEWLINE]")
 			end
 -- END
@@ -2139,7 +2170,7 @@ if civ5_mode and gk_mode then
 
 		local iUnitSupplyMod = pPlayer:GetUnitProductionMaintenanceMod();
 		local iUnitsSupplied = pPlayer:GetNumUnitsSupplied();
-		local iUnitsTotal = pPlayer:GetNumUnitsNoCivilian();
+		local iUnitsTotal = pPlayer:GetNumUnitsToSupply();
 		local iPercentPerPop = pPlayer:GetNumUnitsSuppliedByPopulation();
 		local iPerCity = pPlayer:GetNumUnitsSuppliedByCities();
 		local iPerHandicap = pPlayer:GetNumUnitsSuppliedByHandicap();

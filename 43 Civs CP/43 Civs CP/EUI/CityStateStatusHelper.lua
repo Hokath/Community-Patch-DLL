@@ -38,6 +38,8 @@ local civ5_mode = type( MouseOverStrategicViewResource ) == "function"
 
 local newLine = civ5_mode and "[NEWLINE]" or "/n"
 
+local iEmbassy = GameInfoTypes.IMPROVEMENT_EMBASSY
+
 --[[
 local GetCityStateStatusRow = GetCityStateStatusRow
 local GetCityStateStatusType = GetCityStateStatusType
@@ -433,7 +435,11 @@ function GetCityStateStatusToolTip( majorPlayerID, minorPlayerID, isFullInfo )
 		-- Status
 		tip = tip .. " " .. GetCityStateStatusText( majorPlayerID, minorPlayerID )
 		table_insert( tips, tip )
-
+		if minorPlayer:GetImprovementCount(iEmbassy) > 0 then
+			table_insert( tips, L"TXT_KEY_CSTATE_CANNOT_EMBASSY")
+		else
+			table_insert( tips, L"TXT_KEY_CSTATE_CAN_EMBASSY")
+		end
 		-- Influence change
 		if gk_mode then
 			local influenceAnchor = minorPlayer:GetMinorCivFriendshipAnchorWithMajor(majorPlayerID)
@@ -589,6 +595,26 @@ function GetAllyToolTip( majorPlayerID, minorPlayerID )
 
 	return toolTip
 end
+
+
+-- Vox Populi contender info
+function GetContenderInfo(majorPlayerID, minorPlayerID)
+	local pMinor = Players[ minorPlayerID ]
+	if not pMinor then return "error" end
+	
+	local iContInfluence = 0
+	local eAllyID = pMinor:GetAlly()
+	
+	for ePlayer = 0, GameDefines.MAX_MAJOR_CIVS - 1 do
+		if ePlayer ~= eAllyID then
+			local iInfluence = pMinor:GetMinorCivFriendshipWithMajor(ePlayer)
+			if iInfluence > iContInfluence then iContInfluence = iInfluence end
+		end
+	end
+	
+	return tostring(iContInfluence).."[ICON_INFLUENCE]"
+end
+
 
 local isMinorCivQuestForPlayer
 if gk_mode then

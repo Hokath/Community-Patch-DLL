@@ -130,7 +130,7 @@ public:
 	void updateLayout(bool bDebug);
 	void updateSight(bool bIncrement);
 	void updateCenterUnit();
-	void updateWorkingCity(CvPlot* pPlot = 0, int iRange = 0);
+	void updateOwningCity(CvPlot* pPlot = 0, int iRange = 0);
 	void updateYield();
 	void updateAdjacency();
 
@@ -290,7 +290,6 @@ public:
 	void recalculateLandmasses();
 	void calculateLandmasses();
 
-	int calculateInfluenceDistance(CvPlot* pSource, CvPlot* pDest, int iMaxRange);
 	/// this is the default "continent stamper" a given lua map script can use it or not
 	void DefaultContinentStamper();
 
@@ -315,6 +314,12 @@ public:
 	void ChangeAIMapHint(int iMapHint);
 	int GetAIMapHint();
 	// End Natural Wonders stuff
+
+	void ClearPlotsAtRange(const CvPlot* pPlot);
+	std::vector<CvPlot*> GetPlotsAtRange(const CvPlot* pPlot, int iRange, bool bFromPlot, bool bWithLOS);
+
+	int GetPopupCount(int iPlotIndex);
+	void IncreasePopupCount(int iPlotIndex);
 
 #if defined(MOD_UNIT_KILL_STATS)
 	int GetUnitKillCount(PlayerTypes ePlayer, int iPlotIndex);
@@ -359,6 +364,7 @@ protected:
 	char*  m_pRevealedOwner;
 #if defined(MOD_BALANCE_CORE)
 	bool*  m_pIsImpassable;
+	bool* m_pIsStrategic;
 #endif
 	bool* m_pRevealed;
 	char* m_pRevealedImprovementType;
@@ -368,11 +374,24 @@ protected:
 	TContainer<CvArea> m_areas;
 	TContainer<CvLandmass> m_landmasses;
 
+	//store non-zero values outside of CvPlot because it will be zero almost all the time
+	typedef map<int, vector<unsigned char>> PlotInvisibleVisibilityLookup;
+	map<TeamTypes, PlotInvisibleVisibilityLookup> m_invisibleVisibilityCount;
+
 	GUID m_guid;
 
 	CvPlotManager	m_kPlotManager;
 
 	DeferredFogPlots m_vDeferredFogPlots; // don't serialize me
+
+	//caching some semi-static data, not serialized
+	typedef map<int, vector<CvPlot*>> PlotNeighborLookup;
+	PlotNeighborLookup m_vPlotsWithLineOfSightFromPlot2;
+	PlotNeighborLookup m_vPlotsWithLineOfSightFromPlot3;
+	PlotNeighborLookup m_vPlotsWithLineOfSightToPlot2;
+	PlotNeighborLookup m_vPlotsWithLineOfSightToPlot3;
+
+	map<int, int> m_plotPopupCount; //not serialized
 
 #if defined(MOD_UNIT_KILL_STATS)
 	// player -> plot index -> number of owned units killed

@@ -165,7 +165,7 @@ function UpdateData()
 			-- Update Tourism
 			-----------------------------
 			local strTourism;
-			strTourism = string.format("[ICON_TOURISM] +%i", pPlayer:GetTourism());
+			strTourism = string.format("[ICON_TOURISM] +%i", pPlayer:GetTourism() / 100);
 			Controls.TourismString:SetText(strTourism);
 			
 			-----------------------------
@@ -181,7 +181,7 @@ function UpdateData()
 			Controls.FaithString:SetText(strFaithStr);
 
 			local iUnitsSupplied = pPlayer:GetNumUnitsSupplied();
-			local iUnitsTotal = pPlayer:GetNumUnitsNoCivilian();
+			local iUnitsTotal = pPlayer:GetNumUnitsToSupply();
 
 			local strSupplyStr = "";
 			if(iUnitsTotal > iUnitsSupplied) then
@@ -913,10 +913,9 @@ function HappinessTipHandler( control )
 		-- Happiness/Population calculation.
 		local iPopulation = pPlayer:GetCurrentTotalPop();
 		local iPopNeeded = pPlayer:GetPopNeededForLux();
-		local iGetLuxuryBonus = pPlayer:GetLuxuryBonusPlusOne(0);
-		local iGetLuxuryBonusPlusOne = (100 + pPlayer:GetLuxuryBonusPlusOne(1));
-		if(iGetLuxuryBonusPlusOne > 0) then
-			strText = strText .. "[NEWLINE][NEWLINE][ENDCOLOR]" .. Locale.ConvertTextKey("TXT_KEY_TP_HAPPINESS_THRESHOLD_VALUE", iPopNeeded, iPopulation, Locale.ToNumber( ((iGetLuxuryBonusPlusOne - iGetLuxuryBonus) / 100), "#.##" ));
+		local iGetLuxuryBonus = pPlayer:GetBaseLuxuryHappiness();
+		if(iGetLuxuryBonus > 0) then
+			strText = strText .. "[NEWLINE][NEWLINE][ENDCOLOR]" .. Locale.ConvertTextKey("TXT_KEY_TP_HAPPINESS_THRESHOLD_VALUE", iPopNeeded, iPopulation, iGetLuxuryBonus);
 		end
 -- END
 -- C4DF
@@ -1026,7 +1025,7 @@ function HappinessTipHandler( control )
 			strText = strText .. "  [ICON_BULLET]" .. Locale.ConvertTextKey("TXT_KEY_TP_UNHAPPINESS_CAPTURED_CITY_COUNT", iUnhappinessFromCapturedCityCount);
 		end
 -- COMMUNITY PATCH CHANGES BELOW
-		if (iUnhappinessFromPop ~= "0") then
+		if (iUnhappinessFromPop > "0") then
 			strText = strText .. "[NEWLINE]";
 			strText = strText .. "  [ICON_BULLET]" .. Locale.ConvertTextKey("TXT_KEY_TP_UNHAPPINESS_POPULATION", iUnhappinessFromPop);
 		end
@@ -1569,7 +1568,7 @@ function UnitSupplyHandler(control)
 	local iUnitSupplyMod = pPlayer:GetUnitProductionMaintenanceMod();
 	if (iUnitSupplyMod ~= 0) then
 		local iUnitsSupplied = pPlayer:GetNumUnitsSupplied();
-		local iUnitsTotal = pPlayer:GetNumUnitsNoCivilian();
+		local iUnitsTotal = pPlayer:GetNumUnitsToSupply();
 		local iPercentPerPop = pPlayer:GetNumUnitsSuppliedByPopulation();
 		local iPerCity = pPlayer:GetNumUnitsSuppliedByCities();
 		local iPerHandicap = pPlayer:GetNumUnitsSuppliedByHandicap();
@@ -1587,7 +1586,7 @@ function UnitSupplyHandler(control)
 		strUnitSupplyToolTip = strUnitSupplyToolTip .. "[NEWLINE][NEWLINE]" .. strUnitSupplyToolUnderTip;
 	else
 		local iUnitsSupplied = pPlayer:GetNumUnitsSupplied();
-		local iUnitsTotal = pPlayer:GetNumUnitsNoCivilian();
+		local iUnitsTotal = pPlayer:GetNumUnitsToSupply();
 		local iPercentPerPop = pPlayer:GetNumUnitsSuppliedByPopulation();
 		local iPerCity = pPlayer:GetNumUnitsSuppliedByCities();
 		local iPerHandicap = pPlayer:GetNumUnitsSuppliedByHandicap();

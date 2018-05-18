@@ -54,7 +54,7 @@
 			<Text>Historic Events</Text>
 		</Row>
 		<Row Tag="TXT_KEY_HISTORIC_EVENT_BODY">
-			<Text>Historic Events represent monumental achievements that may occur during a game. These events require planning or user interaction, and are thus a dynamic part of acquiring cultural influence over other civilizations. When one of the following Historic Events is completed, receive a [ICON_TOURISM] Tourism boost with all known Civs based on your recent [ICON_CULTURE] Culture and [ICON_TOURISM] Tourism output:[NEWLINE][NEWLINE][ICON_BULLET] Earn a [ICON_GREAT_PEOPLE] Great Person[NEWLINE][ICON_BULLET] Build a [ICON_GOLDEN_AGE] World Wonder[NEWLINE][ICON_BULLET] Win a [ICON_WAR] War[NEWLINE][ICON_BULLET] Enter a new [ICON_RESEARCH] Era[NEWLINE][ICON_BULLET] Start a [ICON_GOLDEN_AGE] Golden Age ('Heritage' Policy only)[NEWLINE][ICON_BULLET] Complete an [ICON_RES_ARTIFACTS] Archaeological Dig ('Heritage' Policy only)[NEWLINE][ICON_BULLET] Trade with a [ICON_CITY_STATE] City-State ('Cultural Diplomacy' Policy Only)[NEWLINE][NEWLINE]The amount of Tourism received by these events is based on your culture and tourism per turn over the past few turns. The value of this is also adjusted based on the number of cities in your empire and your tourism modifier with the target civ. Finally, the amount of tourism you receive is also modified by a few social policies and ideological tenets, as well as leader traits, buildings, and the number of cities in your empire.</Text>
+			<Text>Historic Events represent monumental achievements that may occur during a game. These events require planning or user interaction, and are thus a dynamic part of acquiring cultural influence over other civilizations. When one of the following Historic Events is completed, receive a [ICON_TOURISM] Tourism boost with all known Civs based on your recent [ICON_CULTURE] Culture and [ICON_TOURISM] Tourism output:[NEWLINE][NEWLINE][ICON_BULLET] Earn a [ICON_GREAT_PEOPLE] Great Person[NEWLINE][ICON_BULLET] Build a [ICON_GOLDEN_AGE] World Wonder[NEWLINE][ICON_BULLET] Win a [ICON_WAR] War (Warscore 25+)[NEWLINE][ICON_BULLET] Enter a new [ICON_RESEARCH] Era[NEWLINE][ICON_BULLET] Start a [ICON_GOLDEN_AGE] Golden Age ('Heritage' Policy only)[NEWLINE][ICON_BULLET] Complete an [ICON_RES_ARTIFACTS] Archaeological Dig ('Heritage' Policy only)[NEWLINE][ICON_BULLET] Trade with a [ICON_CITY_STATE] City-State ('Cultural Diplomacy' Policy Only)[NEWLINE][NEWLINE]The amount of Tourism received by these events is based on your culture and tourism per turn over the past few turns. The value of this is also adjusted based on the number of cities in your empire and your tourism modifier with the target civ. Finally, the amount of tourism you receive is also modified by a few social policies and ideological tenets, as well as leader traits, buildings, and the number of cities in your empire.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_HISTORIC_EVENT_QUEST">
 			<Text>What is a Historic Event?</Text>
@@ -216,7 +216,7 @@
 		</Row>
 
 		<Row Tag="TXT_KEY_NOTIFICATION_CITY_FREE_RESOURCE">
-			<Text>Your {1_UnitType} journeyed to a far-off land and discovered [COLOR_POSITIVE_TEXT]{2_ResourceNames}[ENDCOLOR]! Two copies of this Resource were given to you in honor of your patronage.</Text>
+			<Text>Your {1_UnitType} journeyed to a far-off land and discovered [COLOR_POSITIVE_TEXT]{2_ResourceNames}[ENDCOLOR]! [COLOR_POSITIVE_TEXT]{3_Num}[ENDCOLOR] copies of this Resource were given to you in honor of your patronage.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_CITY_FREE_RESOURCE_SUMMARY">
 			<Text>Voyage of your {1_UnitType} completed!</Text>
@@ -294,12 +294,21 @@
 		</Row>
 
 		<Row Tag="TXT_KEY_WAR_WEARINESS_SUPPLY_TT">
-			<Text>Reduced to due your current wars</Text>
+			<Text>Reduced due to your current wars</Text>
 		</Row>
 
 		<Row Tag="TXT_KEY_WAR_WEARINESS_SUPPLY">
 			<Text>War Weariness</Text>
 		</Row>
+
+		<Row Tag="TXT_KEY_TECH_SUPPLY_TT">
+			<Text>Reduced from number of known Techs</Text>
+		</Row>
+
+		<Row Tag="TXT_KEY_TECH_SUPPLY">
+			<Text>Tech Reduction</Text>
+		</Row>
+		
 
 		<Row Tag="TXT_KEY_UNIT_SUPPLY_REMAINING_TOOLTIP">
 			<Text>Number of Military Units: {2_Num}[NEWLINE]Current Military Supply: {1_Num}[NEWLINE][COLOR_NEGATIVE_TEXT]War Weariness Supply Cap Reduction: {6_Num}%.[ENDCOLOR][NEWLINE][NEWLINE]Military Supply Base Values:[NEWLINE]  [ICON_BULLET]+{4_Num} from owned [ICON_CITY_STATE] Cities[NEWLINE]  [ICON_BULLET]+{3_Num} from total [ICON_CITIZEN] Population[NEWLINE]  [ICON_BULLET]+{5_Num} from [ICON_CHECKBOX] Handicap[NEWLINE]  [NEWLINE][NEWLINE]Military Supply Reductions:[NEWLINE]   [ICON_BULLET] -{8_Num} from [ICON_RESEARCH] Tech Level[NEWLINE]  [ICON_BULLET] -{7_Num} from [ICON_HAPPINESS_3] War Weariness[NEWLINE][NEWLINE]Military Unit [ICON_PRODUCTION]/[ICON_GOLD] Costs increased by {6_Num}% due to [ICON_HAPPINESS_3] War Weariness.[NEWLINE]</Text>
@@ -310,6 +319,10 @@
 		</Row>
 		<Row Tag="TXT_KEY_UNIT_EXPENDED_SUPPLY_S">
 			<Text>Military Unit Supply Cap Increased!</Text>
+		</Row>
+
+		<Row Tag="TXT_KEY_MO_SORT_LEVEL">
+			<Text>Sort By Unit Level</Text>
 		</Row>
 
 		<!-- Tooltip for Defensive Pacts -->
@@ -337,7 +350,11 @@
 			<Text>Gold bonus from [ICON_INFLUENCE] Influence with {1_CityName}: {2_Num}</Text>
 		</Row>
 
-		
+		<Row Tag="TXT_KEY_TRO_DISTANCE_VALUE">
+			<Text>- Distance: {1_Num} </Text>
+		</Row>
+
+
 		<Row Tag="TXT_KEY_CHOOSE_INTERNATIONAL_TRADE_ROUTE_SORT_MAX_CULTURE">
 			<Text>Highest Culture</Text>
 		</Row>
@@ -414,7 +431,7 @@
 		</Row>
 		<!-- Tooltip for Top Panel Happiness -->
 		<Row Tag ="TXT_KEY_TP_HAPPINESS_RESOURCE_POP_BONUS">
-			<Text>{1_Happiness} from Luxuries (based on Population)</Text>
+			<Text>{1_Happiness} from Luxuries (Bonus)</Text>
 		</Row>
 
 		<!-- Tooltips for EU Panel -->
@@ -473,6 +490,13 @@
 			<Text>{1_Num}[ENDCOLOR] [ICON_GREAT_ADMIRAL] Great Admiral Points</Text>
 		</Row>
 
+		<Row Tag="TXT_KEY_UPANEL_REPAIR_CHARGES">
+			<Text>Fleet Repair Charges</Text>
+		</Row>
+		<Row Tag="TXT_KEY_UPANEL_REPAIR_CHARGES_TT">
+			<Text>The number of times you can use the Fleet Repair ability. At zero, the unit is consumed.</Text>
+		</Row>
+		
 		<!-- Assyria UA Text -->
 		<Row Tag ="TXT_KEY_SCIENCE_BOOST_CONQUEST">
 			<Text>Your soldiers found information worth {1_Num} [ICON_RESEARCH] Science during the conquest of {2_Name}!</Text>
@@ -585,6 +609,11 @@
 		<Row Tag="TXT_KEY_POP_CSTATE_BULLY_VARIABLE_CBP">
 			<Text>If this City-State is more [COLOR_POSITIVE_TEXT]afraid[ENDCOLOR] of you than they are [COLOR_WARNING_TEXT]resilient[ENDCOLOR], you can take exact heavy tribute from them. Doing so will net you [ICON_CULTURE] Culture, [ICON_RESEARCH] Science, [ICON_PRODUCTION] Production, [ICON_PEACE] Faith, or [ICON_FOOD] Food, depending on the City-State being targeted.[NEWLINE][NEWLINE]The amount you can exact in tribute is based on Game Speed and the Yield output of your Capital. Local Yields, like [ICON_FOOD] Food or [ICON_PRODUCTION] Production, will be delivered to your Capital.[NEWLINE][NEWLINE]{1_FearLevel}{2_FactorDetails}</Text>
 		</Row>
+		
+		<!-- City-State Diplo Popup -->
+		<Row Tag="TXT_KEY_POP_CSTATE_LABEL_CONTENDER">
+			<Text>Contender:</Text>
+		</Row>
 
 		<!-- Tech Tree-->
 		<Row Tag="TXT_KEY_SPECIALIST_YIELD_CHANGE">
@@ -673,6 +702,12 @@
 		<Row Tag="TXT_KEY_YIELD_FROM_GOLDEN_AGE">
 			<Text>+{1_Num}% {2_IconString} from [ICON_GOLDEN_AGE] Golden Age</Text>
 		</Row>
+		<Row Tag="TXT_KEY_YIELD_FROM_PROCESS">
+			<Text>{1_Num} {2_IconString} from [ICON_SWAP] Process</Text>
+		</Row>
+		<Row Tag="TXT_KEY_YIELD_FROM_TRADE_ROUTES">
+			<Text>{1_Num:number "#.##"} {2_IconString} from [ICON_INTERNATIONAL_TRADE] Trade Routes</Text>
+		</Row>
 
 		<!-- Civilopedia -->
 		<Row Tag="TXT_KEY_PEDIA_LEADS_TO_BUILDING_NAME">
@@ -681,7 +716,53 @@
 		<Row Tag="TXT_KEY_PEDIA_LEADS_TO_BLDG_LABEL">
 			<Text>Leads to Buildings:</Text>
 		</Row>
+		<Row Tag="TXT_KEY_PEDIA_TOURISM_LABEL">
+			<Text>Tourism:</Text>
+		</Row>
 
+		<!-- Civilopedia more categories for Unit Promotions -->
+        <Row Tag="TXT_KEY_PROMOTIONS_PEDIA_MELEE">
+            <Text>Melee Promotions</Text>
+        </Row>
+        <Row Tag="TXT_KEY_PROMOTIONS_PEDIA_RANGED">
+            <Text>Ranged Promotions</Text>
+        </Row>
+        <Row Tag="TXT_KEY_PROMOTIONS_PEDIA_NAVAL">
+            <Text>Naval Promotions</Text>
+        </Row>
+        <Row Tag="TXT_KEY_PROMOTIONS_PEDIA_HEAL">
+            <Text>Healing Promotions</Text>
+        </Row>
+        <Row Tag="TXT_KEY_PROMOTIONS_PEDIA_SCOUTING">
+            <Text>Scouting Promotions</Text>
+        </Row>
+        <Row Tag="TXT_KEY_PROMOTIONS_PEDIA_AIR">
+            <Text>Air Promotions</Text>
+        </Row>
+        <Row Tag="TXT_KEY_PROMOTIONS_PEDIA_SHARED">
+            <Text>Shared Promotions</Text>
+        </Row>
+        <Row Tag="TXT_KEY_PROMOTIONS_PEDIA_ATTRIBUTES">
+            <Text>Unit Attributes</Text>
+        </Row>
+        <Row Tag="TXT_KEY_PROMOTIONS_PEDIA_SIEGE">
+            <Text>Siege Promotions</Text>
+        </Row>
+        <Row Tag="TXT_KEY_PROMOTIONS_PEDIA_DIPLO">
+            <Text>Diplomacy Promotions</Text>
+        </Row>
+        <Row Tag="TXT_KEY_PROMOTIONS_PEDIA_CIVILIAN">
+            <Text>Civilian Promotions</Text>
+        </Row>
+        <Row Tag="TXT_KEY_PROMOTIONS_PEDIA_CARSUB">
+            <Text>Carriers and Submarines</Text>
+        </Row>
+		<Row Tag="TXT_KEY_PROMOTIONS_PEDIA_MOUNTED">
+			<Text>Mounted and Armored</Text>
+		</Row>
+        <Row Tag="TXT_KEY_PROMOTIONS_PEDIA_BARBARIAN">
+            <Text>Barbarian Promotions</Text>
+        </Row>
 
 		<!-- New Musician Text -->
 		<Row Tag="TXT_KEY_NOTIFICATION_GREAT_MUSICIAN_FAMILIAR_TOUR">
@@ -759,19 +840,19 @@
 		</Row>
 
 		<Row Tag="TXT_KEY_CIV5_IMPROVEMENTS_LUMBERMILL_JUNGLE">
-			<Text>Lumbermill (Jungle)</Text>
+			<Text>Logging Camp</Text>
 		</Row>
 		<Row Tag="TXT_KEY_CIV5_IMPROVEMENTS_LUMBERMILL_TEXT_JUNGLE">
-			<Text>A lumbermill (Jungle) allows you to improve the production output of jungle hexes. Unlike the regular Lumbermill, the Lumbermill (Jungle) is available later.</Text>
+			<Text>A Logging Camp allows you to improve the production output of Jungle hexes.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_BUILD_LUMBERMILL_JUNGLE">
-			<Text>Construct a [LINK=IMPROVEMENT_LUMBERMILL]Lumber Mill (Jungle)[\LINK]</Text>
+			<Text>Construct a [LINK=IMPROVEMENT_LUMBERMILL]Logging Camp[\LINK]</Text>
 		</Row>
 		<Row Tag="TXT_KEY_BUILD_LUMBERMILL_REC_JUNGLE">
 			<Text>It will increase the amount of [ICON_PRODUCTION] Production provided by this tile, while keeping the Jungle intact.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_IMPROVEMENT_LUMBERMILL_JUNGLE">
-			<Text>Lumber Mill (Jungle)</Text>
+			<Text>Logging Camp</Text>
 		</Row>
 
 		<Row Tag="TXT_KEY_SCIENCE_FROM_RELIGION">
@@ -914,6 +995,9 @@
 		<Row Tag="TXT_KEY_OCCUPATION_UNHAPPINESS">
 			<Text>[ICON_BULLET] [COLOR_NEGATIVE_TEXT]{1_Num}[ENDCOLOR] from [ICON_OCCUPIED] Occupation.</Text>
 		</Row>
+		<Row Tag="TXT_KEY_PUPPET_UNHAPPINESS">
+			<Text>[ICON_BULLET] [COLOR_NEGATIVE_TEXT]{1_Num}[ENDCOLOR] from being a [ICON_PUPPET] Puppet.</Text>
+		</Row>
 
 		<!-- Surplus Threshold -->
 		<Row Tag="TXT_KEY_CULTURE_UNHAPPINESS_SURPLUS">
@@ -929,6 +1013,9 @@
 			<Text>[ICON_BULLET] [COLOR_POSITIVE_TEXT]{1_Num}[ENDCOLOR] above [ICON_GOLD] Need.</Text>
 		</Row>
 
+		<Row Tag="TXT_KEY_EO_CITY_PUPPET">
+			<Text>[COLOR_NEGATIVE_TEXT]({1_Num})[ENDCOLOR] [ICON_CITIZEN]: "We want [ICON_PUPPET] Equal Rights!"</Text>
+		</Row>
 		<Row Tag="TXT_KEY_EO_CITY_OCCUPATION">
 			<Text>[COLOR_NEGATIVE_TEXT]({1_Num})[ENDCOLOR] [ICON_CITIZEN]: "Fight the [ICON_OCCUPIED] Oppressors!"</Text>
 		</Row>
@@ -962,8 +1049,17 @@
 
 		<!-- Luxury Tooltip -->
 		<Row Tag="TXT_KEY_TP_HAPPINESS_THRESHOLD_VALUE">
-			<Text>Based on your current [ICON_CITIZEN] Population ([COLOR_POSITIVE_TEXT]{2_Num}[ENDCOLOR]), acquiring a new Luxury Resource will increase your [ICON_HAPPINESS_1] Happiness by [COLOR_POSITIVE_TEXT]{3_Num}[ENDCOLOR]. To increase the [ICON_HAPPINESS_1] Happiness you gain from all owned Luxuries, raise your total [ICON_CITIZEN] Population to [COLOR_POSITIVE_TEXT]{1_Num}[ENDCOLOR].</Text>
+			<Text>To increase Bonus [ICON_HAPPINESS_1] Happiness from Luxuries (currently {3_Num}), raise your [ICON_CITIZEN] Population to [COLOR_POSITIVE_TEXT]{1_Num}[ENDCOLOR] (currently {2_Num}). The bonus diminishes with the number of owned cities, whereas each new goal scales based on your total Population.</Text>
 		</Row>
+
+		<Row Tag="TXT_KEY_LUXURY_BONUS_HAPPINESS">
+			<Text>Your Luxury Bonus rank is now {2_Num}. Increase your Population to {1_Num} to increase this rank further.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_LUXURY_BONUS_HAPPINESS_S">
+			<Text>Luxury Bonus Happiness Increased!</Text>
+		</Row>
+
+		
 
 		<Row Tag="TXT_KEY_EO_CITY_CONNECTED">
 			<Text>[COLOR_POSITIVE_TEXT]Connected[ENDCOLOR]</Text>
@@ -1165,6 +1261,37 @@
 		</Row>
 		<Row Tag="TXT_KEY_PRODUCTION_AIR_STRENGTH">
 			<Text>[ICON_AIRSTRIKE_DEFENSE] Air Strike Defense</Text>
+		</Row>
+
+		<Row Tag="TXT_KEY_CSTATE_CANNOT_EMBASSY">
+			<Text>[COLOR_NEGATIVE_TEXT][ICON_CITY_STATE] Embassy already Established.[ENDCOLOR]</Text>
+		</Row>
+		<Row Tag="TXT_KEY_CSTATE_CAN_EMBASSY">
+			<Text>[COLOR_POSITIVE_TEXT][ICON_CITY_STATE] Establish an Embassy Available![ENDCOLOR]</Text>
+		</Row>
+
+		<Row Tag="TXT_KEY_PRODMOD_CONQUEST_BUILDINGS_PRIOR_ERAS">
+			<Text>[NEWLINE][ICON_BULLET]Modified by Civilizing Mission: {1_Num}%</Text>
+		</Row>
+
+		<Row Tag="TXT_KEY_WAR_WEARINESS_THEM_NONE">
+			<Text>[ICON_BULLET] [COLOR_POSITIVE_TEXT][ICON_WAR] Weariness:[ENDCOLOR] They are resilient.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_WAR_WEARINESS_THEM_MINOR">
+			<Text>[ICON_BULLET] [COLOR_POSITIVE_TEXT][ICON_WAR] Weariness:[ENDCOLOR] They are disheartened.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_WAR_WEARINESS_THEM_MAJOR">
+			<Text>[ICON_BULLET] [COLOR_POSITIVE_TEXT][ICON_WAR] Weariness:[ENDCOLOR] They are winded.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_WAR_WEARINESS_THEM_SERIOUS">
+			<Text>[ICON_BULLET] [COLOR_POSITIVE_TEXT][ICON_WAR] Weariness:[ENDCOLOR] They are fatigued.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_WAR_WEARINESS_THEM_CRIPPLED">
+			<Text>[ICON_BULLET] [COLOR_POSITIVE_TEXT][ICON_WAR] Weariness:[ENDCOLOR] They are utterly exhausted.</Text>
+		</Row>
+
+		<Row Tag="TXT_KEY_BUILD_COST_REDUCTION">
+			<Text>{1_Build} needs {2_Turns} Turn(s) to complete.</Text>
 		</Row>
 	</Language_en_US>
 </GameData>

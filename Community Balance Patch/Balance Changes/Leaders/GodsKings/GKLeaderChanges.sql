@@ -1,7 +1,7 @@
 -- Attila
 
 UPDATE Traits
-SET LandBarbarianConversionPercent = '100'
+SET LandBarbarianConversionPercent = '75'
 WHERE Type = 'TRAIT_RAZE_AND_HORSES' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_LEADERS' AND Value= 1 );
 
 UPDATE Traits
@@ -88,7 +88,7 @@ Set CrossesMountainsAfterGreatGeneral = '0'
 WHERE Type = 'TRAIT_PHOENICIAN_HERITAGE' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_LEADERS' AND Value= 1 );
 
 UPDATE Traits
-SET TradeRouteResourceModifier = '200'
+SET TradeRouteResourceModifier = '100'
 WHERE Type = 'TRAIT_PHOENICIAN_HERITAGE' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_LEADERS' AND Value= 1 );
 
 UPDATE Traits
@@ -167,6 +167,15 @@ WHERE Type = 'TRAIT_EXTRA_BELIEF' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type
 UPDATE Traits
 SET AlwaysReligion = '1'
 WHERE Type = 'TRAIT_EXTRA_BELIEF' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_LEADERS' AND Value= 1 );
+
+UPDATE Traits
+SET FaithCostModifier = '-25'
+WHERE Type = 'TRAIT_EXTRA_BELIEF' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_LEADERS' AND Value= 1 );
+
+UPDATE Traits
+SET GPFaithPurchaseEra = 'ERA_CLASSICAL'
+WHERE Type = 'TRAIT_EXTRA_BELIEF' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_LEADERS' AND Value= 1 );
+
 
 -- William -- Change Polder (more gold, less food) -- New Trait
 UPDATE Traits
@@ -528,7 +537,7 @@ WHERE Type = 'TRAIT_LUXURY_RETENTION' AND EXISTS (SELECT * FROM COMMUNITY WHERE 
 INSERT INTO Trait_YieldFromSettle
 	(TraitType, YieldType, Yield)
 VALUES
-	('TRAIT_PHOENICIAN_HERITAGE', 'YIELD_GOLD', 175);
+	('TRAIT_PHOENICIAN_HERITAGE', 'YIELD_GOLD', 125);
 
 INSERT INTO Trait_TerrainClaimBoost
 	(TraitType, TerrainType)
@@ -545,6 +554,11 @@ INSERT INTO Building_ScienceFromYield
 	(BuildingType, YieldType, Yield)
 VALUES
 	('BUILDING_COFFEE_HOUSE', 'YIELD_CULTURE', 10);
+
+INSERT INTO Building_ResourceYieldChanges
+	(BuildingType, ResourceType, YieldType, Yield)
+VALUES
+	('BUILDING_COFFEE_HOUSE', 'RESOURCE_BANANA', 'YIELD_GOLD', 2);
 
 INSERT INTO Building_ClassesNeededInCity
 	(BuildingType, BuildingClassType)
@@ -609,9 +623,9 @@ VALUES
 INSERT INTO BuildFeatures
 	(BuildType, FeatureType, PrereqTech, Time, Production, Remove)
 VALUES
-	('BUILD_EKI', 'FEATURE_JUNGLE', 'TECH_IRON_WORKING', 700, 15, 1),
-	('BUILD_EKI', 'FEATURE_FOREST', 'TECH_BRONZE_WORKING', 400, 20, 1),
-	('BUILD_EKI', 'FEATURE_MARSH', 'TECH_MACHINERY', 400, 0, 1);
+	('BUILD_EKI', 'FEATURE_JUNGLE', 'TECH_CALENDAR', 400, 20, 1),
+	('BUILD_EKI', 'FEATURE_FOREST', 'TECH_BRONZE_WORKING', 300, 30, 1),
+	('BUILD_EKI', 'FEATURE_MARSH', 'TECH_IRON_WORKING', 600, 0, 1);
 
 INSERT INTO Improvements
 	(Type, Description, Civilopedia, Help, ArtDefineTag, SpecificCivRequired, CivilizationType, InAdjacentFriendly, NoFreshWater, RequiresFlatlands, PortraitIndex, PillageGold, IconAtlas, NoTwoAdjacent, RequiresFeature)

@@ -1577,20 +1577,20 @@ int CvLuaPlot::lGetPlotCity(lua_State* L)
 	return 1;
 }
 //------------------------------------------------------------------------------
-//CyCity* getWorkingCity();
+//CyCity* getOwningCity();
 int CvLuaPlot::lGetWorkingCity(lua_State* L)
 {
 	CvPlot* pkPlot = GetInstance(L); CHECK_PLOT_VALID(pkPlot);
-	CvCity* pkCity = pkPlot->getWorkingCity();
+	CvCity* pkCity = pkPlot->getOwningCity();
 	CvLuaCity::Push(L, pkCity);
 	return 1;
 }
 //------------------------------------------------------------------------------
-//CyCity* getWorkingCityOverride();
+//CyCity* getOwningCityOverride();
 int CvLuaPlot::lGetWorkingCityOverride(lua_State* L)
 {
 	CvPlot* pkPlot = GetInstance(L); CHECK_PLOT_VALID(pkPlot);
-	CvCity* pkCity = pkPlot->getWorkingCityOverride();
+	CvCity* pkCity = pkPlot->getOwningCityOverride();
 	CvLuaCity::Push(L, pkCity);
 	return 1;
 }
@@ -1644,7 +1644,7 @@ int CvLuaPlot::lCalculateImprovementYieldChange(lua_State* L)
 	const PlayerTypes ePlayer = (PlayerTypes)lua_tointeger(L, 4);
 	const bool bOptional = luaL_optbool(L, 5, false);
 #if defined(MOD_BUGFIX_LUA_API)
-	RouteTypes eRoute = (RouteTypes)luaL_optint(L, 5, NUM_ROUTE_TYPES);
+	RouteTypes eRoute = (RouteTypes)luaL_optint(L, 6, NUM_ROUTE_TYPES);
 	if (lua_gettop(L) == 6)
 		eRoute = (RouteTypes)lua_tointeger(L, 6);
 #else
@@ -2136,6 +2136,8 @@ int CvLuaPlot::lGetArchaeologyArtifactPlayer2(lua_State* L)
 {
 	CvPlot* kPlot = GetInstance(L);
 	int iPlayer = kPlot->GetArchaeologicalRecord().m_ePlayer2;
+	if (iPlayer == -1)
+		iPlayer = (int)BARBARIAN_PLAYER;
 	lua_pushinteger(L, iPlayer);
 	return 1;
 }

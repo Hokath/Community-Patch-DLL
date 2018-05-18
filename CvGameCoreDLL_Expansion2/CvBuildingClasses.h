@@ -196,6 +196,7 @@ public:
 	bool IsBuildAnywhere() const;
 	int GetTradeReligionModifier() const;
 	int GetNumFreeArtifacts() const;
+	int GetResourceDiversityModifier() const;
 #endif
 #if defined(MOD_BALANCE_CORE_SPIES)
 	int GetCannotFailSpies() const;
@@ -261,6 +262,8 @@ public:
 	int GetMinorFriendshipChange() const;
 	int GetVictoryPoints() const;
 	int GetExtraMissionarySpreads() const;
+	int GetExtraMissionaryStrength() const;
+	int GetExtraMissionarySpreadsGlobal() const;
 	int GetReligiousPressureModifier() const;
 	int GetEspionageModifier() const;
 	int GetGlobalEspionageModifier() const;
@@ -319,6 +322,9 @@ public:
 	bool IsSecondaryPantheon() const;
 	int GetGreatWorkYieldChange(int i) const;
 	int* GetGreatWorkYieldChangeArray() const;
+
+	int GetGreatWorkYieldChangeLocal(int i) const;
+	int* GetGreatWorkYieldChangeLocalArray() const;
 #endif
 	bool IsMountain() const;
 	bool IsHill() const;
@@ -531,10 +537,14 @@ public:
 	int GetYieldPerXTerrain(int i, int j) const;
 	int* GetYieldPerXTerrainArray(int i) const;
 
+	int GetYieldPerXFeature(int i, int j) const;
+	int* GetYieldPerXFeatureArray(int i) const;
+
 	int GetPlotYieldChange(int i, int j) const;
 	int* GetPlotYieldChangeArray(int i) const;
 #endif
 	int GetBuildingClassYieldChange(int i, int j) const;
+	int GetBuildingClassYieldModifier(int i, int j) const;
 #if defined(MOD_BALANCE_CORE)
 	int GetBuildingClassLocalYieldChange(int i, int j) const;
 	int GetBuildingClassLocalHappiness(int i) const;
@@ -673,6 +683,8 @@ private:
 	int m_iMinorFriendshipChange;
 	int m_iVictoryPoints;
 	int m_iExtraMissionarySpreads;
+	int m_iExtraMissionaryStrength;
+	int m_iExtraMissionarySpreadsGlobal;
 	int m_iReligiousPressureModifier;
 	int m_iEspionageModifier;
 	int m_iGlobalEspionageModifier;
@@ -733,6 +745,7 @@ private:
 	bool m_bPurchaseOnly;
 	bool m_bSecondaryPantheon;
 	int* m_piGreatWorkYieldChange;
+	int* m_piGreatWorkYieldChangeLocal;
 #endif
 #if defined(MOD_BALANCE_CORE)
 	bool m_bIsNoWater;
@@ -742,6 +755,7 @@ private:
 	bool m_bBuildAnywhere;
 	int m_iTradeReligionModifier;
 	int m_iFreeArtifacts;
+	int m_iResourceDiversityModifier;
 	bool m_bAnyWater;
 #endif
 #if defined(MOD_BALANCE_CORE_EVENTS)
@@ -921,9 +935,11 @@ private:
 	int** m_ppaiTerrainYieldChange;
 #if defined(MOD_API_UNIFIED_YIELDS) && defined(MOD_API_PLOT_YIELDS)
 	int** m_ppaiYieldPerXTerrain;
+	int** m_ppaiYieldPerXFeature;
 	int** m_ppaiPlotYieldChange;
 #endif
 	int** m_ppiBuildingClassYieldChanges;
+	int** m_ppiBuildingClassYieldModifiers;
 #if defined(MOD_BALANCE_CORE)
 	int** m_ppiBuildingClassLocalYieldChanges;
 	int* m_paiBuildingClassLocalHappiness;
@@ -1053,6 +1069,7 @@ public:
 	bool HasAvailableGreatWorkSlot(GreatWorkSlotType eGreatWorkSlot) const;
 	int GetNumAvailableGreatWorkSlots() const;
 	int GetNumAvailableGreatWorkSlots(GreatWorkSlotType eGreatWorkSlot) const;
+	int GetNumFilledGreatWorkSlots(GreatWorkSlotType eGreatWorkSlot) const;
 	bool GetNextAvailableGreatWorkSlot(BuildingClassTypes *eBuildingClass, int *iSlot) const;
 	bool GetNextAvailableGreatWorkSlot(GreatWorkSlotType eGreatWorkSlot, BuildingClassTypes *eBuildingClass, int *iSlot) const;
 

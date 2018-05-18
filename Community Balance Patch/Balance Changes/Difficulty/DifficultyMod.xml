@@ -32,14 +32,14 @@
 			<BarbCampGold>30</BarbCampGold>
 			<BarbSpawnMod>0</BarbSpawnMod>
 			<StartingMinorDefenseUnits>0</StartingMinorDefenseUnits>
-			<BarbarianBonus>60</BarbarianBonus>
-			<AIBarbarianBonus>30</AIBarbarianBonus>
+			<BarbarianBonus>50</BarbarianBonus>
+			<AIBarbarianBonus>0</AIBarbarianBonus>
 			<EarliestBarbarianReleaseTurn>30</EarliestBarbarianReleaseTurn>
 			<BarbarianLandTargetRange>5</BarbarianLandTargetRange>
 			<BarbarianSeaTargetRange>14</BarbarianSeaTargetRange>
 			<AIStartingDefenseUnits>1</AIStartingDefenseUnits>
-			<AIDeclareWarProb>80</AIDeclareWarProb>
-			<AIWorkRateModifier>5</AIWorkRateModifier>
+			<AIDeclareWarProb>50</AIDeclareWarProb>
+			<AIWorkRateModifier>0</AIWorkRateModifier>
 			<AIUnhappinessPercent>100</AIUnhappinessPercent>
 			<AIGrowthPercent>110</AIGrowthPercent>
 			<AITrainPercent>110</AITrainPercent>
@@ -51,12 +51,15 @@
 			<AIBuildingCostPercent>100</AIBuildingCostPercent>
 			<AIUnitCostPercent>100</AIUnitCostPercent>
 			<AIUnitSupplyPercent>0</AIUnitSupplyPercent>
-			<AIUnitUpgradePercent>50</AIUnitUpgradePercent>
+			<AIUnitUpgradePercent>100</AIUnitUpgradePercent>
 			<!--<AIInflationPercent>80</AIInflationPercent>-->
 			<AIPerEraModifier>0</AIPerEraModifier>
 			<AIAdvancedStartPercent>100</AIAdvancedStartPercent>
 			<AIFreeXP>0</AIFreeXP>
-			<DifficultyBonus>0</DifficultyBonus>
+			<DifficultyBonusBase>0</DifficultyBonusBase>
+			<DifficultyBonusA>80</DifficultyBonusA>
+			<DifficultyBonusB>150</DifficultyBonusB>
+			<DifficultyBonusC>300</DifficultyBonusC>
 			<IconAtlas>DIFFICULTY_ATLAS</IconAtlas>
 			<PortraitIndex>0</PortraitIndex>
 		</Row>
@@ -90,12 +93,12 @@
 			<BarbSpawnMod>0</BarbSpawnMod>
 			<BarbarianBonus>40</BarbarianBonus>
 			<StartingMinorDefenseUnits>0</StartingMinorDefenseUnits>
-			<AIBarbarianBonus>40</AIBarbarianBonus>
+			<AIBarbarianBonus>5</AIBarbarianBonus>
 			<EarliestBarbarianReleaseTurn>25</EarliestBarbarianReleaseTurn>
 			<BarbarianLandTargetRange>6</BarbarianLandTargetRange>
 			<BarbarianSeaTargetRange>16</BarbarianSeaTargetRange>
 			<AIStartingDefenseUnits>1</AIStartingDefenseUnits>
-			<AIDeclareWarProb>90</AIDeclareWarProb>
+			<AIDeclareWarProb>75</AIDeclareWarProb>
 			<AIWorkRateModifier>10</AIWorkRateModifier>
 			<AIUnhappinessPercent>100</AIUnhappinessPercent>
 			<AIGrowthPercent>100</AIGrowthPercent>
@@ -108,12 +111,15 @@
 			<AIBuildingCostPercent>100</AIBuildingCostPercent>
 			<AIUnitCostPercent>100</AIUnitCostPercent>
 			<AIUnitSupplyPercent>5</AIUnitSupplyPercent>
-			<AIUnitUpgradePercent>100</AIUnitUpgradePercent>
+			<AIUnitUpgradePercent>95</AIUnitUpgradePercent>
 			<!--<AIInflationPercent>80</AIInflationPercent>-->
 			<AIPerEraModifier>-2</AIPerEraModifier>
 			<AIAdvancedStartPercent>135</AIAdvancedStartPercent>
 			<AIFreeXP>5</AIFreeXP>
-			<DifficultyBonus>1</DifficultyBonus>
+			<DifficultyBonusBase>1</DifficultyBonusBase>
+			<DifficultyBonusA>80</DifficultyBonusA>
+			<DifficultyBonusB>150</DifficultyBonusB>
+			<DifficultyBonusC>300</DifficultyBonusC>
 			<AIFreeXPPercent>10</AIFreeXPPercent>
 			<IconAtlas>DIFFICULTY_ATLAS</IconAtlas>
 			<PortraitIndex>1</PortraitIndex>
@@ -147,7 +153,7 @@
 			<BarbCampGold>30</BarbCampGold>
 			<BarbSpawnMod>0</BarbSpawnMod>
 			<BarbarianBonus>30</BarbarianBonus>
-			<AIBarbarianBonus>40</AIBarbarianBonus>
+			<AIBarbarianBonus>10</AIBarbarianBonus>
 			<StartingMinorDefenseUnits>1</StartingMinorDefenseUnits>
 			<EarliestBarbarianReleaseTurn>25</EarliestBarbarianReleaseTurn>
 			<BarbarianLandTargetRange>7</BarbarianLandTargetRange>
@@ -166,12 +172,15 @@
 			<AIBuildingCostPercent>90</AIBuildingCostPercent>
 			<AIUnitCostPercent>90</AIUnitCostPercent>
 			<AIUnitSupplyPercent>10</AIUnitSupplyPercent>
-			<AIUnitUpgradePercent>100</AIUnitUpgradePercent>
+			<AIUnitUpgradePercent>90</AIUnitUpgradePercent>
 			<!--<AIInflationPercent>80</AIInflationPercent>-->
 			<AIPerEraModifier>-4</AIPerEraModifier>
 			<AIAdvancedStartPercent>155</AIAdvancedStartPercent>
 			<AIFreeXP>10</AIFreeXP>
-			<DifficultyBonus>2</DifficultyBonus>
+			<DifficultyBonusBase>2</DifficultyBonusBase>
+			<DifficultyBonusA>80</DifficultyBonusA>
+			<DifficultyBonusB>150</DifficultyBonusB>
+			<DifficultyBonusC>300</DifficultyBonusC>
 			<AIFreeXPPercent>25</AIFreeXPPercent>
 			<IconAtlas>DIFFICULTY_ATLAS</IconAtlas>
 			<PortraitIndex>2</PortraitIndex>
@@ -206,12 +215,12 @@
 			<BarbCampGold>30</BarbCampGold>
 			<BarbSpawnMod>0</BarbSpawnMod>
 			<BarbarianBonus>30</BarbarianBonus>
-			<AIBarbarianBonus>40</AIBarbarianBonus>
+			<AIBarbarianBonus>10</AIBarbarianBonus>
 			<EarliestBarbarianReleaseTurn>20</EarliestBarbarianReleaseTurn>
 			<BarbarianLandTargetRange>8</BarbarianLandTargetRange>
 			<BarbarianSeaTargetRange>20</BarbarianSeaTargetRange>
 			<AIStartingDefenseUnits>1</AIStartingDefenseUnits>
-			<AIDeclareWarProb>100</AIDeclareWarProb>
+			<AIDeclareWarProb>125</AIDeclareWarProb>
 			<AIWorkRateModifier>30</AIWorkRateModifier>
 			<AIUnhappinessPercent>90</AIUnhappinessPercent>
 			<AIGrowthPercent>90</AIGrowthPercent>
@@ -223,13 +232,16 @@
 			<AIWorldCreatePercent>100</AIWorldCreatePercent>
 			<AIBuildingCostPercent>90</AIBuildingCostPercent>
 			<AIUnitCostPercent>90</AIUnitCostPercent>
-			<AIUnitSupplyPercent>20</AIUnitSupplyPercent>
-			<AIUnitUpgradePercent>95</AIUnitUpgradePercent>
+			<AIUnitSupplyPercent>15</AIUnitSupplyPercent>
+			<AIUnitUpgradePercent>85</AIUnitUpgradePercent>
 			<!--<AIInflationPercent>80</AIInflationPercent>-->
 			<AIPerEraModifier>-6</AIPerEraModifier>
 			<AIAdvancedStartPercent>170</AIAdvancedStartPercent>
 			<AIFreeXP>15</AIFreeXP>
-			<DifficultyBonus>3</DifficultyBonus>
+			<DifficultyBonusBase>3</DifficultyBonusBase>
+			<DifficultyBonusA>80</DifficultyBonusA>
+			<DifficultyBonusB>150</DifficultyBonusB>
+			<DifficultyBonusC>300</DifficultyBonusC>
 			<AIFreeXPPercent>33</AIFreeXPPercent>
 			<IconAtlas>DIFFICULTY_ATLAS</IconAtlas>
 			<PortraitIndex>3</PortraitIndex>
@@ -264,13 +276,13 @@
 			<BarbCampGold>20</BarbCampGold>
 			<BarbSpawnMod>0</BarbSpawnMod>
 			<BarbarianBonus>20</BarbarianBonus>
-			<AIBarbarianBonus>50</AIBarbarianBonus>
+			<AIBarbarianBonus>15</AIBarbarianBonus>
 			<EarliestBarbarianReleaseTurn>20</EarliestBarbarianReleaseTurn>
 			<BarbarianLandTargetRange>9</BarbarianLandTargetRange>
 			<BarbarianSeaTargetRange>22</BarbarianSeaTargetRange>
 			<AIStartingDefenseUnits>1</AIStartingDefenseUnits>
 			<AIStartingExploreUnits>1</AIStartingExploreUnits>
-			<AIDeclareWarProb>105</AIDeclareWarProb>
+			<AIDeclareWarProb>150</AIDeclareWarProb>
 			<AIWorkRateModifier>40</AIWorkRateModifier>
 			<AIUnhappinessPercent>85</AIUnhappinessPercent>
 			<AIGrowthPercent>90</AIGrowthPercent>
@@ -282,12 +294,15 @@
 			<AIWorldCreatePercent>100</AIWorldCreatePercent>
 			<AIBuildingCostPercent>90</AIBuildingCostPercent>
 			<AIUnitCostPercent>90</AIUnitCostPercent>
-			<AIUnitSupplyPercent>30</AIUnitSupplyPercent>
-			<AIUnitUpgradePercent>90</AIUnitUpgradePercent>
+			<AIUnitSupplyPercent>20</AIUnitSupplyPercent>
+			<AIUnitUpgradePercent>80</AIUnitUpgradePercent>
 			<!--<AIInflationPercent>80</AIInflationPercent>-->
 			<AIPerEraModifier>-7</AIPerEraModifier>
 			<AIAdvancedStartPercent>185</AIAdvancedStartPercent>
-			<DifficultyBonus>4</DifficultyBonus>
+			<DifficultyBonusBase>4</DifficultyBonusBase>
+			<DifficultyBonusA>80</DifficultyBonusA>
+			<DifficultyBonusB>150</DifficultyBonusB>
+			<DifficultyBonusC>300</DifficultyBonusC>
 			<AIFreeXP>20</AIFreeXP>
 			<AIFreeXPPercent>50</AIFreeXPPercent>
 			<IconAtlas>DIFFICULTY_ATLAS</IconAtlas>
@@ -323,14 +338,14 @@
 			<BarbCampGold>20</BarbCampGold>
 			<BarbSpawnMod>0</BarbSpawnMod>
 			<BarbarianBonus>20</BarbarianBonus>
-			<AIBarbarianBonus>50</AIBarbarianBonus>
+			<AIBarbarianBonus>15</AIBarbarianBonus>
 			<EarliestBarbarianReleaseTurn>15</EarliestBarbarianReleaseTurn>
 			<BarbarianLandTargetRange>10</BarbarianLandTargetRange>
 			<BarbarianSeaTargetRange>24</BarbarianSeaTargetRange>
 			<AIStartingDefenseUnits>1</AIStartingDefenseUnits>
 			<AIStartingWorkerUnits>1</AIStartingWorkerUnits>
 			<AIStartingExploreUnits>1</AIStartingExploreUnits>
-			<AIDeclareWarProb>110</AIDeclareWarProb>
+			<AIDeclareWarProb>175</AIDeclareWarProb>
 			<AIWorkRateModifier>50</AIWorkRateModifier>
 			<AIUnhappinessPercent>80</AIUnhappinessPercent>
 			<AIGrowthPercent>80</AIGrowthPercent>
@@ -342,13 +357,16 @@
 			<AIWorldCreatePercent>100</AIWorldCreatePercent>
 			<AIBuildingCostPercent>80</AIBuildingCostPercent>
 			<AIUnitCostPercent>80</AIUnitCostPercent>
-			<AIUnitSupplyPercent>40</AIUnitSupplyPercent>
-			<AIUnitUpgradePercent>85</AIUnitUpgradePercent>
+			<AIUnitSupplyPercent>25</AIUnitSupplyPercent>
+			<AIUnitUpgradePercent>75</AIUnitUpgradePercent>
 			<!--<AIInflationPercent>80</AIInflationPercent>-->
 			<AIPerEraModifier>-8</AIPerEraModifier>
 			<AIAdvancedStartPercent>200</AIAdvancedStartPercent>
 			<AIFreeXP>20</AIFreeXP>
-			<DifficultyBonus>5</DifficultyBonus>
+			<DifficultyBonusBase>5</DifficultyBonusBase>
+			<DifficultyBonusA>80</DifficultyBonusA>
+			<DifficultyBonusB>150</DifficultyBonusB>
+			<DifficultyBonusC>300</DifficultyBonusC>
 			<AIFreeXPPercent>66</AIFreeXPPercent>
 			<IconAtlas>DIFFICULTY_ATLAS</IconAtlas>
 			<PortraitIndex>5</PortraitIndex>
@@ -383,14 +401,14 @@
 			<BarbCampGold>20</BarbCampGold>
 			<BarbSpawnMod>0</BarbSpawnMod>
 			<BarbarianBonus>10</BarbarianBonus>
-			<AIBarbarianBonus>60</AIBarbarianBonus>
+			<AIBarbarianBonus>20</AIBarbarianBonus>
 			<EarliestBarbarianReleaseTurn>10</EarliestBarbarianReleaseTurn>
 			<BarbarianLandTargetRange>11</BarbarianLandTargetRange>
 			<BarbarianSeaTargetRange>26</BarbarianSeaTargetRange>
 			<AIStartingDefenseUnits>2</AIStartingDefenseUnits>
 			<AIStartingWorkerUnits>1</AIStartingWorkerUnits>
 			<AIStartingExploreUnits>1</AIStartingExploreUnits>
-			<AIDeclareWarProb>115</AIDeclareWarProb>
+			<AIDeclareWarProb>200</AIDeclareWarProb>
 			<AIWorkRateModifier>60</AIWorkRateModifier>
 			<AIUnhappinessPercent>75</AIUnhappinessPercent>
 			<AIGrowthPercent>80</AIGrowthPercent>
@@ -402,13 +420,16 @@
 			<AIWorldCreatePercent>100</AIWorldCreatePercent>
 			<AIBuildingCostPercent>80</AIBuildingCostPercent>
 			<AIUnitCostPercent>80</AIUnitCostPercent>
-			<AIUnitSupplyPercent>50</AIUnitSupplyPercent>
-			<AIUnitUpgradePercent>80</AIUnitUpgradePercent>
+			<AIUnitSupplyPercent>30</AIUnitSupplyPercent>
+			<AIUnitUpgradePercent>70</AIUnitUpgradePercent>
 			<!--<AIInflationPercent>80</AIInflationPercent>-->
 			<AIPerEraModifier>-9</AIPerEraModifier>
 			<AIAdvancedStartPercent>215</AIAdvancedStartPercent>
 			<AIFreeXP>25</AIFreeXP>
-			<DifficultyBonus>6</DifficultyBonus>
+			<DifficultyBonusBase>6</DifficultyBonusBase>
+			<DifficultyBonusA>80</DifficultyBonusA>
+			<DifficultyBonusB>150</DifficultyBonusB>
+			<DifficultyBonusC>300</DifficultyBonusC>
 			<AIFreeXPPercent>75</AIFreeXPPercent>
 			<IconAtlas>DIFFICULTY_ATLAS</IconAtlas>
 			<PortraitIndex>6</PortraitIndex>
@@ -443,14 +464,14 @@
 			<BarbCampGold>15</BarbCampGold>
 			<BarbSpawnMod>0</BarbSpawnMod>
 			<BarbarianBonus>0</BarbarianBonus>
-			<AIBarbarianBonus>70</AIBarbarianBonus>
+			<AIBarbarianBonus>25</AIBarbarianBonus>
 			<EarliestBarbarianReleaseTurn>5</EarliestBarbarianReleaseTurn>
 			<BarbarianLandTargetRange>12</BarbarianLandTargetRange>
 			<BarbarianSeaTargetRange>28</BarbarianSeaTargetRange>
-			<AIStartingDefenseUnits>3</AIStartingDefenseUnits>
+			<AIStartingDefenseUnits>2</AIStartingDefenseUnits>
 			<AIStartingWorkerUnits>1</AIStartingWorkerUnits>
-			<AIStartingExploreUnits>2</AIStartingExploreUnits>
-			<AIDeclareWarProb>125</AIDeclareWarProb>
+			<AIStartingExploreUnits>1</AIStartingExploreUnits>
+			<AIDeclareWarProb>225</AIDeclareWarProb>
 			<AIWorkRateModifier>70</AIWorkRateModifier>
 			<AIUnhappinessPercent>65</AIUnhappinessPercent>
 			<AIGrowthPercent>70</AIGrowthPercent>
@@ -462,14 +483,17 @@
 			<AIWorldCreatePercent>100</AIWorldCreatePercent>
 			<AIBuildingCostPercent>70</AIBuildingCostPercent>
 			<AIUnitCostPercent>70</AIUnitCostPercent>
-			<AIUnitSupplyPercent>60</AIUnitSupplyPercent>
-			<AIUnitUpgradePercent>75</AIUnitUpgradePercent>
+			<AIUnitSupplyPercent>35</AIUnitSupplyPercent>
+			<AIUnitUpgradePercent>65</AIUnitUpgradePercent>
 			<!--<AIInflationPercent>80</AIInflationPercent>-->
 			<AIPerEraModifier>-10</AIPerEraModifier>
 			<AIAdvancedStartPercent>230</AIAdvancedStartPercent>
 			<AIFreeXP>30</AIFreeXP>
 			<AIFreeXPPercent>100</AIFreeXPPercent>
-			<DifficultyBonus>7</DifficultyBonus>
+			<DifficultyBonusBase>7</DifficultyBonusBase>
+			<DifficultyBonusA>80</DifficultyBonusA>
+			<DifficultyBonusB>150</DifficultyBonusB>
+			<DifficultyBonusC>300</DifficultyBonusC>
 			<IconAtlas>DIFFICULTY_ATLAS</IconAtlas>
 			<PortraitIndex>7</PortraitIndex>
 		</Row>
@@ -501,7 +525,7 @@
 			<BarbCampGold>50</BarbCampGold>
 			<BarbSpawnMod>0</BarbSpawnMod>
 			<BarbarianBonus>0</BarbarianBonus>
-			<AIBarbarianBonus>50</AIBarbarianBonus>
+			<AIBarbarianBonus>25</AIBarbarianBonus>
 			<EarliestBarbarianReleaseTurn>0</EarliestBarbarianReleaseTurn>
 			<BarbarianLandTargetRange>6</BarbarianLandTargetRange>
 			<BarbarianSeaTargetRange>18</BarbarianSeaTargetRange>
@@ -519,7 +543,10 @@
 			<AIUnitSupplyPercent>0</AIUnitSupplyPercent>
 			<AIUnitUpgradePercent>100</AIUnitUpgradePercent>
 			<AIAdvancedStartPercent>100</AIAdvancedStartPercent>
-			<DifficultyBonus>0</DifficultyBonus>
+			<DifficultyBonusBase>0</DifficultyBonusBase>
+			<DifficultyBonusA>80</DifficultyBonusA>
+			<DifficultyBonusB>150</DifficultyBonusB>
+			<DifficultyBonusC>300</DifficultyBonusC>
 			<IconAtlas>DIFFICULTY_ATLAS</IconAtlas>
 		</Row>
 	</HandicapInfos>

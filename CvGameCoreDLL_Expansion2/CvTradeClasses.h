@@ -12,9 +12,6 @@
 
 #include "CvAStar.h"
 
-// The map layer the trade units reside on
-#define TRADE_UNIT_MAP_LAYER	1
-
 struct TradeConnectionPlot
 {
 	int m_iX;
@@ -41,6 +38,7 @@ struct TradeConnection
 		m_eConnectionType = NUM_TRADE_CONNECTION_TYPES;
 		m_iTradeUnitLocationIndex = -1;
 		m_bTradeUnitMovingForward = false;
+		m_iSpeedFactor = 100;
 		m_iCircuitsCompleted = 0;
 		m_iCircuitsToComplete = 0;
 		m_iTurnRouteComplete = 0;
@@ -67,6 +65,8 @@ struct TradeConnection
 		m_eDestOwner = pDestCity->getOwner();
 	}
 
+	int GetMovementSpeed();
+
 	int m_iID;
 	int m_iOriginID;
 	int m_iOriginX;
@@ -82,6 +82,7 @@ struct TradeConnection
 	bool m_bTradeUnitMovingForward;
 	TradeConnectionPlotList m_aPlotList;
 	int m_unitID;
+	int m_iSpeedFactor; //move faster on this route?
 	int m_iCircuitsCompleted;
 	int m_iCircuitsToComplete;
 	int m_iTurnRouteComplete;
@@ -111,6 +112,7 @@ public:
 	bool CreateTradeRoute (CvCity* pOriginCity, CvCity* pDestCity, DomainTypes eDomain, TradeConnectionType eConnectionType, int& iRouteID);
 
 	bool IsValidTradeRoutePath (CvCity* pOriginCity, CvCity* pDestCity, DomainTypes eDomain, SPath* pPathOut=NULL, bool bWarCheck = true);
+	int GetValidTradeRoutePathLength(CvCity* pOriginCity, CvCity* pDestCity, DomainTypes eDomain, SPath* pPathOut = NULL, bool bWarCheck = true);
 	bool IsDestinationExclusive(const TradeConnection& kTradeConnection);
 	bool IsConnectionInternational (const TradeConnection& kTradeConnection);
 
@@ -132,6 +134,7 @@ public:
 	bool EmptyTradeRoute (int iIndex);
 #if defined(MOD_BALANCE_CORE)
 	void UpdateTradePlots();
+	int GetTradeRouteTurns(CvCity* pOriginCity, CvCity* pDestCity, DomainTypes eDomain, int* piCircuitsToComplete = NULL);
 #endif
 #if defined(MOD_BUGFIX_MINOR)
 	void ClearAllCityTradeRoutes (CvPlot* pPlot, bool bIncludeTransits = false); // called when a city is captured or traded
@@ -252,6 +255,7 @@ public:
 	int GetTradeConnectionDomainValueModifierTimes100(const TradeConnection& kTradeConnection, YieldTypes eYield);
 	int GetTradeConnectionRiverValueModifierTimes100(const TradeConnection& kTradeConnection, YieldTypes eYield, bool bAsOriginPlayer);
 #if defined(MOD_BALANCE_CORE)
+	int GetTradeConnectionDistanceValueModifierTimes100(const TradeConnection& kTradeConnection);
 	int GetTradeConnectionCorporationModifierTimes100(const TradeConnection& kTradeConnection, YieldTypes eYield, bool bAsOriginPlayer);
 	int GetTradeConnectionOpenBordersModifierTimes100(const TradeConnection& kTradeConnection, YieldTypes eYield, bool bAsOriginPlayer);
 #endif
@@ -303,7 +307,7 @@ public:
 #else
 	bool PlunderTradeRoute(int iTradeConnectionID);
 #endif
-
+	void UpdateFurthestPossibleTradeRoute(DomainTypes eDomain, CvCity* pOriginCity, int iMaxRange);
 	int GetTradeRouteRange (DomainTypes eDomain, CvCity* pOriginCity);
 	int GetTradeRouteSpeed (DomainTypes eDomain);
 

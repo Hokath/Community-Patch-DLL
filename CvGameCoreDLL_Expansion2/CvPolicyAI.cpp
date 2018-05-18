@@ -11,6 +11,7 @@
 #include "CvGrandStrategyAI.h"
 #include "CvInfosSerializationHelper.h"
 #if defined(MOD_BALANCE_CORE)
+#include "CvTypes.h"
 #include "CvEconomicAI.h"
 #endif
 
@@ -170,360 +171,8 @@ int CvPolicyAI::ChooseNextPolicy(CvPlayer* pPlayer)
 	{
 		if(m_pCurrentPolicies->CanAdoptPolicy((PolicyTypes) iPolicyLoop) && (!bMustChooseTenet || m_pCurrentPolicies->GetPolicies()->GetPolicyEntry(iPolicyLoop)->GetLevel() > 0))
 		{
-			int iWeight = 0;
+			int iWeight = WeighPolicy(pPlayer, (PolicyTypes)iPolicyLoop);
 
-			iWeight += m_PolicyAIWeights.GetWeight(iPolicyLoop);
-#if defined(MOD_BALANCE_CORE)
-			//Grand Strategy Considerations - if valid, it doubles our initial weighting.
-			// == Grand Strategy ==
-			
-			// == Grand Strategy ==
-			int iDiploInterest = 0;
-			int iConquestInterest = 0;
-			int iScienceInterest = 0;
-			int iCultureInterest = 0;
-
-			int iDiploValue = 0;
-			int iScienceValue = 0;
-			int iConquestValue = 0;
-			int iCultureValue = 0;
-
-			int iGrandStrategiesLoop;
-			AIGrandStrategyTypes eGrandStrategy;
-			CvAIGrandStrategyXMLEntry* pGrandStrategy;
-			CvString strGrandStrategyName;
-
-			// Loop through all GrandStrategies and get priority. Since these are usually 100+, we will divide by 10 later
-			for (iGrandStrategiesLoop = 0; iGrandStrategiesLoop < GC.GetGameAIGrandStrategies()->GetNumAIGrandStrategies(); iGrandStrategiesLoop++)
-			{
-				eGrandStrategy = (AIGrandStrategyTypes)iGrandStrategiesLoop;
-				pGrandStrategy = GC.GetGameAIGrandStrategies()->GetEntry(iGrandStrategiesLoop);
-				strGrandStrategyName = (CvString)pGrandStrategy->GetType();
-
-				if (strGrandStrategyName == "AIGRANDSTRATEGY_CONQUEST")
-				{
-					iConquestInterest += pPlayer->GetGrandStrategyAI()->GetGrandStrategyPriority(eGrandStrategy);
-				}
-				else if (strGrandStrategyName == "AIGRANDSTRATEGY_CULTURE")
-				{
-					iCultureInterest += pPlayer->GetGrandStrategyAI()->GetGrandStrategyPriority(eGrandStrategy);
-				}
-				else if (strGrandStrategyName == "AIGRANDSTRATEGY_UNITED_NATIONS")
-				{
-					iDiploInterest += pPlayer->GetGrandStrategyAI()->GetGrandStrategyPriority(eGrandStrategy);
-				}
-				else if (strGrandStrategyName == "AIGRANDSTRATEGY_SPACESHIP")
-				{
-					iScienceInterest += pPlayer->GetGrandStrategyAI()->GetGrandStrategyPriority(eGrandStrategy);
-				}
-			}
-
-			CvPolicyEntry* pkPolicyInfo = GC.getPolicyInfo((PolicyTypes) iPolicyLoop);
-			if(pkPolicyInfo)
-			{
-				for(int iFlavor = 0; iFlavor < GC.getNumFlavorTypes(); iFlavor++)
-				{
-					FlavorTypes eFlavor = (FlavorTypes)iFlavor;
-					if(eFlavor == NO_FLAVOR)
-						continue;
-
-					if(pkPolicyInfo->GetFlavorValue(eFlavor) > 0)
-					{
-						iWeight += pPlayer->GetGrandStrategyAI()->GetPersonalityAndGrandStrategy((FlavorTypes)iFlavor);
-
-						if(GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_DIPLOMACY")
-						{
-							iDiploValue += iDiploInterest;
-
-							for (int iMinorCivLoop = MAX_MAJOR_CIVS; iMinorCivLoop < MAX_CIV_PLAYERS; iMinorCivLoop++)
-							{
-								PlayerTypes eMinor = (PlayerTypes)iMinorCivLoop;
-								if (eMinor == NO_PLAYER)
-									continue;
-
-								// Loop through all minors - if we're itching to conquer, bail out on diplo policies.
-								if (GET_PLAYER(eMinor).isMinorCiv() && GET_PLAYER(eMinor).isAlive())
-								{
-									if (pPlayer->GetDiplomacyAI()->GetMinorCivApproach(eMinor) >= MINOR_CIV_APPROACH_CONQUEST)
-									{
-										iWeight -= iDiploInterest;
-										break;
-									}
-								}
-							}
-						}
-						//War
-						if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_OFFENSE")
-						{
-							iConquestValue += iConquestInterest;
-							iCultureValue += iCultureInterest;
-						}
-						else if(GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_MILITARY_TRAINING")
-						{
-							iConquestValue += iConquestInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_DEFENSE")
-						{
-							iConquestValue += iConquestInterest;
-							iDiploValue += iDiploInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_AIR" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_ANTIAIR" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_AIR_CARRIER" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_AIRLIFT")
-						{
-							iConquestValue += iConquestInterest;
-							iCultureValue += iCultureInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_NAVAL")
-						{
-							iConquestValue += iConquestInterest;
-							iScienceValue += iScienceInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_NAVAL_RECON")
-						{
-							iConquestValue += iConquestInterest;
-							iCultureValue += iCultureInterest;
-							iDiploValue += iDiploInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_RANGED")
-						{
-							iConquestValue += iConquestInterest;
-							iCultureValue += iCultureInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_RECON")
-						{
-							iDiploValue += iDiploInterest;
-							iConquestValue += iConquestInterest;
-							iCultureValue += iCultureInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_EXPANSION")
-						{
-							iDiploValue += iDiploInterest;
-							iConquestValue += iConquestInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_PRODUCTION")
-						{
-							iConquestValue += iConquestInterest;
-							iScienceValue += iScienceInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_GOLD")
-						{
-							iDiploValue += iDiploInterest;
-							iConquestValue += iConquestInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_GREAT_PEOPLE")
-						{
-							iScienceValue += iScienceInterest;
-							iCultureValue += iCultureInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_GROWTH")
-						{
-							iScienceValue += iScienceInterest;
-							iCultureValue += iCultureInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_HAPPINESS")
-						{
-							iConquestValue += iConquestInterest;
-							iCultureValue += iCultureInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_INFRASTRUCTURE")
-						{
-							iDiploValue += iDiploInterest;
-							iConquestValue += iConquestInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_I_LAND_TRADE_ROUTE" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_I_LAND_TRADE_ROUTE")
-						{
-							iCultureValue += iCultureInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_I_SEA_TRADE_ROUTE" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_I_SEA_TRADE_ROUTE")
-						{
-							iCultureValue += iCultureInterest;
-						}
-						
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_RELIGION")
-						{
-							iCultureValue += iCultureInterest;
-							iDiploValue += iDiploInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_SCIENCE")
-						{
-							iScienceValue += iScienceInterest;
-							iCultureValue += iCultureInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_SPACESHIP")
-						{
-							iScienceValue += iScienceInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_TILE_IMPROVEMENT")
-						{
-							iCultureValue += iCultureInterest;
-							iScienceValue += iScienceInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_WONDER")
-						{
-							iCultureValue += iCultureInterest;
-							iScienceValue += iScienceInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_WATER_CONNECTION" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_I_TRADE_DESTINATION")
-						{
-							iCultureValue += iCultureInterest;
-							iScienceValue += iScienceInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_USE_NUKE" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_NUKE")
-						{
-							iConquestValue += iConquestInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_MOBILE")
-						{
-							iConquestValue += iConquestInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_ESPIONAGE")
-						{
-							iDiploValue += iDiploInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_ARCHAEOLOGY")
-						{
-							iCultureValue += iCultureInterest;
-						}
-					}
-				}
-			}
-
-			iConquestValue *= (100 + (iConquestInterest / 10));
-			iConquestValue /= 100;
-
-			iCultureValue *= (100 + (iCultureInterest / 10));
-			iCultureValue /= 100;
-
-			iDiploValue *= (100 + (iDiploInterest / 10));
-			iDiploValue /= 100;
-
-			iScienceValue *= (100 + (iScienceInterest / 10));
-			iScienceValue /= 100;
-
-			//And now add them in. Halve if not our main focus.
-			if (pPlayer->GetDiplomacyAI()->IsGoingForCultureVictory() || pPlayer->GetDiplomacyAI()->IsCloseToCultureVictory())
-			{
-				iWeight += iCultureValue;
-			}
-			else
-			{
-				iWeight += (iCultureValue / 2);
-			}
-			if (pPlayer->GetDiplomacyAI()->IsGoingForDiploVictory() || pPlayer->GetDiplomacyAI()->IsCloseToDiploVictory())
-			{
-				iWeight += iDiploValue;
-			}
-			else
-			{
-				iWeight += (iDiploValue / 2);
-			}
-			if (pPlayer->GetDiplomacyAI()->IsGoingForSpaceshipVictory() || pPlayer->GetDiplomacyAI()->IsCloseToSSVictory())
-			{
-				iWeight += iScienceValue;
-			}
-			else
-			{
-				iWeight += (iScienceValue / 2);
-			}
-
-			if (pPlayer->GetDiplomacyAI()->IsGoingForWorldConquest() || pPlayer->GetDiplomacyAI()->IsCloseToDominationVictory())
-			{
-				iWeight += iConquestValue;
-			}
-			else
-			{
-				iWeight += (iConquestValue / 2);
-			}
-
-			//If this is an ideology policy, let's snap those up.
-			if(m_pCurrentPolicies->GetPolicies()->GetPolicyEntry(iPolicyLoop)->GetLevel() > 0)
-			{
-				iWeight *= (m_pCurrentPolicies->GetPolicies()->GetPolicyEntry(iPolicyLoop)->GetLevel() + 1);
-			}
-			if(!pPlayer->GetCorporations()->HasFoundedCorporation())
-			{
-				//Corporate-specific policies should only be taken if you have a corporation.
-				if(m_pCurrentPolicies->GetPolicies()->GetPolicyEntry(iPolicyLoop)->IsCorporationOfficesAsFranchises() ||m_pCurrentPolicies->GetPolicies()->GetPolicyEntry(iPolicyLoop)->IsCorporationRandomForeignFranchise() || m_pCurrentPolicies->GetPolicies()->GetPolicyEntry(iPolicyLoop)->IsCorporationFreeFranchiseAbovePopular())
-				{
-					iWeight = 0;
-				}
-			}
-			//Older branches should be slowly phased out.
-			PolicyBranchTypes ePolicyBranch = (PolicyBranchTypes)m_pCurrentPolicies->GetPolicies()->GetPolicyEntry(iPolicyLoop)->GetPolicyBranchType();
-			if(ePolicyBranch != NO_POLICY_BRANCH_TYPE)
-			{
-				CvPolicyBranchEntry* pkPolicyBranchInfo = GC.getPolicyBranchInfo(ePolicyBranch);
-				if(pkPolicyBranchInfo)
-				{
-					//If we're already in this branch, let's get a bonus based on how many we have in it (this will push the AI to finish branches quickly.
-					if(m_pCurrentPolicies->GetNumPoliciesOwnedInBranch(ePolicyBranch) > 0 || m_pCurrentPolicies->IsPolicyBranchUnlocked(ePolicyBranch))
-					{
-						iWeight *= (m_pCurrentPolicies->GetNumPoliciesOwnedInBranch(ePolicyBranch) + 1);
-					}
-					else
-					{
-						int iPolicyEra = pkPolicyBranchInfo->GetEraPrereq();
-						int iPlayerEra = pPlayer->GetCurrentEra();
-						if(iPolicyEra < iPlayerEra)
-						{
-							iWeight /= max(1, (iPlayerEra - iPolicyEra));
-						}
-					}
-				}
-				if (ePolicyBranch == (PolicyBranchTypes)GC.getInfoTypeForString("POLICY_BRANCH_PIETY", true))
-				{
-					if (pPlayer->GetReligions()->GetCurrentReligion(false) != NO_RELIGION)
-						iWeight *= 4;
-					else if (GC.getGame().GetGameReligions()->GetNumReligionsStillToFound() <= 0 && pPlayer->GetReligions()->GetCurrentReligion(true) <= RELIGION_PANTHEON)
-					{
-						iWeight = 0;
-					}
-					else
-						iWeight /= 4;
-				}
-				else if(ePolicyBranch == (PolicyBranchTypes)GC.getInfoTypeForString("POLICY_BRANCH_PATRONAGE", true))
-				{
-					if(GC.getGame().GetNumMinorCivsAlive() <= 0)
-					{
-						iWeight = 0;
-					}
-					else if(pPlayer->GetDiplomacyAI()->GetNumMinorCivApproach(MINOR_CIV_APPROACH_FRIENDLY) <= 0)
-					{
-						iWeight = 0;
-					}
-					if (pPlayer->GetPlayerTraits()->GetVotePerXCSAlliance() != 0 || pPlayer->GetPlayerTraits()->GetVotePerXCSFollowingYourReligion() != 0 || pPlayer->GetPlayerTraits()->GetAllianceCSStrength() != 0)
-					{
-						iWeight *= 2;
-					}
-					else if (pPlayer->GetPlayerTraits()->GetCityStateBonusModifier() != 0 || pPlayer->GetPlayerTraits()->GetCityStateFriendshipModifier() != 0)
-					{
-						iWeight *= 2;
-					}
-					else if (pPlayer->GetPlayerTraits()->IsAngerFreeIntrusionOfCityStates() != 0 || pPlayer->GetPlayerTraits()->IsAbleToAnnexCityStates() != 0 || pPlayer->GetPlayerTraits()->IsDiplomaticMarriage())
-					{
-						iWeight *= 2;
-					}
-					else
-					{
-						iWeight /= 2;
-					}
-				}
-			}
-			
-#endif
-
-			// Does this policy finish a branch for us?
-			if(m_pCurrentPolicies->WillFinishBranchIfAdopted((PolicyTypes) iPolicyLoop))
-			{
-				int iPolicyBranch = m_pCurrentPolicies->GetPolicies()->GetPolicyEntry(iPolicyLoop)->GetPolicyBranchType();
-				if(iPolicyBranch != NO_POLICY_BRANCH_TYPE)
-				{
-					int iFinisherPolicy = m_pCurrentPolicies->GetPolicies()->GetPolicyBranchEntry(iPolicyBranch)->GetFreeFinishingPolicy();
-					if(iFinisherPolicy != NO_POLICY)
-					{
-						iWeight += m_PolicyAIWeights.GetWeight(iFinisherPolicy);
-					}
-				}
-			}
 			m_AdoptablePolicies.push_back(iPolicyLoop + GC.getNumPolicyBranchInfos(), iWeight);
 
 			if (m_pCurrentPolicies->GetPolicies()->GetPolicyEntry(iPolicyLoop)->GetLevel() == 3)
@@ -556,8 +205,26 @@ int CvPolicyAI::ChooseNextPolicy(CvPlayer* pPlayer)
 	AIGrandStrategyTypes eCultureGrandStrategy = (AIGrandStrategyTypes) GC.getInfoTypeForString("AIGRANDSTRATEGY_CULTURE");
 	AIGrandStrategyTypes eCurrentGrandStrategy = pPlayer->GetGrandStrategyAI()->GetActiveGrandStrategy();
 #endif
+#if defined(MOD_BALANCE_CORE)
+	bool bNeedToFinish = false;
+	for (int iBranchLoop2 = 0; iBranchLoop2 < GC.getNumPolicyBranchInfos(); iBranchLoop2++)
+	{
+		const PolicyBranchTypes ePolicyBranch2 = static_cast<PolicyBranchTypes>(iBranchLoop2);
+		CvPolicyBranchEntry* pkPolicyBranchInfo2 = GC.getPolicyBranchInfo(ePolicyBranch2);
+		//Do we already have a different policy branch unlocked?
+		if (pkPolicyBranchInfo2 && pPlayer->GetPlayerPolicies()->IsPolicyBranchUnlocked(ePolicyBranch2))
+		{
+			//Have we not finished it yet? If so, let's not open a new one.
+			if (!pPlayer->GetPlayerPolicies()->HasPolicy((PolicyTypes)pkPolicyBranchInfo2->GetFreeFinishingPolicy()))
+			{
+				bNeedToFinish = true;
+				break;
+			}
+		}
+	}
+#endif
 	// Loop though the branches adding each as another possibility
-	if (!bMustChooseTenet)
+	if (!bMustChooseTenet && !bNeedToFinish)
 	{
 		for(int iBranchLoop = 0; iBranchLoop < GC.getNumPolicyBranchInfos(); iBranchLoop++)
 		{
@@ -570,28 +237,6 @@ int CvPolicyAI::ChooseNextPolicy(CvPlayer* pPlayer)
 					continue;
 				}
 
-#if defined(MOD_BALANCE_CORE)
-				bool bNeedToFinish = false;
-				for(int iBranchLoop2 = 0; iBranchLoop2 < GC.getNumPolicyBranchInfos(); iBranchLoop2++)
-				{
-					const PolicyBranchTypes ePolicyBranch2 = static_cast<PolicyBranchTypes>(iBranchLoop2);
-					CvPolicyBranchEntry* pkPolicyBranchInfo2 = GC.getPolicyBranchInfo(ePolicyBranch2);
-					//Do we already have a different policy branch unlocked?
-					if(pkPolicyBranchInfo2 && ePolicyBranch2 != ePolicyBranch && pPlayer->GetPlayerPolicies()->IsPolicyBranchUnlocked(ePolicyBranch2))
-					{
-						//Have we not finished it yet? If so, let's not open a new one.
-						if(!pPlayer->GetPlayerPolicies()->HasPolicy((PolicyTypes)pkPolicyBranchInfo2->GetFreeFinishingPolicy()))
-						{
-							bNeedToFinish = true;
-							break;
-						}
-					}
-				}
-				if(bNeedToFinish)
-				{
-					continue;
-				}
-#endif
 				if(pPlayer->GetPlayerPolicies()->CanUnlockPolicyBranch(ePolicyBranch) && !pPlayer->GetPlayerPolicies()->IsPolicyBranchUnlocked(ePolicyBranch))
 				{
 					int iBranchWeight = 0;
@@ -599,18 +244,17 @@ int CvPolicyAI::ChooseNextPolicy(CvPlayer* pPlayer)
 					// Does this branch actually help us, based on game options?
 					if(IsBranchEffectiveInGame(ePolicyBranch))
 					{
-						iBranchWeight += WeighBranch(ePolicyBranch);
+						iBranchWeight += WeighBranch(pPlayer, ePolicyBranch);
 
 						iBranchWeight *= (100 - m_iPolicyWeightPercentDropNewBranch);
 						iBranchWeight /= 100;
-#if defined(MOD_BALANCE_CORE)
-						//Leftover from Vanilla victory
-#else
-						if(eCurrentGrandStrategy == eCultureGrandStrategy)
-						{
-							iBranchWeight /= 3;
-						}
-#endif
+					}
+
+					//Deemphasize older branches
+					if (pkPolicyBranchInfo->GetEraPrereq() <= pPlayer->GetCurrentEra())
+					{
+						int iDivisor = pPlayer->GetCurrentEra() - max(0, pkPolicyBranchInfo->GetEraPrereq());
+						iBranchWeight /= max(1, iDivisor);
 					}
 
 					m_AdoptablePolicies.push_back(iBranchLoop, iBranchWeight);
@@ -675,6 +319,11 @@ int CvPolicyAI::ChooseNextPolicy(CvPlayer* pPlayer)
 
 	// If total weight is above 0, choose one above a threshold
 	if(m_AdoptablePolicies.GetTotalWeight() > 0)
+	{
+		int iNumChoices = GC.getGame().getHandicapInfo().GetPolicyNumOptions();
+		iRtnValue = m_AdoptablePolicies.ChooseFromTopChoices(iNumChoices, &fcn, "Choosing policy from Top Choices");
+	}
+	else if (m_AdoptablePolicies.size() > 0)
 	{
 		int iNumChoices = GC.getGame().getHandicapInfo().GetPolicyNumOptions();
 		iRtnValue = m_AdoptablePolicies.ChooseFromTopChoices(iNumChoices, &fcn, "Choosing policy from Top Choices");
@@ -867,6 +516,40 @@ void CvPolicyAI::DoChooseIdeology(CvPlayer *pPlayer)
 			PolicyBranchTypes eOtherPlayerIdeology;
 			eOtherPlayerIdeology = kOtherPlayer.GetPlayerPolicies()->GetLateGamePolicyTree();
 
+			if (pPlayer->GetDiplomacyAI()->GetBiggestCompetitor() == eLoopPlayer)
+			{
+				if (eOtherPlayerIdeology == eFreedomBranch)
+				{
+					iAutocracyPriority += GC.getIDEOLOGY_SCORE_HOSTILE();
+					iOrderPriority += GC.getIDEOLOGY_SCORE_HOSTILE();
+				}
+				else if (eOtherPlayerIdeology == eAutocracyBranch)
+				{
+					iFreedomPriority += GC.getIDEOLOGY_SCORE_HOSTILE();
+					iOrderPriority += GC.getIDEOLOGY_SCORE_HOSTILE();
+				}
+				else if (eOtherPlayerIdeology == eOrderBranch)
+				{
+					iAutocracyPriority += GC.getIDEOLOGY_SCORE_HOSTILE();
+					iFreedomPriority += GC.getIDEOLOGY_SCORE_HOSTILE();
+				}
+			}
+			else if (pPlayer->GetDiplomacyAI()->GetMostValuableDefensivePact(false) == eLoopPlayer || pPlayer->GetDiplomacyAI()->GetMostValuableDoF(false) == eLoopPlayer)
+			{
+				if (eOtherPlayerIdeology == eFreedomBranch)
+				{
+					iFreedomPriority += GC.getIDEOLOGY_SCORE_FRIENDLY();
+				}
+				else if (eOtherPlayerIdeology == eAutocracyBranch)
+				{
+					iAutocracyPriority += GC.getIDEOLOGY_SCORE_FRIENDLY();
+				}
+				else if (eOtherPlayerIdeology == eOrderBranch)
+				{
+					iOrderPriority += GC.getIDEOLOGY_SCORE_FRIENDLY();
+				}
+			}
+
 			switch (pPlayer->GetDiplomacyAI()->GetMajorCivApproach(eLoopPlayer, /*bHideTrueFeelings*/ true))
 			{
 			case MAJOR_CIV_APPROACH_HOSTILE:
@@ -950,241 +633,16 @@ void CvPolicyAI::DoChooseIdeology(CvPlayer *pPlayer)
 	// Loop through adding the adoptable policies
 	for (int iPolicyBranchLoop = 0; iPolicyBranchLoop < GC.getNumPolicyBranchInfos(); iPolicyBranchLoop++)
 	{
-		for(int iPolicyLoop = 0; iPolicyLoop < GC.getNumPolicyInfos(); iPolicyLoop++)
+		CvPolicyBranchEntry* pkPolicyBranchInfo = GC.getPolicyBranchInfo((PolicyBranchTypes)iPolicyBranchLoop);
+		if (pkPolicyBranchInfo && pkPolicyBranchInfo->IsPurchaseByLevel())
 		{
-			CvPolicyEntry* pkPolicyInfo = GC.getPolicyInfo((PolicyTypes)iPolicyLoop);
-			if (pkPolicyInfo && pkPolicyInfo->GetLevel() > 0 && pkPolicyInfo->GetPolicyBranchType() == iPolicyBranchLoop)
-			{
-				int iWeight = 0;
-
-				iWeight += m_PolicyAIWeights.GetWeight(iPolicyLoop);
-					
-				int iDiploValue = 0;
-				int iScienceValue = 0;
-				int iConquestValue = 0;
-				int iCultureValue = 0;
-			
-				for (int iFlavor = 0; iFlavor < GC.getNumFlavorTypes(); iFlavor++)
-				{
-					FlavorTypes eFlavor = (FlavorTypes)iFlavor;
-					if (eFlavor == NO_FLAVOR)
-						continue;
-
-					if (pkPolicyInfo->GetFlavorValue(eFlavor) > 0)
-					{
-						iWeight += pPlayer->GetGrandStrategyAI()->GetPersonalityAndGrandStrategy((FlavorTypes)iFlavor);
-
-						if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_DIPLOMACY")
-						{
-							iDiploValue += iDiploInterest;
-
-							for (int iMinorCivLoop = MAX_MAJOR_CIVS; iMinorCivLoop < MAX_CIV_PLAYERS; iMinorCivLoop++)
-							{
-								PlayerTypes eMinor = (PlayerTypes)iMinorCivLoop;
-								if (eMinor == NO_PLAYER)
-									continue;
-
-								// Loop through all minors - if we're itching to conquer, bail out on diplo policies.
-								if (GET_PLAYER(eMinor).isMinorCiv() && GET_PLAYER(eMinor).isAlive())
-								{
-									if (pPlayer->GetDiplomacyAI()->GetMinorCivApproach(eMinor) >= MINOR_CIV_APPROACH_CONQUEST)
-									{
-										iWeight -= iDiploInterest;
-										break;
-									}
-								}
-							}
-						}
-						//War
-						if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_OFFENSE" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_DEFENSE" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_RANGED")
-						{
-							iConquestValue += iConquestInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_MILITARY_TRAINING" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_RECON" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_MOBILE")
-						{
-							iConquestValue += iConquestInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_AIR" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_ANTIAIR" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_AIR_CARRIER" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_AIRLIFT")
-						{
-							iConquestValue += iConquestInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_NAVAL" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_NAVAL_RECON")
-						{
-							iConquestValue += iConquestInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_EXPANSION")
-						{
-							iDiploValue += iDiploInterest;
-							iConquestValue += iConquestInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_PRODUCTION")
-						{
-							iConquestValue += iConquestInterest;
-							iScienceValue += iScienceInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_GOLD")
-						{
-							iDiploValue += iDiploInterest;
-							iConquestValue += iConquestInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_GREAT_PEOPLE")
-						{
-							iScienceValue += iScienceInterest;
-							iCultureValue += iCultureInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_GROWTH")
-						{
-							iScienceValue += iScienceInterest;
-							iCultureValue += iCultureInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_HAPPINESS")
-						{
-							iConquestValue += iConquestInterest;
-							iCultureValue += iCultureInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_INFRASTRUCTURE")
-						{
-							iDiploValue += iDiploInterest;
-							iCultureValue += iCultureInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_WATER_CONNECTION" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_I_TRADE_DESTINATION" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_I_LAND_TRADE_ROUTE" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_I_LAND_TRADE_ROUTE" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_I_SEA_TRADE_ROUTE" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_I_SEA_TRADE_ROUTE")
-						{
-							iCultureValue += iCultureInterest;
-						}
-
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_RELIGION")
-						{
-							iCultureValue += iCultureInterest;
-							iDiploValue += iDiploInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_SCIENCE")
-						{
-							iScienceValue += iScienceInterest;
-							iCultureValue += iCultureInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_SPACESHIP")
-						{
-							iScienceValue += iScienceInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_TILE_IMPROVEMENT")
-						{
-							iCultureValue += iCultureInterest;
-							iScienceValue += iScienceInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_WONDER")
-						{
-							iCultureValue += iCultureInterest;
-							iScienceValue += iScienceInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_USE_NUKE" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_NUKE")
-						{
-							iConquestValue += iConquestInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_ESPIONAGE")
-						{
-							iDiploValue += iDiploInterest;
-						}
-						else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_ARCHAEOLOGY")
-						{
-							iCultureValue += iCultureInterest;
-						}
-					}
-				}
-
-				iConquestValue *= (100 + (iConquestInterest / 5));
-				iConquestValue /= 100;
-
-				iCultureValue *= (100 + (iCultureInterest / 9));
-				iCultureValue /= 100;
-
-				iDiploValue *= (100 + (iDiploInterest / 8));
-				iDiploValue /= 100;
-
-				iScienceValue *= (100 + (iScienceInterest / 9));
-				iScienceValue /= 100;
-
-				//And now add them in. Halve if not our main focus.
-				if (pPlayer->GetDiplomacyAI()->IsGoingForCultureVictory() || pPlayer->GetDiplomacyAI()->IsCloseToCultureVictory())
-				{
-					if ((PolicyBranchTypes)iPolicyBranchLoop == eFreedomBranch)
-						iWeight += iCultureValue * 3;
-					else if ((PolicyBranchTypes)iPolicyBranchLoop == eAutocracyBranch)
-						iWeight += iCultureValue * 2;
-					else
-						iWeight += iCultureValue;
-				}
-				else
-				{
-					if ((PolicyBranchTypes)iPolicyBranchLoop == eFreedomBranch)
-						iWeight += iCultureValue / 4;
-					else if ((PolicyBranchTypes)iPolicyBranchLoop == eAutocracyBranch)
-						iWeight += iCultureValue / 3;
-					else
-						iWeight += iCultureValue / 2;
-				}
-				if (pPlayer->GetDiplomacyAI()->IsGoingForDiploVictory() || pPlayer->GetDiplomacyAI()->IsCloseToDiploVictory())
-				{
-					if ((PolicyBranchTypes)iPolicyBranchLoop == eAutocracyBranch)
-						iWeight += iDiploValue * 3;
-					else if ((PolicyBranchTypes)iPolicyBranchLoop == eFreedomBranch)
-						iWeight += iDiploValue * 2;
-					else
-						iWeight += iDiploValue;
-				}
-				else
-				{
-					if ((PolicyBranchTypes)iPolicyBranchLoop == eAutocracyBranch)
-						iWeight += iDiploValue / 4;
-					else if ((PolicyBranchTypes)iPolicyBranchLoop == eFreedomBranch)
-						iWeight += iDiploValue / 3;
-					else
-						iWeight += iDiploValue / 2;
-				}
-				if (pPlayer->GetDiplomacyAI()->IsGoingForSpaceshipVictory() || pPlayer->GetDiplomacyAI()->IsCloseToSSVictory())
-				{
-					if ((PolicyBranchTypes)iPolicyBranchLoop == eFreedomBranch)
-						iWeight += iScienceValue * 2;
-					else if ((PolicyBranchTypes)iPolicyBranchLoop == eOrderBranch)
-						iWeight += iScienceValue * 2;
-					else
-						iWeight += iScienceValue;
-				}
-				else
-				{
-					if ((PolicyBranchTypes)iPolicyBranchLoop == eFreedomBranch)
-						iWeight += iScienceValue / 3;
-					else if ((PolicyBranchTypes)iPolicyBranchLoop == eOrderBranch)
-						iWeight += iScienceValue / 3;
-					else
-						iWeight += iScienceValue / 2;
-				}
-
-				if (pPlayer->GetDiplomacyAI()->IsGoingForWorldConquest() || pPlayer->GetDiplomacyAI()->IsCloseToDominationVictory())
-				{
-					if ((PolicyBranchTypes)iPolicyBranchLoop == eAutocracyBranch)
-						iWeight += iConquestValue * 6;
-					else if ((PolicyBranchTypes)iPolicyBranchLoop == eOrderBranch)
-						iWeight += iConquestValue * 4;
-					else
-						iWeight += iConquestValue / 2;
-				}
-				else
-				{
-					if ((PolicyBranchTypes)iPolicyBranchLoop == eAutocracyBranch)
-						iWeight += iConquestValue / 4;
-					else if ((PolicyBranchTypes)iPolicyBranchLoop == eOrderBranch)
-						iWeight += iConquestValue / 3;
-					else
-						iWeight += iConquestValue / 2;
-				}
-
-				if ((PolicyBranchTypes)iPolicyBranchLoop == eFreedomBranch)
-					iFreedomPriority += (iWeight / 10);
-				else if ((PolicyBranchTypes)iPolicyBranchLoop == eAutocracyBranch)
-					iAutocracyPriority += (iWeight / 10);
-				else if ((PolicyBranchTypes)iPolicyBranchLoop == eOrderBranch)
-					iOrderPriority += (iWeight / 10);
-			}
+			int iWeight = WeighBranch(pPlayer, (PolicyBranchTypes)iPolicyBranchLoop) / 25;
+			if ((PolicyBranchTypes)iPolicyBranchLoop == eFreedomBranch)
+				iFreedomPriority += iWeight;
+			else if ((PolicyBranchTypes)iPolicyBranchLoop == eAutocracyBranch)
+				iAutocracyPriority += iWeight;
+			else if ((PolicyBranchTypes)iPolicyBranchLoop == eOrderBranch)
+				iOrderPriority += iWeight;
 		}
 	}
 	stage = "After Tenet Weights and Flavors";
@@ -1236,11 +694,11 @@ void CvPolicyAI::DoChooseIdeology(CvPlayer *pPlayer)
 	{
 #endif
 	// -- Happiness we'd lose through Public Opinion
-	iHappinessDelta = max (0, 75 - pPlayer->GetCulture()->ComputeHypotheticalPublicOpinionUnhappiness(eFreedomBranch));
+	iHappinessDelta = max (0, 250 - pPlayer->GetCulture()->ComputeHypotheticalPublicOpinionUnhappiness(eFreedomBranch));
 	iFreedomPriority += iHappinessDelta * iHappinessModifier;
-	iHappinessDelta = max (0, 75 - pPlayer->GetCulture()->ComputeHypotheticalPublicOpinionUnhappiness(eAutocracyBranch));
+	iHappinessDelta = max (0, 250 - pPlayer->GetCulture()->ComputeHypotheticalPublicOpinionUnhappiness(eAutocracyBranch));
 	iAutocracyPriority += iHappinessDelta * iHappinessModifier;
-	iHappinessDelta = max (0, 75 - pPlayer->GetCulture()->ComputeHypotheticalPublicOpinionUnhappiness(eOrderBranch));
+	iHappinessDelta = max (0, 250 - pPlayer->GetCulture()->ComputeHypotheticalPublicOpinionUnhappiness(eOrderBranch));
 	iOrderPriority += iHappinessDelta * iHappinessModifier;
 
 	stage = "After Public Opinion Happiness";
@@ -1274,100 +732,12 @@ void CvPolicyAI::DoChooseIdeology(CvPlayer *pPlayer)
 	pPlayer->GetPlayerPolicies()->SetPolicyBranchUnlocked(eChosenBranch, true, false);
 	LogBranchChoice(eChosenBranch);
 #if defined(MOD_BALANCE_CORE)
-	int iPolicyGEorGM = pPlayer->GetPlayerTraits()->GetPolicyGEorGM();
-	if(iPolicyGEorGM > 0)
+	CvPlayerTraits* pPlayerTraits = pPlayer->GetPlayerTraits();
+	CvCity* pCapital = pPlayer->getCapitalCity(); //Define capital
+	int iPolicyGEorGM = pPlayerTraits->GetPolicyGEorGM();
+	if (iPolicyGEorGM > 0 && pCapital != NULL)
 	{
-		CvCity* pLoopCity;
-		int iLoop;
-		int iValue = iPolicyGEorGM * (pPlayer->GetCurrentEra() + 1);
-		SpecialistTypes eBestSpecialist = NO_SPECIALIST;
-		int iRandom = GC.getGame().getJonRandNum(100, "Random GE or GM value");
-		if(iRandom <= 33)
-		{
-			eBestSpecialist = (SpecialistTypes)GC.getInfoTypeForString("SPECIALIST_ENGINEER");
-		}
-		else if(iRandom > 34 && iRandom <= 66)
-		{
-			eBestSpecialist = (SpecialistTypes)GC.getInfoTypeForString("SPECIALIST_SCIENTIST");
-		}
-		else if(iRandom > 66)
-		{
-			eBestSpecialist = (SpecialistTypes)GC.getInfoTypeForString("SPECIALIST_MERCHANT");			
-		}
-		if(eBestSpecialist != NULL)
-		{
-			for(pLoopCity = pPlayer->firstCity(&iLoop); pLoopCity != NULL; pLoopCity = pPlayer->nextCity(&iLoop))
-			{
-				if(eBestSpecialist == (SpecialistTypes)GC.getInfoTypeForString("SPECIALIST_ENGINEER"))
-				{
-					pLoopCity->changeProduction(iValue);
-				}
-				else if(eBestSpecialist == (SpecialistTypes)GC.getInfoTypeForString("SPECIALIST_MERCHANT"))
-				{
-					pPlayer->GetTreasury()->ChangeGold(iValue);
-				}
-				else if(eBestSpecialist == (SpecialistTypes)GC.getInfoTypeForString("SPECIALIST_SCIENTIST"))
-				{
-					TechTypes eCurrentTech = pPlayer->GetPlayerTechs()->GetCurrentResearch();
-					if(eCurrentTech == NO_TECH)
-					{
-						pPlayer->changeOverflowResearch(iValue);
-						if(pPlayer->getOverflowResearch() <= 0)
-						{
-							pPlayer->setOverflowResearch(0);
-						}
-					}
-					else
-					{
-						GET_TEAM(pPlayer->getTeam()).GetTeamTechs()->ChangeResearchProgress(eCurrentTech, iValue, pPlayer->GetID());
-						if(GET_TEAM(pPlayer->getTeam()).GetTeamTechs()->GetResearchProgress(eCurrentTech) <= 0)
-						{
-							GET_TEAM(pPlayer->getTeam()).GetTeamTechs()->SetResearchProgress(eCurrentTech, 0, pPlayer->GetID());
-						}
-					}
-				}
-				CvSpecialistInfo* pkSpecialistInfo = GC.getSpecialistInfo(eBestSpecialist);
-				if(pkSpecialistInfo)
-				{
-					int iGPThreshold = pLoopCity->GetCityCitizens()->GetSpecialistUpgradeThreshold((UnitClassTypes)pkSpecialistInfo->getGreatPeopleUnitClass());
-					iGPThreshold *= 100;
-					//Get % of threshold for test.
-					iGPThreshold *= iPolicyGEorGM;
-					iGPThreshold /= 100;
-				
-					pLoopCity->GetCityCitizens()->ChangeSpecialistGreatPersonProgressTimes100(eBestSpecialist, iGPThreshold, true);
-					if(pPlayer->GetID() == GC.getGame().getActivePlayer())
-					{
-						iGPThreshold /= 100;
-						char text[256] = {0};
-						float fDelay = 0.5f;
-						sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_GREAT_PEOPLE]", iGPThreshold);
-						DLLUI->AddPopupText(pLoopCity->getX(),pLoopCity->getY(), text, fDelay);
-						CvNotifications* pNotification = pPlayer->GetNotifications();
-						if(pNotification)
-						{
-							CvString strMessage = GetLocalizedText("TXT_KEY_POLICY_ADOPT_GP_BONUS", iGPThreshold);
-							CvString strSummary;
-							// Class specific specialist message
-							if((UnitClassTypes)pkSpecialistInfo->getGreatPeopleUnitClass() == GC.getInfoTypeForString("UNITCLASS_MERCHANT"))
-							{
-								strMessage = GetLocalizedText("TXT_KEY_POLICY_ADOPT_GP_BONUS_MERCHANT", iGPThreshold);
-							}
-							else if((UnitClassTypes)pkSpecialistInfo->getGreatPeopleUnitClass() == GC.getInfoTypeForString("UNITCLASS_ENGINEER"))
-							{
-								strMessage = GetLocalizedText("TXT_KEY_POLICY_ADOPT_GP_BONUS_ENGINEER", iGPThreshold);
-							}
-							else if((UnitClassTypes)pkSpecialistInfo->getGreatPeopleUnitClass() == GC.getInfoTypeForString("UNITCLASS_SCIENTIST"))
-							{
-								strMessage = GetLocalizedText("TXT_KEY_POLICY_ADOPT_GP_BONUS_SCIENTIST", iGPThreshold);
-							}
-							strSummary = GetLocalizedText("TXT_KEY_POLICY_ADOPT_SUMMARY_GP_BONUS");
-							pNotification->Add(NOTIFICATION_GENERIC, strMessage, strSummary, -1, -1, -1);
-						}
-					}
-				}
-			}
-		}
+		pPlayer->doPolicyGEorGM(iPolicyGEorGM);
 	}
 #endif
 #if defined(MOD_BUGFIX_MISSING_POLICY_EVENTS)
@@ -1395,9 +765,7 @@ void CvPolicyAI::DoConsiderIdeologySwitch(CvPlayer* pPlayer)
 	int iPublicOpinionUnhappiness = pPlayer->GetCulture()->GetPublicOpinionUnhappiness();
 	PolicyBranchTypes ePreferredIdeology = pPlayer->GetCulture()->GetPublicOpinionPreferredIdeology();
 	PolicyBranchTypes eCurrentIdeology = pPlayer->GetPlayerPolicies()->GetLateGamePolicyTree();
-#if !defined(NO_ACHIEVEMENTS)
-	PlayerTypes eMostPressure = pPlayer->GetCulture()->GetPublicOpinionBiggestInfluence();
-#endif
+
 #if defined(MOD_DIPLOMACY_CIV4_FEATURES)
 	if(MOD_DIPLOMACY_CIV4_FEATURES)
 	{
@@ -1559,6 +927,17 @@ void CvPolicyAI::DoConsiderIdeologySwitch(CvPlayer* pPlayer)
 			}
 #endif
 
+#if !defined(NO_ACHIEVEMENTS)
+			if (ePreferredIdeology == GC.getPOLICY_BRANCH_FREEDOM() && eCurrentIdeology == GC.getPOLICY_BRANCH_ORDER())
+			{
+				PlayerTypes eMostPressure = pPlayer->GetCulture()->GetPublicOpinionBiggestInfluence();
+				if (eMostPressure != NO_PLAYER && GET_PLAYER(eMostPressure).GetID() == GC.getGame().getActivePlayer())
+				{
+					gDLL->UnlockAchievement(ACHIEVEMENT_XP2_39);
+				}
+			}
+#endif
+
 			// Cleared all obstacles -- REVOLUTION!
 			pPlayer->SetAnarchyNumTurns(GC.getSWITCH_POLICY_BRANCHES_ANARCHY_TURNS());
 			pPlayer->GetPlayerPolicies()->DoSwitchIdeologies(ePreferredIdeology);	
@@ -1566,20 +945,6 @@ void CvPolicyAI::DoConsiderIdeologySwitch(CvPlayer* pPlayer)
 			Localization::String strSummary = Localization::Lookup("TXT_KEY_ANARCHY_BEGINS_SUMMARY");
 			Localization::String strMessage = Localization::Lookup("TXT_KEY_ANARCHY_BEGINS");
 			pPlayer->GetNotifications()->Add(NOTIFICATION_GENERIC, strMessage.toUTF8(), strSummary.toUTF8(), pPlayer->GetID(), GC.getSWITCH_POLICY_BRANCHES_ANARCHY_TURNS(), -1);
-			if(eCurrentIdeology == GC.getPOLICY_BRANCH_ORDER())
-			{
-#endif
-#if !defined(NO_ACHIEVEMENTS)
-			if (ePreferredIdeology == GC.getPOLICY_BRANCH_FREEDOM() && eCurrentIdeology == GC.getPOLICY_BRANCH_ORDER())
-			{
-				if (GET_PLAYER(eMostPressure).GetID() == GC.getGame().getActivePlayer())
-				{
-					gDLL->UnlockAchievement(ACHIEVEMENT_XP2_39);
-				}
-			}
-#endif
-#if defined(MOD_BALANCE_CORE)
-			}
 #endif
 		}
 	}
@@ -1732,8 +1097,3670 @@ void CvPolicyAI::PropagateWeights(int iPolicy, int iWeight, int iPropagationPerc
 	}
 }
 
+Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlayer* pPlayer, PolicyTypes ePolicy)
+{
+	Firaxis::Array< int, NUM_YIELD_TYPES > yield;
+	for (unsigned int i = 0; i < NUM_YIELD_TYPES; ++i)
+	{
+		yield[i] = 0;
+	}
+
+	if (yield.size() <= 0)
+		return yield;
+
+	if (pPlayer->getCapitalCity() == NULL)
+		return yield;
+
+	CvPlayerTraits* pPlayerTraits = pPlayer->GetPlayerTraits();
+
+	CvPolicyEntry* PolicyInfo = GC.getPolicyInfo(ePolicy);
+
+	//Useful cache info
+
+	int iNumCities = pPlayer->getNumCities();
+
+	//Special rule for venice - focus on OCC!
+	if (pPlayer->GetPlayerTraits()->IsNoAnnexing())
+	{
+		iNumCities = 1;
+	}
+
+	int iPopulation = pPlayer->getAveragePopulation();
+	int iNumWonders = pPlayer->GetNumWonders();
+	
+
+	if (PolicyInfo->GetPolicyCostModifier() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetPolicyCostModifier() * -4 * iNumCities;
+		}
+		else
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetPolicyCostModifier() * -2 * iNumCities;
+		}
+	}
+	if (PolicyInfo->GetCulturePerCity() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetCulturePerCity() * 5 * iNumCities;
+		}
+		else
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetCulturePerCity() * 2 * iNumCities;
+		}
+	}
+	if (PolicyInfo->GetCulturePerWonder() != 0)
+	{
+		yield[YIELD_CULTURE] += PolicyInfo->GetCulturePerWonder() * pPlayer->GetDiplomacyAI()->GetWonderCompetitiveness() + iNumWonders;
+	}
+	if (PolicyInfo->GetCultureWonderMultiplier() != 0)
+	{
+		yield[YIELD_CULTURE] += PolicyInfo->GetCultureWonderMultiplier() * pPlayer->GetDiplomacyAI()->GetWonderCompetitiveness() + iNumWonders;
+	}
+	if (PolicyInfo->GetCulturePerTechResearched() != 0)
+	{
+		if (pPlayerTraits->IsNerd())
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetCulturePerTechResearched() * 10;
+		}
+		else
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetCulturePerTechResearched() * 5;
+		}
+	}
+	if (PolicyInfo->GetCultureImprovementChange() != 0)
+	{
+		if (pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetCultureImprovementChange() * 4;
+		}
+		else
+			yield[YIELD_CULTURE] += PolicyInfo->GetCultureImprovementChange() * 2;
+	}
+	if (PolicyInfo->GetCultureFromKills() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetCultureFromKills() * 2;
+		}
+		else
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetCultureFromKills();
+		}
+	}
+	if (PolicyInfo->GetCultureFromBarbarianKills() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetCultureFromBarbarianKills() * 2;
+		}
+		else
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetCultureFromBarbarianKills();
+		}
+	}
+
+	if (PolicyInfo->GetGoldFromKills() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetGoldFromKills() * 2;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetGoldFromKills();
+		}
+	}
+	if (PolicyInfo->GetEmbarkedExtraMoves() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger() || pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetEmbarkedExtraMoves() * 150;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetEmbarkedExtraMoves() * 50;
+		}
+	}
+	if (PolicyInfo->GetAttackBonusTurns() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetAttackBonusTurns() * PolicyInfo->GetAttackBonusTurns();
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetAttackBonusTurns() * (PolicyInfo->GetAttackBonusTurns() / 2);
+		}
+	}
+	if (PolicyInfo->GetGoldenAgeTurns() != 0)
+	{
+		if (pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetGoldenAgeTurns() * pPlayer->GetNumGoldenAges() * 5;
+		}
+		else
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetGoldenAgeTurns() * pPlayer->GetNumGoldenAges() * 2;
+		}
+	}
+	if (PolicyInfo->GetGoldenAgeMeterMod() != 0)
+	{
+		if (pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetGoldenAgeMeterMod() * 2 * pPlayer->GetNumGoldenAges();
+		}
+		else
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetGoldenAgeMeterMod() * pPlayer->GetNumGoldenAges();
+		}
+	}
+	if (PolicyInfo->GetGoldenAgeDurationMod() != 0)
+	{
+		if (pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetGoldenAgeDurationMod() * 4 * pPlayer->GetNumGoldenAges();
+		}
+		else
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetGoldenAgeDurationMod() * 2 * pPlayer->GetNumGoldenAges();
+		}
+	}
+
+	if (PolicyInfo->GetNumFreeTechs() != 0)
+	{
+		if (pPlayerTraits->IsNerd())
+		{
+			yield[YIELD_SCIENCE] += PolicyInfo->GetNumFreeTechs() * 250;
+		}
+		else
+		{
+			yield[YIELD_SCIENCE] += PolicyInfo->GetNumFreeTechs() * 125;
+		}
+	}
+	if (PolicyInfo->GetNumFreePolicies() != 0)
+	{
+		if (pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetNumFreePolicies() * 250;
+		}
+		else
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetNumFreePolicies() * 125;
+		}
+	}
+	if (PolicyInfo->GetNumFreeGreatPeople() != 0)
+	{
+		if (pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetNumFreeGreatPeople() * 300;
+		}
+		else
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetNumFreeGreatPeople() * 150;
+		}
+	}
+	if (PolicyInfo->GetStrategicResourceMod() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetStrategicResourceMod() * 5;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetStrategicResourceMod() * 2;
+		}
+	}
+	if (PolicyInfo->GetWonderProductionModifier() != 0)
+	{
+		if (pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetWonderProductionModifier() * (4 + iNumWonders);
+		}
+		else
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetWonderProductionModifier() * (2 + iNumWonders);
+		}
+	}
+	if (PolicyInfo->GetBuildingProductionModifier() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetBuildingProductionModifier() * 5;
+		}
+		else
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetBuildingProductionModifier() * 2;
+		}
+	}
+	if (PolicyInfo->GetConquestPerEraBuildingProductionMod() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist() || pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetConquestPerEraBuildingProductionMod() * 5 * max(1, pPlayer->GetNumPuppetCities());
+		}
+		else
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetConquestPerEraBuildingProductionMod() * 2 * max(1, pPlayer->GetNumPuppetCities());
+		}
+	}
+	if (PolicyInfo->GetPuppetYieldPenaltyMod() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist() || pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetPuppetYieldPenaltyMod() * 5 * pPlayer->GetNumPuppetCities();
+		}
+		else
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetPuppetYieldPenaltyMod() * 2 * pPlayer->GetNumPuppetCities();
+		}
+	}
+	if (PolicyInfo->GetFlatDefenseFromAirUnits() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist() || pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetFlatDefenseFromAirUnits() * 10 * iNumCities;
+		}
+		else
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetFlatDefenseFromAirUnits() * 5 * iNumCities;
+		}
+	}
+	if (PolicyInfo->GetNeedsModifierFromAirUnits() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist() || pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetNeedsModifierFromAirUnits() * 10 * iNumCities;
+		}
+		else
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetNeedsModifierFromAirUnits() * 5 * iNumCities;
+		}
+	}
+	if (PolicyInfo->GetGreatPeopleRateModifier() != 0)
+	{
+		if (pPlayerTraits->IsTourism() || pPlayerTraits->IsSmaller())
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetGreatPeopleRateModifier() * 5;
+		}
+		else
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetGreatPeopleRateModifier();
+		}
+	}
+	if (PolicyInfo->GetGreatGeneralRateModifier() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetGreatGeneralRateModifier() * 3 + pPlayer->getGreatGeneralsCreated(true);
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetGreatGeneralRateModifier() * 1 + pPlayer->getGreatGeneralsCreated(true);
+		}
+	}
+	if (PolicyInfo->GetGreatAdmiralRateModifier() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetGreatAdmiralRateModifier() * 3 + pPlayer->getGreatAdmiralsCreated(true);
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetGreatAdmiralRateModifier() * 1 + pPlayer->getGreatAdmiralsCreated(true);
+		}
+	}
+	if (PolicyInfo->GetGreatWriterRateModifier() != 0)
+	{
+		if (pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetGreatWriterRateModifier() * 3 + pPlayer->getGreatWritersCreated(true);
+		}
+		else
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetGreatWriterRateModifier() * 1 + pPlayer->getGreatWritersCreated(true);
+		}
+	}
+	if (PolicyInfo->GetGreatArtistRateModifier() != 0)
+	{
+		if (pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetGreatArtistRateModifier() * 3 + pPlayer->getGreatArtistsCreated(true);
+		}
+		else
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetGreatArtistRateModifier() * 1 + pPlayer->getGreatArtistsCreated(true);
+		}
+	}
+	if (PolicyInfo->GetGreatMusicianRateModifier() != 0)
+	{
+		if (pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetGreatMusicianRateModifier() * 3 + pPlayer->getGreatMusiciansCreated(true);
+		}
+		else
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetGreatMusicianRateModifier() * 1 + pPlayer->getGreatMusiciansCreated(true);
+		}
+	}
+	if (PolicyInfo->GetGreatMerchantRateModifier() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetGreatMerchantRateModifier() * 3 + pPlayer->getGreatMerchantsCreated(true);
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetGreatMerchantRateModifier() * 1 + pPlayer->getGreatMerchantsCreated(true);
+		}
+	}
+	if (PolicyInfo->GetGreatScientistRateModifier() != 0)
+	{
+		if (pPlayerTraits->IsNerd())
+		{
+			yield[YIELD_SCIENCE] += PolicyInfo->GetGreatScientistRateModifier() * 3 + pPlayer->getGreatScientistsCreated(true);
+		}
+		else
+		{
+			yield[YIELD_SCIENCE] += PolicyInfo->GetGreatScientistRateModifier() * 1 + pPlayer->getGreatScientistsCreated(true);
+		}
+	}
+	if (PolicyInfo->GetGreatDiplomatRateModifier() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetGreatDiplomatRateModifier() * 3 + pPlayer->getGreatDiplomatsCreated(true);
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetGreatDiplomatRateModifier() * 1 + pPlayer->getGreatDiplomatsCreated(true);
+		}
+	}
+	if (PolicyInfo->GetDomesticGreatGeneralRateModifier() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetDomesticGreatGeneralRateModifier() * 2 + pPlayer->getGreatGeneralsCreated(true);
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetDomesticGreatGeneralRateModifier() * 1 + pPlayer->getGreatGeneralsCreated(true);
+		}
+	}
+	if (PolicyInfo->GetExtraHappiness() != 0)
+	{
+		yield[YIELD_FOOD] += PolicyInfo->GetExtraHappiness() * 50;
+	}
+	if (PolicyInfo->GetExtraHappinessPerCity() != 0)
+	{
+		yield[YIELD_FOOD] += PolicyInfo->GetExtraHappinessPerCity() * 25;
+	}
+	if (PolicyInfo->GetExtraNaturalWonderHappiness() != 0)
+	{
+		yield[YIELD_FOOD] += PolicyInfo->GetExtraNaturalWonderHappiness() * 25;
+	}
+	if (PolicyInfo->GetUnhappinessMod() != 0)
+	{
+		yield[YIELD_FOOD] += PolicyInfo->GetUnhappinessMod() * 10;
+	}
+	if (PolicyInfo->GetCityCountUnhappinessMod() != 0)
+	{
+		yield[YIELD_FOOD] += PolicyInfo->GetCityCountUnhappinessMod() * 10;
+	}
+	if (PolicyInfo->GetOccupiedPopulationUnhappinessMod() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetOccupiedPopulationUnhappinessMod() * 5;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetOccupiedPopulationUnhappinessMod() * 2;
+		}
+	}
+	if (PolicyInfo->GetCapitalUnhappinessMod() != 0)
+	{
+		yield[YIELD_FOOD] += PolicyInfo->GetCapitalUnhappinessMod() * 5;
+	}
+	if (PolicyInfo->GetFreeExperience() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetFreeExperience() * 15;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetFreeExperience() * 2;
+		}
+	}
+	if (PolicyInfo->GetExpModifier() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetExpModifier() * 15;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetExpModifier() * 2;
+		}
+	}
+	if (PolicyInfo->GetWorkerSpeedModifier() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetWorkerSpeedModifier() * 3;
+		}
+		else
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetWorkerSpeedModifier();
+		}
+	}
+	if (PolicyInfo->GetBaseFreeUnits() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetBaseFreeUnits() * 10;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetBaseFreeUnits() * 5;
+		}
+	}
+	if (PolicyInfo->GetBaseFreeMilitaryUnits() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetBaseFreeMilitaryUnits() * 10;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetBaseFreeMilitaryUnits() * 2;
+		}
+	}
+	if (PolicyInfo->GetFreeUnitsPopulationPercent() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetFreeUnitsPopulationPercent() * 5;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetFreeUnitsPopulationPercent() * 2;
+		}
+	}
+	if (PolicyInfo->GetFreeMilitaryUnitsPopulationPercent() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetFreeMilitaryUnitsPopulationPercent() * 5;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetFreeMilitaryUnitsPopulationPercent() * 2;
+		}
+	}
+	if (PolicyInfo->GetHappinessPerGarrisonedUnit() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger() || pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetHappinessPerGarrisonedUnit() * 10 * iNumCities;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetHappinessPerGarrisonedUnit() * 5 * iNumCities;
+		}
+	}
+	if (PolicyInfo->GetCulturePerGarrisonedUnit() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger() || pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetCulturePerGarrisonedUnit() * 10 * iNumCities;
+		}
+		else
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetCulturePerGarrisonedUnit() * 5 * iNumCities;
+		}
+	}
+	if (PolicyInfo->GetHappinessPerTradeRoute() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetHappinessPerTradeRoute() * 10 * iNumCities;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetHappinessPerTradeRoute() * 5 * iNumCities;
+		}
+	}
+	if (PolicyInfo->GetHappinessPerXPopulation() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_FOOD] += (iPopulation * 200) / PolicyInfo->GetHappinessPerXPopulation();
+		}
+		else
+		{
+			yield[YIELD_FOOD] += (iPopulation * 100) / PolicyInfo->GetHappinessPerXPopulation();
+		}
+	}
+	if (PolicyInfo->GetHappinessPerXPopulationGlobal() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_FOOD] += (iPopulation * 200) / PolicyInfo->GetHappinessPerXPopulationGlobal();
+		}
+		else
+		{
+			yield[YIELD_FOOD] += (iPopulation * 100) / PolicyInfo->GetHappinessPerXPopulationGlobal();
+		}
+	}
+	if (PolicyInfo->IsCorporationOfficesAsFranchises())
+	{
+		if (pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_GOLD] += 30 * iNumCities;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += 15 * iNumCities;
+		}
+	}
+	if (PolicyInfo->IsCorporationFreeFranchiseAbovePopular())
+	{
+		if (pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_TOURISM] += 500;
+		}
+		else
+		{
+			yield[YIELD_TOURISM] += 250;
+		}
+	}
+	if (PolicyInfo->IsCorporationRandomForeignFranchise())
+	{
+		if (pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_GOLD] += 500;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += 200;
+		}
+	}
+	if (PolicyInfo->GetAdditionalNumFranchisesMod() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetAdditionalNumFranchisesMod() * 10;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetAdditionalNumFranchisesMod() * 5;
+		}
+	}
+	if (PolicyInfo->IsUpgradeCSVassalTerritory())
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += 150;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += 50;
+		}
+	}
+
+	GreatWorkSlotType eArtArtifactSlot = CvTypes::getGREAT_WORK_SLOT_ART_ARTIFACT();
+	if (PolicyInfo->GetArchaeologicalDigTourism() != 0)
+	{
+		if (pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetArchaeologicalDigTourism() * 5 * pPlayer->GetCulture()->GetNumAvailableGreatWorkSlots(eArtArtifactSlot);
+		}
+		else
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetArchaeologicalDigTourism() * pPlayer->GetCulture()->GetNumAvailableGreatWorkSlots(eArtArtifactSlot);
+		}
+	}
+	if (PolicyInfo->GetGoldenAgeTourism() != 0)
+	{
+		if (pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetGoldenAgeTourism() * 25 * pPlayer->GetNumGoldenAges();
+		}
+		else
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetGoldenAgeTourism() * 5 * pPlayer->GetNumGoldenAges();
+		}
+	}
+	if (PolicyInfo->GetExtraCultureandScienceTradeRoutes() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_SCIENCE] += PolicyInfo->GetExtraCultureandScienceTradeRoutes() * 50;
+			yield[YIELD_CULTURE] += PolicyInfo->GetExtraCultureandScienceTradeRoutes() * 50;
+		}
+		else
+		{
+			yield[YIELD_SCIENCE] += PolicyInfo->GetExtraCultureandScienceTradeRoutes() * 25;
+			yield[YIELD_CULTURE] += PolicyInfo->GetExtraCultureandScienceTradeRoutes() * 25;
+		}
+	}
+	if (PolicyInfo->GetTradeRouteLandDistanceModifier() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetTradeRouteLandDistanceModifier() * 10;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetTradeRouteLandDistanceModifier() * 2;
+		}
+	}
+	if (PolicyInfo->GetTradeRouteSeaDistanceModifier() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetTradeRouteSeaDistanceModifier() * 10;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetTradeRouteSeaDistanceModifier() * 2;
+		}
+	}
+	if (PolicyInfo->GetEspionageModifier() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetEspionageModifier() * -3;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetEspionageModifier() * -2;
+		}
+	}
+	if (PolicyInfo->GetXCSAlliesLowersPolicyNeedWonders() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetXCSAlliesLowersPolicyNeedWonders() * 25;
+		}
+		else
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetXCSAlliesLowersPolicyNeedWonders() * 5;
+		}
+	}
+	if (PolicyInfo->GetHappinessPerXPolicies() != 0)
+	{
+		if (pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetHappinessPerXPolicies() * 20;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetHappinessPerXPolicies() * 5;
+		}
+	}
+	if (PolicyInfo->GetHappinessPerXGreatWorks() != 0)
+	{
+		if (pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetHappinessPerXGreatWorks() * 20;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetHappinessPerXGreatWorks() * 5;
+		}
+	}
+	if (PolicyInfo->GetExtraHappinessPerLuxury() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist() || pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetExtraHappinessPerLuxury() * 10;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetExtraHappinessPerLuxury() * 2;
+		}
+	}
+	if (PolicyInfo->GetUnhappinessFromUnitsMod() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist() || pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetUnhappinessFromUnitsMod() * 10;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetUnhappinessFromUnitsMod();
+		}
+	}
+	if (PolicyInfo->GetPlotGoldCostMod() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetPlotGoldCostMod() * -5;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetPlotGoldCostMod() * -2;
+		}
+	}
+	if (PolicyInfo->GetPlotCultureCostModifier() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetPlotCultureCostModifier() * -3;
+		}
+		else
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetPlotCultureCostModifier() * -2;
+		}
+	}
+	if (PolicyInfo->GetPlotCultureExponentModifier() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetPlotCultureExponentModifier() * -3;
+		}
+		else
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetPlotCultureExponentModifier() * -2;
+		}
+	}
+	if (PolicyInfo->GetNumCitiesPolicyCostDiscount() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetNumCitiesPolicyCostDiscount() * 25;
+		}
+		else
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetNumCitiesPolicyCostDiscount() * 5;
+		}
+	}
+	if (PolicyInfo->GetGarrisonedCityRangeStrikeModifier() != 0)
+	{
+		if (pPlayerTraits->IsSmaller())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetGarrisonedCityRangeStrikeModifier();
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetGarrisonedCityRangeStrikeModifier() / 2;
+		}
+	}
+	if (PolicyInfo->GetUnitPurchaseCostModifier() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetUnitPurchaseCostModifier() * 4;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetUnitPurchaseCostModifier() * 2;
+		}
+	}
+	if (PolicyInfo->GetBuildingPurchaseCostModifier() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetBuildingPurchaseCostModifier() * -5;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetBuildingPurchaseCostModifier() * -2;
+		}
+	}
+	if (PolicyInfo->GetCityConnectionTradeRouteGoldModifier() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetCityConnectionTradeRouteGoldModifier() * 2;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetCityConnectionTradeRouteGoldModifier();
+		}
+	}
+	if (PolicyInfo->GetTradeMissionGoldModifier() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetTradeMissionGoldModifier() * 2;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetTradeMissionGoldModifier();
+		}
+	}
+	if (PolicyInfo->GetFaithCostModifier() != 0)
+	{
+		if (pPlayerTraits->IsReligious())
+		{
+			yield[YIELD_FAITH] += PolicyInfo->GetFaithCostModifier() * -3;
+		}
+		else
+		{
+			yield[YIELD_FAITH] += PolicyInfo->GetFaithCostModifier() * -1;
+		}
+	}
+	if (PolicyInfo->GetStealTechSlowerModifier() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_SCIENCE] += PolicyInfo->GetStealTechSlowerModifier() / 2;
+		}
+		else
+		{
+			yield[YIELD_SCIENCE] += PolicyInfo->GetStealTechSlowerModifier() / 4;
+		}
+	}
+	if (PolicyInfo->GetStealTechFasterModifier() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_SCIENCE] += PolicyInfo->GetStealTechFasterModifier() / 2;
+		}
+		else
+		{
+			yield[YIELD_SCIENCE] += PolicyInfo->GetStealTechFasterModifier() / 4;
+		}
+	}
+	if (PolicyInfo->GetCatchSpiesModifier() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_SCIENCE] += PolicyInfo->GetCatchSpiesModifier() * 2;
+		}
+		else
+		{
+			yield[YIELD_SCIENCE] += PolicyInfo->GetCatchSpiesModifier() / 2;
+		}
+	}
+	if (PolicyInfo->GetCityStrengthMod() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetCityStrengthMod();
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetCityStrengthMod() / 2;
+		}
+	}
+	if (PolicyInfo->GetCityGrowthMod() != 0)
+	{
+		if (pPlayerTraits->IsSmaller())
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetCityGrowthMod() * 15 * iNumCities;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetCityGrowthMod() * 5 * iNumCities;
+		}
+	}
+	if (PolicyInfo->GetCapitalGrowthMod() != 0)
+	{
+		if (pPlayerTraits->IsSmaller())
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetCapitalGrowthMod() * 20;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetCapitalGrowthMod() * 5;
+		}
+	}
+	if (PolicyInfo->GetSettlerProductionModifier() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetSettlerProductionModifier();
+		}
+		else
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetSettlerProductionModifier() / 2;
+		}
+	}
+	if (PolicyInfo->GetCapitalSettlerProductionModifier() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetCapitalSettlerProductionModifier();
+		}
+		else
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetCapitalSettlerProductionModifier() / 2;
+		}
+	}
+	if (PolicyInfo->GetNewCityExtraPopulation() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetNewCityExtraPopulation() * 50;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetNewCityExtraPopulation() * 25;
+		}
+	}
+	if (PolicyInfo->GetUnitGoldMaintenanceMod() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetUnitGoldMaintenanceMod() * -15;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetUnitGoldMaintenanceMod() * -5;
+		}
+	}
+	if (PolicyInfo->GetUnitSupplyMod() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetUnitSupplyMod() * 5;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetUnitSupplyMod();
+		}
+	}
+	if (PolicyInfo->GetExpModifier() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetExpModifier() * 5;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetExpModifier();
+		}
+	}
+	if (PolicyInfo->GetExpInBorderModifier() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetExpInBorderModifier() * 5;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetExpInBorderModifier();
+		}
+	}
+	if (PolicyInfo->GetMinorQuestFriendshipMod() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetMinorQuestFriendshipMod() * 2;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetMinorQuestFriendshipMod();
+		}
+	}
+	if (PolicyInfo->GetMinorGoldFriendshipMod() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetMinorGoldFriendshipMod() * 2;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetMinorGoldFriendshipMod();
+		}
+	}
+	if (PolicyInfo->GetMinorFriendshipMinimum() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetMinorFriendshipMinimum() * 2;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetMinorFriendshipMinimum();
+		}
+	}
+	if (PolicyInfo->GetMinorFriendshipDecayMod() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetMinorFriendshipDecayMod() * -2;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetMinorFriendshipDecayMod() * -1;
+		}
+	}
+	if (PolicyInfo->GetCityStateUnitFrequencyModifier() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetCityStateUnitFrequencyModifier() * 5;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetCityStateUnitFrequencyModifier();
+		}
+	}
+	if (PolicyInfo->GetCommonFoeTourismModifier() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetCommonFoeTourismModifier() * 5;
+		}
+		else
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetCommonFoeTourismModifier();
+		}
+	}
+	if (PolicyInfo->GetLessHappyTourismModifier() != 0)
+	{
+		if (pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetLessHappyTourismModifier() * 5;
+		}
+		else
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetLessHappyTourismModifier();
+		}
+	}
+	if (PolicyInfo->GetSharedIdeologyTourismModifier() != 0)
+	{
+		if (pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetSharedIdeologyTourismModifier() * 5;
+		}
+		else
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetSharedIdeologyTourismModifier();
+		}
+	}
+	if (PolicyInfo->GetLandTradeRouteGoldChange() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += (max(1, pPlayer->GetTrade()->GetNumberOfTradeRoutes()) * PolicyInfo->GetLandTradeRouteGoldChange()) / 50;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += (max(1, pPlayer->GetTrade()->GetNumberOfTradeRoutes()) * PolicyInfo->GetLandTradeRouteGoldChange()) / 100;
+		}
+	}
+	if (PolicyInfo->GetSeaTradeRouteGoldChange() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += (max(1, pPlayer->GetTrade()->GetNumberOfTradeRoutes()) * PolicyInfo->GetSeaTradeRouteGoldChange()) / 50;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += (max(1, pPlayer->GetTrade()->GetNumberOfTradeRoutes()) * PolicyInfo->GetSeaTradeRouteGoldChange()) / 100;
+		}
+	}
+	if (PolicyInfo->GetSharedIdeologyTradeGoldChange() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetSharedIdeologyTradeGoldChange() * 25;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetSharedIdeologyTradeGoldChange() * 5;
+		}
+	}
+	if (PolicyInfo->GetRiggingElectionModifier() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetRiggingElectionModifier() * 5;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetRiggingElectionModifier();
+		}
+	}
+	if (PolicyInfo->GetMilitaryUnitGiftExtraInfluence() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetMilitaryUnitGiftExtraInfluence() * 5;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetMilitaryUnitGiftExtraInfluence();
+		}
+	}
+	if (PolicyInfo->GetProtectedMinorPerTurnInfluence() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetProtectedMinorPerTurnInfluence() * 5;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetProtectedMinorPerTurnInfluence();
+		}
+	}
+	if (PolicyInfo->GetAfraidMinorPerTurnInfluence() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetAfraidMinorPerTurnInfluence() * 5;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetAfraidMinorPerTurnInfluence();
+		}
+	}
+	if (PolicyInfo->GetMinorBullyScoreModifier() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetMinorBullyScoreModifier() * 5;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetMinorBullyScoreModifier() / 2;
+		}
+	}
+	if (PolicyInfo->GetThemingBonusMultiplier() != 0)
+	{
+		if (pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetThemingBonusMultiplier() * (pPlayer->GetCulture()->GetTotalThemingBonuses() / 2);
+		}
+		else
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetThemingBonusMultiplier() * (pPlayer->GetCulture()->GetTotalThemingBonuses() / 5);
+		}
+	}
+	if (PolicyInfo->GetInternalTradeRouteYieldModifier() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetInternalTradeRouteYieldModifier() / 5;
+		}
+		else
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetInternalTradeRouteYieldModifier() / 10;
+		}
+	}
+	if (PolicyInfo->GetPositiveWarScoreTourismMod() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetPositiveWarScoreTourismMod() * 5;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetPositiveWarScoreTourismMod() / 2;
+		}
+	}
+	if (PolicyInfo->GetInternalTradeRouteYieldModifierCapital() != 0)
+	{
+		if (pPlayerTraits->IsSmaller())
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetInternalTradeRouteYieldModifierCapital() * 2;
+		}
+		else
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetInternalTradeRouteYieldModifierCapital() / 2;
+		}
+	}
+	if (PolicyInfo->GetTradeRouteYieldModifierCapital() != 0)
+	{
+		if (pPlayerTraits->IsSmaller())
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetTradeRouteYieldModifierCapital() * 2;
+		}
+		else
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetTradeRouteYieldModifierCapital() / 2;
+		}
+	}
+	if (PolicyInfo->GetNewCityFreeBuilding() != NO_BUILDINGCLASS)
+	{
+		CvBuildingClassInfo* pkBuildingClassInfo = GC.getBuildingClassInfo(PolicyInfo->GetNewCityFreeBuilding());
+		if (pkBuildingClassInfo)
+		{
+			const BuildingTypes eBuilding = ((BuildingTypes)(pPlayer->getCivilizationInfo().getCivilizationBuildings(PolicyInfo->GetNewCityFreeBuilding())));
+			if (NO_BUILDING != eBuilding)
+			{
+				CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(eBuilding);
+				if (pkBuildingInfo)
+				{
+					int iValue = pPlayer->getCapitalCity()->GetCityStrategyAI()->GetBuildingProductionAI()->CheckBuildingBuildSanity(eBuilding, 50, 10, 10, 10, false, true, true);
+					if (iValue > 0)
+					{
+						iValue /= 2;
+
+						if (pkBuildingInfo->IsCapitalOnly() && !pPlayer->GetPlayerTraits()->IsSmaller())
+							iValue /= 2;
+
+						iValue -= pPlayer->getNumBuildings(eBuilding) * 10;
+
+						yield[YIELD_PRODUCTION] += max(0, iValue);
+					}
+				}
+			}
+		}
+	}
+	if (PolicyInfo->IsNoCSDecayAtWar())
+	{
+		if (pPlayerTraits->IsWarmonger() || pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += 250;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += 50;
+		}
+	}
+	if (PolicyInfo->GetBullyGlobalCSReduction())
+	{
+		if (pPlayerTraits->IsWarmonger() || pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += 250;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += 50;
+		}
+	}
+	if (PolicyInfo->CanBullyFriendlyCS())
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += 500;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += 50;
+		}
+	}
+	if (PolicyInfo->IsVassalsNoRebel() && GET_TEAM(pPlayer->getTeam()).GetNumVassals() > 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += 100 * GET_TEAM(pPlayer->getTeam()).GetNumVassals();
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += 25 * GET_TEAM(pPlayer->getTeam()).GetNumVassals();
+		}
+	}
+	if (PolicyInfo->GetVassalCSBonusModifier() && GET_TEAM(pPlayer->getTeam()).GetNumVassals() > 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GOLD] += 50;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += 10;
+		}
+	}
+	if (PolicyInfo->GetVassalCSBonusModifier() && GET_TEAM(pPlayer->getTeam()).GetNumVassals() > 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GOLD] += 25;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += 10;
+		}
+	}
+	if (PolicyInfo->GetSharedReligionTourismModifier() != 0)
+	{
+		if (pPlayerTraits->IsReligious())
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetSharedReligionTourismModifier() * 5;
+		}
+		else
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetSharedReligionTourismModifier();
+		}
+	}
+	if (PolicyInfo->GetTradeRouteTourismModifier() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetTradeRouteTourismModifier() * 5;
+		}
+		else
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetTradeRouteTourismModifier();
+		}
+	}
+	if (PolicyInfo->GetOpenBordersTourismModifier() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetOpenBordersTourismModifier() * 5;
+		}
+		else
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetOpenBordersTourismModifier();
+		}
+	}
+	if (PolicyInfo->IsMinorGreatPeopleAllies())
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_TOURISM] += 250;
+		}
+		else
+		{
+			yield[YIELD_TOURISM] += 50;
+		}
+	}
+	if (PolicyInfo->IsMinorScienceAllies())
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_SCIENCE] += 250;
+		}
+		else
+		{
+			yield[YIELD_SCIENCE] += 50;
+		}
+	}
+	if (PolicyInfo->IsMinorResourceBonus())
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_FOOD] += 250;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += 50;
+		}
+	}
+	if (PolicyInfo->GetHappinessToCulture() != 0)
+	{
+		if (pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetHappinessToCulture() * 2;
+		}
+		else
+		{
+			yield[YIELD_CULTURE] += PolicyInfo->GetHappinessToCulture();
+		}
+	}
+	if (PolicyInfo->GetHappinessToScience() != 0)
+	{
+		if (pPlayerTraits->IsNerd())
+		{
+			yield[YIELD_SCIENCE] += PolicyInfo->GetHappinessToScience() * 3;
+		}
+		else
+		{
+			yield[YIELD_SCIENCE] += PolicyInfo->GetHappinessToScience();
+		}
+	}
+	if (PolicyInfo->GetNumCitiesFreeCultureBuilding() != 0)
+	{
+		if (pPlayerTraits->IsSmaller())
+		{
+			yield[YIELD_CULTURE] += 50;
+		}
+		else
+		{
+			yield[YIELD_SCIENCE] += 25;
+		}
+	}
+	if (PolicyInfo->GetNumCitiesFreeFoodBuilding() != 0)
+	{
+		if (pPlayerTraits->IsSmaller())
+		{
+			yield[YIELD_FOOD] += 50;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += 25;
+		}
+	}
+	if (PolicyInfo->IsHalfSpecialistUnhappiness() != 0)
+	{
+		if (pPlayerTraits->IsSmaller() || pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_FOOD] += 250;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += 50;
+		}
+	}
+	if (PolicyInfo->IsHalfSpecialistFood() != 0)
+	{
+		if (pPlayerTraits->IsSmaller() || pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_FOOD] += 250;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += 50;
+		}
+	}
+	if (PolicyInfo->IsHalfSpecialistFoodCapital() != 0)
+	{
+		if (pPlayerTraits->IsSmaller() || pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_FOOD] += 250;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += 50;
+		}
+	}
+
+	if (PolicyInfo->GetDefenseBoost() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger() || pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += 20 * iNumCities;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += 5 * iNumCities;
+		}
+	}
+
+	if (PolicyInfo->GetStealGWSlowerModifier() != 0)
+	{
+		if (pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetStealGWSlowerModifier() * 2;
+		}
+		else
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetStealGWSlowerModifier();
+		}
+	}
+	if (PolicyInfo->GetStealGWFasterModifier() != 0)
+	{
+		if (pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetStealGWFasterModifier() * 2;
+		}
+		else
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetStealGWFasterModifier();
+		}
+	}
+	if (PolicyInfo->GetEventTourism() != 0)
+	{
+		if (pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetEventTourism() * 50;
+		}
+		else
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetEventTourism() * 25;
+		}
+	}
+	if (PolicyInfo->GetEventTourismCS() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat() || pPlayerTraits->IsTourism())
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetEventTourismCS() * 50;
+		}
+		else
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetEventTourismCS() * 25;
+		}
+	}
+	if (PolicyInfo->GetMonopolyModFlat() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetMonopolyModFlat() * 30;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetMonopolyModFlat() * 15;
+		}
+	}
+	if (PolicyInfo->GetMonopolyModPercent() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetMonopolyModPercent() * 10;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetMonopolyModPercent() * 2;
+		}
+	}
+	if (PolicyInfo->GetAdmiralLuxuryBonus() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist() || pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetAdmiralLuxuryBonus() * 50;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetAdmiralLuxuryBonus() * 25;
+		}
+	}
+	if (PolicyInfo->GetCityStateCombatModifier() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetCityStateCombatModifier() * 2;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetCityStateCombatModifier() / 2;
+		}
+	}
+	if (PolicyInfo->GetGreatEngineerRateModifier() != 0)
+	{
+		if (pPlayerTraits->IsSmaller())
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetGreatEngineerRateModifier() * 2 + pPlayer->getGreatEngineersCreated(true);
+		}
+		else
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetGreatEngineerRateModifier() * 1 + pPlayer->getGreatEngineersCreated(true);
+		}
+	}
+	if (PolicyInfo->GetUnitUpgradeCostMod() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetUnitUpgradeCostMod() * -5;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetUnitUpgradeCostMod() * -1;
+		}
+	}
+	if (PolicyInfo->GetBarbarianCombatBonus() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetBarbarianCombatBonus() * 3;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetBarbarianCombatBonus();
+		}
+	}
+	if (PolicyInfo->IsAlwaysSeeBarbCamps())
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += 50;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += 5;
+		}
+	}
+	if (PolicyInfo->IsRevealAllCapitals())
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += 100;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += 25;
+		}
+	}
+	if (PolicyInfo->IsGarrisonFreeMaintenance())
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_GOLD] += 10 * iNumCities;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += 5 * iNumCities;
+		}
+	}
+	if (PolicyInfo->IsSecondReligionPantheon())
+	{
+		if (pPlayerTraits->IsReligious())
+		{
+			yield[YIELD_FAITH] += 100;
+		}
+		else
+		{
+			yield[YIELD_FAITH] += 50;
+		}
+	}
+	if (PolicyInfo->IsAddReformationBelief())
+	{
+		if (pPlayerTraits->IsReligious())
+		{
+			yield[YIELD_FAITH] += 1000;
+		}
+		else
+		{
+			yield[YIELD_FAITH] += 50;
+		}
+	}
+	if (PolicyInfo->IsEnablesSSPartHurry())
+	{
+		if (pPlayerTraits->IsNerd())
+		{
+			yield[YIELD_SCIENCE] += 1000;
+		}
+		else
+		{
+			yield[YIELD_SCIENCE] += 100;
+		}
+	}
+	if (PolicyInfo->IsEnablesSSPartPurchase())
+	{
+		if (pPlayerTraits->IsNerd())
+		{
+			yield[YIELD_SCIENCE] += 1000;
+		}
+		else
+		{
+			yield[YIELD_SCIENCE] += 100;
+		}
+	}
+	if (PolicyInfo->IsAbleToAnnexCityStates())
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += 500;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += 50;
+		}
+	}
+	if (PolicyInfo->HasFaithPurchaseUnitClasses())
+	{
+		if (pPlayerTraits->IsReligious())
+		{
+			yield[YIELD_GOLD] += 150;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += 50;
+		}
+	}
+	if (PolicyInfo->GetNoUnhappinessExpansion() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetNoUnhappinessExpansion() * 10;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetNoUnhappinessExpansion() * 5;
+		}
+	}
+	if (PolicyInfo->GetHappinessPerActiveTradeRoute() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetHappinessPerActiveTradeRoute() * 25;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetHappinessPerActiveTradeRoute() * 10;
+		}
+	}
+	if (PolicyInfo->GetFreeBuildingOnConquest() != NO_BUILDING)
+	{
+		CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(PolicyInfo->GetFreeBuildingOnConquest());
+		if (pkBuildingInfo)
+		{
+			CvBuildingClassInfo* pkBuildingClassInfo = GC.getBuildingClassInfo((BuildingClassTypes)pkBuildingInfo->GetBuildingClassType());
+			if (pkBuildingClassInfo)
+			{
+				int iValue = pPlayer->getCapitalCity()->GetCityStrategyAI()->GetBuildingProductionAI()->CheckBuildingBuildSanity(PolicyInfo->GetFreeBuildingOnConquest(), 50, 10, 10, 10, false, true, true);
+				if (iValue > 0)
+				{
+					if (pPlayerTraits->IsWarmonger())
+						iValue /= 2;
+					else
+						iValue /= 4;
+						
+					iValue -= pPlayer->getNumBuildings(PolicyInfo->GetFreeBuildingOnConquest()) * 10;
+
+					yield[YIELD_PRODUCTION] += max(0, iValue);
+				}
+			}
+		}
+	}
+	if (PolicyInfo->GetPovertyHappinessChangePolicy() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist() || pPlayer->getUnhappinessFromCityGold() > 0)
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetPovertyHappinessChangePolicy() * -4;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetPovertyHappinessChangePolicy() * -2;
+		}
+	}
+	if (PolicyInfo->GetDefenseHappinessChangePolicy() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist() || pPlayer->getUnhappinessFromCityDefense() > 0)
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetDefenseHappinessChangePolicy() * -5;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetDefenseHappinessChangePolicy() * -2;
+		}
+	}
+	if (PolicyInfo->GetUnculturedHappinessChangePolicy() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist() || pPlayer->getUnhappinessFromCityCulture() > 0)
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetUnculturedHappinessChangePolicy() * -5;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetUnculturedHappinessChangePolicy() * -2;
+		}
+	}
+	if (PolicyInfo->GetIlliteracyHappinessChangePolicy() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist() || pPlayer->getUnhappinessFromCityScience() > 0)
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetIlliteracyHappinessChangePolicy() * -5;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetIlliteracyHappinessChangePolicy() * -2;
+		}
+	}
+	if (PolicyInfo->GetMinorityHappinessChangePolicy() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist() || pPlayer->getUnhappinessFromCityMinority() > 0)
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetMinorityHappinessChangePolicy() * -5;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetMinorityHappinessChangePolicy() * -2;
+		}
+	}
+	if (PolicyInfo->GetPovertyHappinessChangePolicyCapital() != 0)
+	{
+		if (pPlayerTraits->IsSmaller())
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetPovertyHappinessChangePolicyCapital() * -4;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetPovertyHappinessChangePolicyCapital() * -2;
+		}
+	}
+	if (PolicyInfo->GetDefenseHappinessChangePolicyCapital() != 0)
+	{
+		if (pPlayerTraits->IsSmaller())
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetDefenseHappinessChangePolicyCapital() * -4;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetDefenseHappinessChangePolicyCapital() * -2;
+		}
+	}
+	if (PolicyInfo->GetUnculturedHappinessChangePolicyCapital() != 0)
+	{
+		if (pPlayerTraits->IsSmaller())
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetUnculturedHappinessChangePolicyCapital() * -4;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetUnculturedHappinessChangePolicyCapital() * -2;
+		}
+	}
+	if (PolicyInfo->GetIlliteracyHappinessChangePolicyCapital() != 0)
+	{
+		if (pPlayerTraits->IsSmaller())
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetIlliteracyHappinessChangePolicyCapital() * -4;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetIlliteracyHappinessChangePolicyCapital() * -2;
+		}
+	}
+	if (PolicyInfo->GetMinorityHappinessChangePolicyCapital() != 0)
+	{
+		if (pPlayerTraits->IsSmaller())
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetMinorityHappinessChangePolicyCapital() *  -4;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetMinorityHappinessChangePolicyCapital() * -2;
+		}
+	}
+	if (PolicyInfo->GetPuppetUnhappinessMod() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetPuppetUnhappinessMod() * 3;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetPuppetUnhappinessMod() * 2;
+		}
+	}
+	if (PolicyInfo->GetNoUnhappfromXSpecialists() != 0)
+	{
+		if (pPlayerTraits->IsSmaller())
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetNoUnhappfromXSpecialists() * 15;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetNoUnhappfromXSpecialists() * 10;
+		}
+	}
+	if (PolicyInfo->GetHappfromXSpecialists() != 0)
+	{
+		if (pPlayerTraits->IsSmaller())
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetHappfromXSpecialists() * 10 * max(1, (iPopulation / 5));
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetHappfromXSpecialists() * 2 * max(1, (iPopulation / 10));
+		}
+	}
+	if (PolicyInfo->GetNoUnhappfromXSpecialistsCapital() != 0)
+	{
+		if (pPlayerTraits->IsSmaller())
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetNoUnhappfromXSpecialistsCapital() * 50;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetNoUnhappfromXSpecialistsCapital() * 25;
+		}
+	}
+
+	if (PolicyInfo->GetSpecialistFoodChange() != 0)
+	{
+		if (pPlayerTraits->IsSmaller() || pPlayerTraits->IsTourism() || pPlayerTraits->IsNerd())
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetSpecialistFoodChange() * -10 * max(1, (iPopulation / 5));
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetSpecialistFoodChange() * -4 * max(1, (iPopulation / 10));
+		}
+	}
+
+	if (PolicyInfo->GetWarWearinessModifier() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetWarWearinessModifier() * 5;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetWarWearinessModifier() * 2;
+		}
+	}
+	if (PolicyInfo->GetWarScoreModifier() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetWarScoreModifier() * 5;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetWarScoreModifier() * 2;
+		}
+	}
+	if (PolicyInfo->GetGreatGeneralExtraBonus() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetGreatGeneralExtraBonus() * 5;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetGreatGeneralExtraBonus();
+		}
+	}
+	if (PolicyInfo->GetGarrisonsOccupiedUnhapppinessMod() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetGarrisonsOccupiedUnhapppinessMod() * 10;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetGarrisonsOccupiedUnhapppinessMod() * 2;
+		}
+	}
+	if (PolicyInfo->GetTradeReligionModifier() != 0)
+	{
+		if (pPlayerTraits->IsReligious())
+		{
+			yield[YIELD_FAITH] += PolicyInfo->GetTradeReligionModifier() * 3;
+		}
+		else
+		{
+			yield[YIELD_FAITH] += PolicyInfo->GetTradeReligionModifier();
+		}
+	}
+	if (PolicyInfo->GetBestRangedUnitSpawnSettle() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetBestRangedUnitSpawnSettle() * 10;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetBestRangedUnitSpawnSettle() * 5;
+		}
+	}
+	if (PolicyInfo->GetFreePopulation() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetFreePopulation() * 50;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += PolicyInfo->GetFreePopulation() * 25;
+		}
+	}
+	if (PolicyInfo->GetExtraMoves() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger() || pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetExtraMoves() * 100;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetExtraMoves() * 25;
+		}
+	}
+	if (PolicyInfo->GetMaxCorps() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetMaxCorps() * 25;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetMaxCorps() * 10;
+		}
+	}
+	if (PolicyInfo->GetRazingSpeedBonus() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetRazingSpeedBonus() * 5;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetRazingSpeedBonus();
+		}
+	}
+	if (PolicyInfo->GetExtraSupplyPerPopulation() != 0)
+	{
+		if (pPlayerTraits->IsSmaller())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetExtraSupplyPerPopulation() * 5;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetExtraSupplyPerPopulation();
+		}
+	}
+	if (PolicyInfo->GetInvestmentModifier() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetInvestmentModifier() * -3;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetInvestmentModifier() * -2;
+		}
+	}
+	if (PolicyInfo->GetIncreasedQuestInfluence() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetIncreasedQuestInfluence() * 3;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetIncreasedQuestInfluence();
+		}
+	}
+	if (PolicyInfo->GetGreatScientistBeakerModifier() != 0)
+	{
+		if (pPlayerTraits->IsNerd())
+		{
+			yield[YIELD_SCIENCE] += PolicyInfo->GetGreatScientistBeakerModifier() * 4;
+		}
+		else
+		{
+			yield[YIELD_SCIENCE] += PolicyInfo->GetGreatScientistBeakerModifier();
+		}
+	}
+	if (PolicyInfo->GetGreatEngineerHurryModifier() != 0)
+	{
+		if (pPlayerTraits->IsSmaller())
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetGreatEngineerHurryModifier() * 4;
+		}
+		else
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetGreatEngineerHurryModifier();
+		}
+	}
+	if (PolicyInfo->GetTechCostXCitiesMod() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist() || pPlayerTraits->IsNerd())
+		{
+			yield[YIELD_SCIENCE] += PolicyInfo->GetTechCostXCitiesMod() * -25;
+		}
+		else
+		{
+			yield[YIELD_SCIENCE] += PolicyInfo->GetTechCostXCitiesMod() * -10;
+		}
+	}
+
+	if (PolicyInfo->GetTourismCostXCitiesMod() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetTourismCostXCitiesMod() * 10;
+		}
+		else
+		{
+			yield[YIELD_TOURISM] += PolicyInfo->GetTourismCostXCitiesMod() * 2;
+		}
+	}
+	if (PolicyInfo->GetCultureBombBoost() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetCultureBombBoost() * 250;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetCultureBombBoost() * 50;
+		}
+	}
+	if (PolicyInfo->GetPuppetProdMod() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetPuppetProdMod() * 5;
+		}
+		else
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetPuppetProdMod();
+		}
+	}
+	if (PolicyInfo->GetOccupiedProdMod() != 0)
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetOccupiedProdMod() * 5;
+		}
+		else
+		{
+			yield[YIELD_PRODUCTION] += PolicyInfo->GetOccupiedProdMod();
+		}
+	}
+	if (PolicyInfo->GetInternalTradeGold() != 0)
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetInternalTradeGold() * 10;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetInternalTradeGold();
+		}
+	}
+	if (PolicyInfo->GetFreeWCVotes() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetFreeWCVotes() * 250;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetFreeWCVotes() * 50;
+		}
+	}
+	if (PolicyInfo->GetInfluenceGPExpend() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetInfluenceGPExpend() * 75;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetInfluenceGPExpend() * 25;
+		}
+	}
+	if (PolicyInfo->GetFreeTradeRoute() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetFreeTradeRoute() * 250;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetFreeTradeRoute() * 50;
+		}
+	}
+	if (PolicyInfo->GetFreeSpy() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetFreeSpy() * 250;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetFreeSpy() * 50;
+		}
+	}
+	if (PolicyInfo->GetReligionDistance() != 0)
+	{
+		if (pPlayerTraits->IsReligious())
+		{
+			yield[YIELD_FAITH] += PolicyInfo->GetReligionDistance() * 10;
+		}
+		else
+		{
+			yield[YIELD_FAITH] += PolicyInfo->GetReligionDistance() * 5;
+		}
+	}
+	if (PolicyInfo->GetPressureMod() != 0)
+	{
+		if (pPlayerTraits->IsReligious())
+		{
+			yield[YIELD_FAITH] += PolicyInfo->GetPressureMod() * 3;
+		}
+		else
+		{
+			yield[YIELD_FAITH] += PolicyInfo->GetPressureMod();
+		}
+	}
+	if (PolicyInfo->GetMissionInfluenceModifier() != 0)
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetMissionInfluenceModifier() * 25;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += PolicyInfo->GetMissionInfluenceModifier() * 10;
+		}
+	}
+
+	if (PolicyInfo->IsNoPartisans())
+	{
+		if (pPlayerTraits->IsWarmonger())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += 150;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += 50;
+		}
+	}
+	if (PolicyInfo->GetNoUnhappyIsolation())
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_FOOD] += 50;
+		}
+		else
+		{
+			yield[YIELD_FOOD] += 20;
+		}
+	}
+	if (PolicyInfo->GetDoubleBorderGA())
+	{
+		if (pPlayerTraits->IsExpansionist())
+		{
+			yield[YIELD_CULTURE] += 100;
+		}
+		else
+		{
+			yield[YIELD_CULTURE] += 50;
+		}
+	}
+	if (PolicyInfo->IsCSResourcesForMonopolies())
+	{
+		if (pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GOLD] += 150;
+		}
+		else
+		{
+			yield[YIELD_GOLD] += 50;
+		}
+	}
+
+	UnitCombatTypes eUnitCombat;
+	for (int iI = 0; iI < GC.getNumUnitCombatClassInfos(); iI++)
+	{
+		eUnitCombat = (UnitCombatTypes)iI;
+		if (PolicyInfo->GetUnitCombatProductionModifiers(eUnitCombat) != 0)
+		{
+			if (pPlayerTraits->IsWarmonger())
+			{
+				yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetUnitCombatProductionModifiers(eUnitCombat) * 4;
+			}
+			else
+			{
+				yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetUnitCombatProductionModifiers(eUnitCombat);
+			}
+		}
+		if (PolicyInfo->GetUnitCombatFreeExperiences(eUnitCombat)  != 0)
+		{
+			if (pPlayerTraits->IsWarmonger())
+			{
+				yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetUnitCombatFreeExperiences(eUnitCombat) * 10;
+			}
+			else
+			{
+				yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetUnitCombatFreeExperiences(eUnitCombat) * 2;
+			}
+		}
+	}
+
+	BuildingClassTypes eBuildingClass;
+	for (int iI = 0; iI < GC.getNumBuildingClassInfos(); iI++)
+	{
+		eBuildingClass = (BuildingClassTypes)iI;
+
+		CvBuildingClassInfo* pkBuildingClassInfo = GC.getBuildingClassInfo(eBuildingClass);
+		if (pkBuildingClassInfo)
+		{
+			const BuildingTypes eBuilding = ((BuildingTypes)(pPlayer->getCivilizationInfo().getCivilizationBuildings(eBuildingClass)));
+			if (NO_BUILDING != eBuilding)
+			{
+				CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(eBuilding);
+				if (pkBuildingInfo && pkBuildingInfo->GetPolicyType() == ePolicy)
+				{
+					int iValue = pPlayer->getCapitalCity()->GetCityStrategyAI()->GetBuildingProductionAI()->CheckBuildingBuildSanity(eBuilding, 50, 10, 10, 10, false, true, true);
+					if (iValue > 0)
+					{
+						iValue /= 2;
+
+						if (pkBuildingInfo->GetFaithCost() != 0)
+						{
+							if (pPlayerTraits->IsReligious())
+								iValue *= 2;
+
+							iValue -= pPlayer->getNumBuildings(eBuilding) * 10;
+
+							yield[YIELD_FAITH] += max(0, iValue);
+						}
+						else
+						{
+							if (pkBuildingInfo->IsCapitalOnly() && !pPlayer->GetPlayerTraits()->IsSmaller())
+								iValue /= 2;
+
+							iValue -= pPlayer->getNumBuildings(eBuilding) * 10;
+
+							yield[YIELD_PRODUCTION] += max(0, iValue);
+						}
+					}
+				}
+			}
+		}
+		if (PolicyInfo->GetBuildingClassCultureChange(eBuildingClass) != 0)
+		{
+			if (pPlayerTraits->IsTourism())
+			{
+				yield[YIELD_CULTURE] += 2 * PolicyInfo->GetBuildingClassCultureChange(eBuildingClass) * iNumCities;
+			}
+			else
+			{
+				yield[YIELD_CULTURE] += PolicyInfo->GetBuildingClassCultureChange(eBuildingClass) * iNumCities;
+			}
+		}
+		if (PolicyInfo->GetBuildingClassHappiness(eBuildingClass))
+		{
+			if (pPlayerTraits->IsExpansionist())
+			{
+				yield[YIELD_FOOD] += 3 * PolicyInfo->GetBuildingClassHappiness(eBuildingClass) * iNumCities;
+			}
+			else
+			{
+				yield[YIELD_FOOD] += PolicyInfo->GetBuildingClassHappiness(eBuildingClass) * iNumCities;
+			}
+		}
+		if (PolicyInfo->GetBuildingClassProductionModifier(eBuildingClass))
+		{
+			if (pPlayerTraits->IsExpansionist())
+			{
+				yield[YIELD_PRODUCTION] += (PolicyInfo->GetBuildingClassProductionModifier(eBuildingClass) * iNumCities) / 15;
+			}
+			else
+			{
+				yield[YIELD_PRODUCTION] += (PolicyInfo->GetBuildingClassProductionModifier(eBuildingClass) * iNumCities) / 25;
+			}
+		}
+		if (PolicyInfo->GetBuildingClassTourismModifier(eBuildingClass))
+		{
+			if (pPlayerTraits->IsTourism())
+			{
+				yield[YIELD_TOURISM] += 4 * PolicyInfo->GetBuildingClassTourismModifier(eBuildingClass) * iNumCities;
+			}
+			else
+			{
+				yield[YIELD_TOURISM] += 2 * PolicyInfo->GetBuildingClassTourismModifier(eBuildingClass) * iNumCities;
+			}
+		}
+		if (PolicyInfo->GetFreeChosenBuilding(eBuildingClass) != 0) 
+		{
+			CvBuildingClassInfo* pkBuildingClassInfo = GC.getBuildingClassInfo(eBuildingClass);
+			if (pkBuildingClassInfo)
+			{
+				const BuildingTypes eBuilding = ((BuildingTypes)(pPlayer->getCivilizationInfo().getCivilizationBuildings(eBuildingClass)));
+				if (NO_BUILDING != eBuilding)
+				{
+					CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(eBuilding);
+					if (pkBuildingInfo)
+					{
+						int iValue = pPlayer->getCapitalCity()->GetCityStrategyAI()->GetBuildingProductionAI()->CheckBuildingBuildSanity(eBuilding, 50, 10, 10, 10, false, true, true);
+						if (iValue > 0)
+						{
+							iValue /= 2;
+
+							if (pkBuildingInfo->IsCapitalOnly() && !pPlayer->GetPlayerTraits()->IsSmaller())
+								iValue /= 2;
+							else if (pkBuildingClassInfo->getMaxGlobalInstances() == 1)
+								iValue /= 2;
+
+							iValue -= pPlayer->getNumBuildings(eBuilding) * 10;
+
+							yield[YIELD_PRODUCTION] += max(0, iValue);
+						}
+					}
+				}
+			}
+		}
+		if (PolicyInfo->GetAllCityFreeBuilding() != NO_BUILDINGCLASS)
+		{
+			CvBuildingClassInfo* pkBuildingClassInfo = GC.getBuildingClassInfo(PolicyInfo->GetAllCityFreeBuilding());
+			if (pkBuildingClassInfo)
+			{
+				const BuildingTypes eBuilding = ((BuildingTypes)(pPlayer->getCivilizationInfo().getCivilizationBuildings(PolicyInfo->GetAllCityFreeBuilding())));
+				if (NO_BUILDING != eBuilding)
+				{
+					CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(eBuilding);
+					if (pkBuildingInfo)
+					{
+						int iValue = pPlayer->getCapitalCity()->GetCityStrategyAI()->GetBuildingProductionAI()->CheckBuildingBuildSanity(eBuilding, 50, 10, 10, 10, false, true, true);
+						if (iValue > 0)
+						{
+							iValue /= 2;
+
+							if (pkBuildingInfo->IsCapitalOnly() && !pPlayer->GetPlayerTraits()->IsSmaller())
+								iValue /= 2;
+							else if (pkBuildingClassInfo->getMaxGlobalInstances() == 1)
+								iValue /= 2;
+
+							iValue -= pPlayer->getNumBuildings(eBuilding) * 10;
+
+							yield[YIELD_PRODUCTION] += max(0, iValue);
+						}
+					}
+				}
+			}
+		}
+		for (int i = 0; i < NUM_YIELD_TYPES; i++)
+		{
+			YieldTypes eYield = (YieldTypes)i;
+
+			if (PolicyInfo->GetBuildingClassYieldModifiers(eBuildingClass, eYield) != 0)
+			{
+				if (pPlayerTraits->IsExpansionist())
+				{
+					yield[eYield] += (PolicyInfo->GetBuildingClassYieldModifiers(eBuildingClass, eYield) * max(1, iNumCities / 2));
+				}
+				else
+				{
+					yield[eYield] += (PolicyInfo->GetBuildingClassYieldModifiers(eBuildingClass, eYield) * max(1, iNumCities/3));
+				}
+			}
+			if (PolicyInfo->GetBuildingClassYieldChanges(eBuildingClass, eYield) != 0)
+			{
+				if (pPlayerTraits->IsExpansionist())
+				{
+					yield[eYield] += PolicyInfo->GetBuildingClassYieldChanges(eBuildingClass, eYield) * 3 * iNumCities;
+				}
+				else
+				{
+					yield[eYield] += PolicyInfo->GetBuildingClassYieldChanges(eBuildingClass, eYield) * iNumCities;
+				}
+			}
+			if (PolicyInfo->GetReligionBuildingYieldMod(eBuildingClass, eYield) != 0)
+			{
+				if (pPlayerTraits->IsReligious())
+				{
+					yield[eYield] += PolicyInfo->GetReligionBuildingYieldMod(eBuildingClass, eYield) * 3 * iNumCities;
+				}
+				else
+				{
+					yield[eYield] += PolicyInfo->GetReligionBuildingYieldMod(eBuildingClass, eYield) * iNumCities;
+				}
+			}
+		}
+	}
+
+	UnitClassTypes eUnitClass;
+	for (int iI = 0; iI < GC.getNumUnitClassInfos(); iI++)
+	{
+		eUnitClass = (UnitClassTypes)iI;
+		CvUnitClassInfo* pkUnitClassInfo = GC.getUnitClassInfo(eUnitClass);
+		if (!pkUnitClassInfo)
+			continue;
+		
+		const UnitTypes eUnit = (UnitTypes)pPlayer->getCivilizationInfo().getCivilizationUnits(eUnitClass);
+		CvUnitEntry* pUnitEntry = GC.getUnitInfo(eUnit);
+		if (!pUnitEntry)
+			continue;
+		bool bCombat = pUnitEntry->GetCombat() > 0 || pUnitEntry->GetRangedCombat() > 0;
+		if (PolicyInfo->GetUnitClassProductionModifiers(eUnitClass) != 0)
+		{
+			if (bCombat ? pPlayerTraits->IsWarmonger() : pPlayerTraits->IsExpansionist())
+			{
+				yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetUnitClassProductionModifiers(eUnitClass) * 2;
+			}
+			else
+			{
+				yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetUnitClassProductionModifiers(eUnitClass);
+			}
+		}
+	
+		if (PolicyInfo->GetNumFreeUnitsByClass(eUnitClass) != 0)
+		{
+			if (bCombat ? pPlayerTraits->IsWarmonger() : pPlayerTraits->IsExpansionist())
+			{
+				yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetNumFreeUnitsByClass(eUnitClass) * 15;
+			}
+			else
+			{
+				yield[YIELD_GREAT_GENERAL_POINTS] += PolicyInfo->GetNumFreeUnitsByClass(eUnitClass) * 5;
+			}
+		}
+		if (PolicyInfo->GetTourismByUnitClassCreated(eUnitClass) != 0)
+		{
+			if (pPlayerTraits->IsTourism())
+			{
+				yield[YIELD_TOURISM] += PolicyInfo->GetTourismByUnitClassCreated(eUnitClass) * 5;
+			}
+			else
+			{
+				yield[YIELD_TOURISM] += PolicyInfo->GetTourismByUnitClassCreated(eUnitClass);
+			}
+		}
+
+		if (pPlayer->getCapitalCity() != NULL)
+		{
+			if (PolicyInfo->IsFaithPurchaseUnitClass(eUnitClass, GD_INT_GET(RELIGION_GP_FAITH_PURCHASE_ERA)) != 0)
+			{
+				CvUnitClassInfo* pkUnitClassInfo = GC.getUnitClassInfo(eUnitClass);
+				if (pkUnitClassInfo)
+				{
+					const UnitTypes eUnit = (UnitTypes)pPlayer->getCivilizationInfo().getCivilizationUnits(eUnitClass);
+					CvUnitEntry* pUnitEntry = GC.getUnitInfo(eUnit);
+					if (pUnitEntry)
+					{
+						int Value = pPlayer->getCapitalCity()->GetCityStrategyAI()->GetUnitProductionAI()->CheckUnitBuildSanity(eUnit, false, NULL, 20, 10, 10, 10, true, true);
+						if (pPlayerTraits->IsReligious())
+						{
+							Value *= 2;
+						}
+						yield[YIELD_FAITH] += Value;
+					}
+				}
+			}
+			CvUnitClassInfo* pkUnitClassInfo = GC.getUnitClassInfo(eUnitClass);
+			if (pkUnitClassInfo)
+			{
+				const UnitTypes eUnit = (UnitTypes)pPlayer->getCivilizationInfo().getCivilizationUnits(eUnitClass);
+				CvUnitEntry* pUnitEntry = GC.getUnitInfo(eUnit);
+				if (pUnitEntry && pUnitEntry->GetPolicyType() == ePolicy)
+				{
+					int Value = pPlayer->getCapitalCity()->GetCityStrategyAI()->GetUnitProductionAI()->CheckUnitBuildSanity(eUnit, false, NULL, 30, 10, 10, 10, true, true);
+					if (pPlayerTraits->IsWarmonger())
+					{
+						Value *= 2;
+					}
+					if (pUnitEntry->GetDomainType() == DOMAIN_LAND || pUnitEntry->GetDomainType() == DOMAIN_AIR)
+						yield[YIELD_GREAT_GENERAL_POINTS] += Value;
+					else
+						yield[YIELD_GREAT_ADMIRAL_POINTS] += Value;
+				}
+			}
+		}
+	}
+
+	ImprovementTypes eImprovement;
+	for (int iI = 0; iI < GC.getNumImprovementInfos(); iI++)
+	{
+		eImprovement = (ImprovementTypes)iI;
+
+		int NumImprovements = pPlayer->CountAllImprovement(eImprovement);
+
+		if (NumImprovements <= 0)
+			continue;
+
+		if (PolicyInfo->GetImprovementCultureChanges(eImprovement) != 0)
+		{
+			if (pPlayerTraits->IsTourism())
+			{
+				yield[YIELD_CULTURE] += PolicyInfo->GetImprovementCultureChanges(eImprovement) * NumImprovements;
+			}
+			else
+			{
+				yield[YIELD_CULTURE] += PolicyInfo->GetImprovementCultureChanges(eImprovement) * NumImprovements/2;
+			}
+		}
+
+		for (int i = 0; i < NUM_YIELD_TYPES; i++)
+		{
+			YieldTypes eYield = (YieldTypes)i;
+
+			if (PolicyInfo->GetImprovementYieldChanges(eImprovement, eYield) != 0)
+			{
+				if (pPlayerTraits->IsExpansionist())
+				{
+					yield[eYield] += PolicyInfo->GetImprovementYieldChanges(eImprovement, eYield) * NumImprovements * 5;
+				}
+				else
+				{
+					yield[eYield] += PolicyInfo->GetImprovementYieldChanges(eImprovement, eYield) * NumImprovements * 2;
+				}
+			}
+		}
+	}
+
+	HurryTypes eHurry;
+	for (int iI = 0; iI < GC.getNumHurryInfos(); iI++)
+	{
+		eHurry = (HurryTypes)iI;
+		if (PolicyInfo->GetHurryModifier(eHurry) != 0)
+		{
+			if (pPlayerTraits->IsDiplomat())
+			{
+				yield[YIELD_GOLD] += PolicyInfo->GetHurryModifier(eHurry) * -2;
+			}
+			else
+			{
+				yield[YIELD_GOLD] += PolicyInfo->GetHurryModifier(eHurry) * -1;
+			}
+		}
+	}
+
+	ResourceTypes eResource;
+	for (int iI = 0; iI < GC.getNumResourceInfos(); iI++)
+	{
+		eResource = (ResourceTypes)iI;
+		if (PolicyInfo->GetResourceFromCSAlly(eResource) != 0)
+		{
+			if (pPlayerTraits->IsDiplomat())
+			{
+				yield[YIELD_GOLD] += PolicyInfo->GetResourceFromCSAlly(eResource) / 5;
+			}
+			else
+			{
+				yield[YIELD_GOLD] += PolicyInfo->GetResourceFromCSAlly(eResource) / 10;
+			}
+		}
+
+		if (GC.getResourceInfo(eResource) != NULL && GC.getResourceInfo(eResource)->getPolicyReveal() == ePolicy)
+		{
+			yield[YIELD_GOLD] += 100;
+		}
+
+		int NumResources = pPlayer->CountAllResource(eResource);
+
+		if (NumResources <= 0)
+			continue;
+
+		for (int i = 0; i < NUM_YIELD_TYPES; i++)
+		{
+			YieldTypes eYield = (YieldTypes)i;
+			if (PolicyInfo->GetResourceYieldChanges(eResource, eYield) != 0)
+			{
+				if (pPlayerTraits->IsExpansionist())
+				{
+					yield[eYield] += PolicyInfo->GetResourceYieldChanges(eResource, eYield) * 2 * NumResources;
+				}
+				else
+				{
+					yield[eYield] += PolicyInfo->GetResourceYieldChanges(eResource, eYield) * NumResources;
+				}
+			}
+		}
+	}
+
+	PlotTypes ePlot;
+	for (int iI = 0; iI < GC.getNumPlotInfos(); iI++)
+	{
+		ePlot = (PlotTypes)iI;
+
+		int NumPlot = pPlayer->CountAllPlotType(ePlot);
+
+		if (NumPlot <= 0)
+			continue;
+
+		for (int i = 0; i < NUM_YIELD_TYPES; i++)
+		{
+			YieldTypes eYield = (YieldTypes)i;
+			if (PolicyInfo->GetPlotYieldChanges(ePlot, eYield) != 0)
+			{
+				if (pPlayerTraits->IsExpansionist())
+				{
+					yield[eYield] += PolicyInfo->GetPlotYieldChanges(ePlot, eYield) * 2 * NumPlot;
+				}
+				else
+				{
+					yield[eYield] += PolicyInfo->GetPlotYieldChanges(ePlot, eYield) * NumPlot;
+				}
+			}
+		}
+	}
+
+	FeatureTypes eFeature;
+	for (int iI = 0; iI < GC.getNumFeatureInfos(); iI++)
+	{
+		eFeature = (FeatureTypes)iI;
+
+		int NumFeature = pPlayer->CountAllFeature(eFeature);
+
+		if (NumFeature <= 0)
+			continue;
+
+		for (int i = 0; i < NUM_YIELD_TYPES; i++)
+		{
+			YieldTypes eYield = (YieldTypes)i;
+			if (PolicyInfo->GetFeatureYieldChanges(eFeature, eYield) != 0)
+			{
+				if (pPlayerTraits->IsExpansionist())
+				{
+					yield[eYield] += PolicyInfo->GetFeatureYieldChanges(eFeature, eYield) * NumFeature * 2;
+				}
+				else
+				{
+					yield[eYield] += PolicyInfo->GetFeatureYieldChanges(eFeature, eYield) * NumFeature;
+				}
+			}
+			if (PolicyInfo->GetCityYieldFromUnimprovedFeature(eFeature, eYield) != 0)
+			{
+				if (pPlayerTraits->IsExpansionist())
+				{
+					yield[eYield] += PolicyInfo->GetCityYieldFromUnimprovedFeature(eFeature, eYield) * NumFeature * 2; 
+				}
+				else
+				{
+					yield[eYield] += PolicyInfo->GetCityYieldFromUnimprovedFeature(eFeature, eYield) * NumFeature;
+				}
+			}
+			if (PolicyInfo->GetUnimprovedFeatureYieldChanges(eFeature, eYield) != 0)
+			{
+				if (pPlayerTraits->IsExpansionist())
+				{
+					yield[eYield] += PolicyInfo->GetUnimprovedFeatureYieldChanges(eFeature, eYield) * 2 * NumFeature;
+				}
+				else
+				{
+					yield[eYield] += PolicyInfo->GetUnimprovedFeatureYieldChanges(eFeature, eYield) * NumFeature;
+				}
+			}
+		}
+	}
+
+	TerrainTypes eTerrain;
+	for (int iI = 0; iI < GC.getNumTerrainInfos(); iI++)
+	{
+		eTerrain = (TerrainTypes)iI;
+
+		int NumTerrain = pPlayer->CountAllTerrain(eTerrain);
+
+		if (NumTerrain <= 0)
+			continue;
+
+		for (int i = 0; i < NUM_YIELD_TYPES; i++)
+		{
+			YieldTypes eYield = (YieldTypes)i;
+			if (PolicyInfo->GetTerrainYieldChanges(eTerrain, eYield) != 0)
+			{
+				if (pPlayerTraits->IsExpansionist())
+				{
+					yield[eYield] += PolicyInfo->GetTerrainYieldChanges(eTerrain, eYield) * 2 * NumTerrain;
+				}
+				else
+				{
+					yield[eYield] += PolicyInfo->GetTerrainYieldChanges(eTerrain, eYield) * NumTerrain;
+				}
+			}
+		}
+	}
+
+	DomainTypes eDomain;
+	for (int iI = 0; iI < NUM_DOMAIN_TYPES; iI++)
+	{
+		eDomain = (DomainTypes)iI;
+
+		for (int i = 0; i < NUM_YIELD_TYPES; i++)
+		{
+			YieldTypes eYield = (YieldTypes)i;
+			if (PolicyInfo->GetTradeRouteYieldChange(eDomain, eYield) != 0)
+			{
+				if (pPlayerTraits->IsExpansionist())
+				{
+					yield[eYield] += PolicyInfo->GetTradeRouteYieldChange(eDomain, eYield) * 4;
+				}
+				else
+				{
+					yield[eYield] += PolicyInfo->GetTradeRouteYieldChange(eDomain, eYield) * 2;
+				}
+			}
+		}
+	}
+
+	SpecialistTypes eSpecialist;
+	for (int iI = 0; iI < GC.getNumSpecialistInfos(); iI++)
+	{
+		eSpecialist = (SpecialistTypes)iI;
+
+		int NumSpecialists = 0;
+
+		int iLoopCity;
+		for (CvCity* pLoopCity = pPlayer->firstCity(&iLoopCity); pLoopCity != NULL; pLoopCity = pPlayer->nextCity(&iLoopCity)) 
+		{
+			NumSpecialists += pLoopCity->GetCityCitizens()->GetSpecialistCount(eSpecialist);
+		}
+
+		for (int i = 0; i < NUM_YIELD_TYPES; i++)
+		{
+			YieldTypes eYield = (YieldTypes)i;
+			if (PolicyInfo->GetSpecialistYieldChanges(eSpecialist, eYield) != 0)
+			{
+				if (pPlayerTraits->IsSmaller())
+				{
+					yield[eYield] += PolicyInfo->GetSpecialistYieldChanges(eSpecialist, eYield) * max(2, NumSpecialists) * 6;
+				}
+				else
+				{
+					yield[eYield] += PolicyInfo->GetSpecialistYieldChanges(eSpecialist, eYield) * max(2, NumSpecialists) * 2;
+				}
+			}
+		}
+	}
+
+	GreatPersonTypes eGreatPerson;
+	for (int iI = 0; iI < GC.getNumGreatPersonInfos(); iI++)
+	{
+		eGreatPerson = (GreatPersonTypes)iI;
+
+		if (PolicyInfo->GetGoldenAgeGreatPersonRateModifier(eGreatPerson) != 0)
+		{
+			if (pPlayerTraits->IsSmaller() || pPlayerTraits->IsTourism())
+			{
+				yield[YIELD_TOURISM] += PolicyInfo->GetGoldenAgeGreatPersonRateModifier(eGreatPerson) * 6;
+			}
+			else
+			{
+				yield[YIELD_TOURISM] += PolicyInfo->GetGoldenAgeGreatPersonRateModifier(eGreatPerson) * 2;
+			}
+		}
+
+		for (int i = 0; i < NUM_YIELD_TYPES; i++)
+		{
+			YieldTypes eYield = (YieldTypes)i;
+			if (PolicyInfo->GetGreatPersonExpendedYield(eGreatPerson, eYield) != 0)
+			{
+				if (pPlayerTraits->IsSmaller() || pPlayerTraits->IsTourism())
+				{
+					yield[eYield] += PolicyInfo->GetGreatPersonExpendedYield(eGreatPerson, eYield) * 2;
+				}
+				else
+				{
+					yield[eYield] += PolicyInfo->GetGreatPersonExpendedYield(eGreatPerson, eYield);
+				}
+			}
+		}
+	}
+
+	PromotionTypes ePromotion;
+	for (int iI = 0; iI < GC.getNumPromotionInfos(); iI++)
+	{
+		ePromotion = (PromotionTypes)iI;
+
+		if (PolicyInfo->IsFreePromotion(ePromotion))
+		{
+			if (pPlayerTraits->IsWarmonger())
+			{
+				yield[YIELD_GREAT_GENERAL_POINTS] += 125;
+			}
+			else
+			{
+				yield[YIELD_GREAT_GENERAL_POINTS] += 25;
+			}
+		}
+
+		for (int iJ = 0; iJ < GC.getNumUnitCombatClassInfos(); iJ++)
+		{
+			eUnitCombat = (UnitCombatTypes)iJ;
+
+			if (PolicyInfo->IsFreePromotionUnitCombat(ePromotion, eUnitCombat))
+			{
+				if (pPlayerTraits->IsWarmonger())
+				{
+					yield[YIELD_GREAT_GENERAL_POINTS] += 125;
+				}
+				else
+				{
+					yield[YIELD_GREAT_GENERAL_POINTS] += 25;
+				}
+			}
+		}
+	}
+
+	int NumSpecialists = 0;
+
+	int iLoopCity;
+	for (CvCity* pLoopCity = pPlayer->firstCity(&iLoopCity); pLoopCity != NULL; pLoopCity = pPlayer->nextCity(&iLoopCity))
+	{
+		NumSpecialists += pLoopCity->GetCityCitizens()->GetTotalSpecialistCount();
+	}
+
+	for (int i = 0; i < NUM_YIELD_TYPES; i++)
+	{
+		YieldTypes eYield = (YieldTypes)i;
+
+		if (PolicyInfo->GetCityYieldChange(eYield) != 0)
+		{
+			if (pPlayerTraits->IsExpansionist())
+			{
+				yield[eYield] += PolicyInfo->GetCityYieldChange(eYield) * 12 * iNumCities;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetCityYieldChange(eYield) * 6 * iNumCities;
+			}
+		}
+		if (PolicyInfo->GetCoastalCityYieldChange(eYield) != 0)
+		{
+			if (pPlayerTraits->IsExpansionist())
+			{
+				yield[eYield] += PolicyInfo->GetCoastalCityYieldChange(eYield) * 8 * iNumCities;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetCoastalCityYieldChange(eYield) * 4 * iNumCities;
+			}
+		}
+		if (PolicyInfo->GetCapitalYieldChange(eYield) != 0)
+		{
+			if (pPlayerTraits->IsSmaller() || pPlayerTraits->IsTourism())
+			{
+				yield[eYield] += PolicyInfo->GetCapitalYieldChange(eYield) * 15 * pPlayer->getCapitalCity()->getPopulation();
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetCapitalYieldChange(eYield) * 10 * pPlayer->getCapitalCity()->getPopulation();
+			}
+		}
+		if (PolicyInfo->GetCapitalYieldPerPopChange(eYield) != 0)
+		{
+			if (pPlayerTraits->IsSmaller())
+			{
+				yield[eYield] += (pPlayer->getCapitalCity()->getPopulation() * 100) / PolicyInfo->GetCapitalYieldPerPopChange(eYield);
+			}
+			else
+			{
+				yield[eYield] += (pPlayer->getCapitalCity()->getPopulation() * 50) / PolicyInfo->GetCapitalYieldPerPopChange(eYield);
+			}
+		}
+		if (PolicyInfo->GetCapitalYieldPerPopChangeEmpire(eYield) != 0)
+		{
+			if (pPlayerTraits->IsExpansionist())
+			{
+				yield[eYield] += (iPopulation * 100)  / PolicyInfo->GetCapitalYieldPerPopChangeEmpire(eYield);
+			}
+			else
+			{
+				yield[eYield] += (iPopulation * 50) / PolicyInfo->GetCapitalYieldPerPopChangeEmpire(eYield);
+			}
+		}
+		if (PolicyInfo->GetCapitalYieldModifier(eYield) != 0)
+		{
+			if (pPlayerTraits->IsSmaller())
+			{
+				yield[eYield] += PolicyInfo->GetCapitalYieldModifier(eYield) * pPlayer->getCapitalCity()->getPopulation();
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetCapitalYieldModifier(eYield) * pPlayer->getCapitalCity()->getPopulation() / 2;
+			}
+		}
+		if (PolicyInfo->GetGreatWorkYieldChange(eYield) != 0)
+		{
+			if (pPlayerTraits->IsTourism())
+			{
+				yield[eYield] += PolicyInfo->GetGreatWorkYieldChange(eYield) * 10 * max(1, pPlayer->GetCulture()->GetNumGreatWorks());
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetGreatWorkYieldChange(eYield) * 5 * max(1, pPlayer->GetCulture()->GetNumGreatWorks());
+			}
+		}
+		if (PolicyInfo->GetSpecialistExtraYield(eYield) != 0)
+		{
+			if (pPlayerTraits->IsTourism() || pPlayerTraits->IsSmaller())
+			{
+				yield[eYield] += PolicyInfo->GetSpecialistExtraYield(eYield) * 5 * max(2, NumSpecialists);
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetSpecialistExtraYield(eYield) * 2 * max(2, NumSpecialists);
+			}
+		}
+		if (PolicyInfo->GetYieldFromBirth(eYield) != 0)
+		{
+			if (pPlayerTraits->IsExpansionist())
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromBirth(eYield) * 5 * iNumCities;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromBirth(eYield) * 2 * iNumCities;
+			}
+		}
+		if (PolicyInfo->GetYieldFromBirthCapital(eYield) != 0)
+		{
+			if (pPlayerTraits->IsSmaller())
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromBirthCapital(eYield) * 4 * pPlayer->getCapitalCity()->getPopulation();
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromBirthCapital(eYield) * 2 * pPlayer->getCapitalCity()->getPopulation();
+			}
+		}
+		if (PolicyInfo->GetYieldFromBirthRetroactive(eYield) != 0)
+		{
+			if (pPlayerTraits->IsExpansionist())
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromBirthRetroactive(eYield) * 5 * iNumCities;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromBirthRetroactive(eYield) * 2 * iNumCities;
+			}
+		}
+		if (PolicyInfo->GetYieldFromBirthCapitalRetroactive(eYield) != 0)
+		{
+			if (pPlayerTraits->IsSmaller())
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromBirthCapitalRetroactive(eYield) * 4 * pPlayer->getCapitalCity()->getPopulation();
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromBirthCapitalRetroactive(eYield) * 2 * pPlayer->getCapitalCity()->getPopulation();
+			}
+		}
+		if (PolicyInfo->GetYieldFromConstruction(eYield) != 0)
+		{
+			if (pPlayerTraits->IsExpansionist())
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromConstruction(eYield) * 4 * iNumCities;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromConstruction(eYield) * 2 * iNumCities;
+			}
+		}
+		if (PolicyInfo->GetYieldFromWonderConstruction(eYield) != 0)
+		{
+			if (pPlayerTraits->IsTourism() || pPlayerTraits->IsSmaller())
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromWonderConstruction(eYield) * 2 * max(2, (iNumWonders / 2));
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromWonderConstruction(eYield) * max(2, (iNumWonders / 4));
+			}
+		}
+		if (PolicyInfo->GetYieldFromTech(eYield) != 0)
+		{
+			if (pPlayerTraits->IsNerd() || pPlayerTraits->IsSmaller())
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromTech(eYield) * 15;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromTech(eYield) * 10;
+			}
+		}
+		if (PolicyInfo->GetYieldFromBorderGrowth(eYield) != 0)
+		{
+			if (pPlayerTraits->IsExpansionist())
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromBorderGrowth(eYield) * 3 * iNumCities;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromBorderGrowth(eYield) * iNumCities;
+			}
+		}
+		if (PolicyInfo->GetYieldGPExpend(eYield) != 0)
+		{
+			if (pPlayerTraits->IsSmaller())
+			{
+				yield[eYield] += PolicyInfo->GetYieldGPExpend(eYield) * 2;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetYieldGPExpend(eYield);
+			}
+		}
+		if (PolicyInfo->GetConquerorYield(eYield) != 0)
+		{
+			if (pPlayerTraits->IsWarmonger())
+			{
+				yield[eYield] += PolicyInfo->GetConquerorYield(eYield) * 3;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetConquerorYield(eYield);
+			}
+		}
+		if (PolicyInfo->GetFounderYield(eYield) != 0)
+		{
+			if (pPlayerTraits->IsExpansionist())
+			{
+				yield[eYield] += PolicyInfo->GetFounderYield(eYield) * 3;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetFounderYield(eYield);
+			}
+		}
+		if (PolicyInfo->GetReligionYieldMod(eYield) != 0)
+		{
+			if (pPlayerTraits->IsReligious())
+			{
+				yield[eYield] += PolicyInfo->GetReligionYieldMod(eYield) * 4 * iNumCities;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetReligionYieldMod(eYield) * 2 * iNumCities;
+			}
+		}
+		if (PolicyInfo->GetGoldenAgeYieldMod(eYield) != 0)
+		{
+			if (pPlayerTraits->IsTourism() || pPlayerTraits->IsExpansionist())
+			{
+				yield[eYield] += PolicyInfo->GetGoldenAgeYieldMod(eYield) * 2 * iNumCities;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetGoldenAgeYieldMod(eYield) * 2;
+			}
+		}
+		if (PolicyInfo->GetYieldFromKills(eYield) != 0)
+		{
+			if (pPlayerTraits->IsWarmonger())
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromKills(eYield) * 3;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromKills(eYield);
+			}
+		}
+		if (PolicyInfo->GetYieldFromBarbarianKills(eYield) != 0)
+		{
+			if (pPlayerTraits->IsWarmonger())
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromBarbarianKills(eYield) * 3;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromBarbarianKills(eYield);
+			}
+		}
+		if (PolicyInfo->GetYieldChangeTradeRoute(eYield) != 0)
+		{
+			if (pPlayerTraits->IsExpansionist())
+			{
+				yield[eYield] += PolicyInfo->GetYieldChangeTradeRoute(eYield) * 6 * iNumCities;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetYieldChangeTradeRoute(eYield) * 3 * iNumCities;
+			}
+		}
+		if (PolicyInfo->GetYieldChangesNaturalWonder(eYield) != 0)
+		{
+			if (pPlayerTraits->IsExpansionist())
+			{
+				yield[eYield] += PolicyInfo->GetYieldChangesNaturalWonder(eYield) * 5 * max(1, pPlayer->GetNumNaturalWondersInOwnedPlots());
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetYieldChangesNaturalWonder(eYield) * max(1, pPlayer->GetNumNaturalWondersInOwnedPlots());
+			}
+		}
+		if (PolicyInfo->GetYieldChangeWorldWonder(eYield) != 0)
+		{
+			if (pPlayerTraits->IsTourism())
+			{
+				yield[eYield] += PolicyInfo->GetYieldChangeWorldWonder(eYield) * 3 * max(1, pPlayer->GetNumWonders());
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetYieldChangeWorldWonder(eYield) * max(1, pPlayer->GetNumWonders());
+			}
+		}
+		if (PolicyInfo->GetYieldFromMinorDemand(eYield) != 0)
+		{
+			if (pPlayerTraits->IsWarmonger())
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromMinorDemand(eYield) * 4;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromMinorDemand(eYield);
+			}
+		}
+		if (PolicyInfo->GetYieldFromWLTKD(eYield) != 0)
+		{
+			if (pPlayerTraits->IsExpansionist())
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromWLTKD(eYield) * 2 * iNumCities;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromWLTKD(eYield) * iNumCities;
+			}
+		}
+		if (PolicyInfo->GetArtifactYieldChanges(eYield) != 0)
+		{
+			if (pPlayerTraits->IsTourism())
+			{
+				yield[eYield] += PolicyInfo->GetArtifactYieldChanges(eYield) * 2;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetArtifactYieldChanges(eYield);
+			}
+		}
+		if (PolicyInfo->GetArtYieldChanges(eYield) != 0)
+		{
+			if (pPlayerTraits->IsTourism())
+			{
+				yield[eYield] += PolicyInfo->GetArtYieldChanges(eYield) * 2;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetArtYieldChanges(eYield);
+			}
+		}
+		if (PolicyInfo->GetMusicYieldChanges(eYield) != 0)
+		{
+			if (pPlayerTraits->IsTourism())
+			{
+				yield[eYield] += PolicyInfo->GetMusicYieldChanges(eYield) * 2;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetMusicYieldChanges(eYield);
+			}
+		}
+		if (PolicyInfo->GetLitYieldChanges(eYield) != 0)
+		{
+			if (pPlayerTraits->IsTourism())
+			{
+				yield[eYield] += PolicyInfo->GetLitYieldChanges(eYield) * 2;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetLitYieldChanges(eYield);
+			}
+		}
+		if (PolicyInfo->GetFilmYieldChanges(eYield) != 0)
+		{
+			if (pPlayerTraits->IsTourism())
+			{
+				yield[eYield] += PolicyInfo->GetFilmYieldChanges(eYield) * 2;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetFilmYieldChanges(eYield);
+			}
+		}
+		if (PolicyInfo->GetRelicYieldChanges(eYield) != 0)
+		{
+			if (pPlayerTraits->IsTourism())
+			{
+				yield[eYield] += PolicyInfo->GetRelicYieldChanges(eYield) * 2;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetRelicYieldChanges(eYield);
+			}
+		}
+		if (PolicyInfo->GetYieldFromNonSpecialistCitizens(eYield) != 0)
+		{
+			if (pPlayerTraits->IsExpansionist())
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromNonSpecialistCitizens(eYield) * 10;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromNonSpecialistCitizens(eYield) * 5;
+			}
+		}
+		if (PolicyInfo->GetYieldModifierFromGreatWorks(eYield) != 0)
+		{
+			if (pPlayerTraits->IsTourism())
+			{
+				yield[eYield] += PolicyInfo->GetYieldModifierFromGreatWorks(eYield) * 12 * max(1, pPlayer->GetCulture()->GetNumGreatWorks());
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetYieldModifierFromGreatWorks(eYield) * 5 *  max(1, pPlayer->GetCulture()->GetNumGreatWorks());
+			}
+		}
+		if (PolicyInfo->GetYieldModifierFromActiveSpies(eYield) != 0)
+		{
+			if (pPlayerTraits->IsDiplomat())
+			{
+				yield[eYield] += PolicyInfo->GetYieldModifierFromActiveSpies(eYield) * 5;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetYieldModifierFromActiveSpies(eYield);
+			}
+		}
+		if (PolicyInfo->GetYieldFromDelegateCount(eYield) != 0)
+		{
+			if (pPlayerTraits->IsDiplomat())
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromDelegateCount(eYield) * 20;
+			}
+			else
+			{
+				yield[eYield] += PolicyInfo->GetYieldFromDelegateCount(eYield) * 5;
+			}
+		}
+	}
+	
+	if (yield.size() != 0)
+		LogPolicyAttributeYields(pPlayer, ePolicy, yield);
+
+	return yield;
+}
+
+int CvPolicyAI::WeighPolicy(CvPlayer* pPlayer, PolicyTypes ePolicy)
+{
+	if (ePolicy == NO_POLICY)
+		return 0;
+
+	int iWeight = m_PolicyAIWeights.GetWeight(ePolicy);
+
+	//Grand Strategy Considerations - if valid, it doubles our initial weighting.
+	// == Grand Strategy ==
+
+	// == Grand Strategy ==
+	int iDiploInterest = 0;
+	int iConquestInterest = 0;
+	int iScienceInterest = 0;
+	int iCultureInterest = 0;
+
+	int iDiploValue = 0;
+	int iScienceValue = 0;
+	int iConquestValue = 0;
+	int iCultureValue = 0;
+
+	int iGrandStrategiesLoop;
+	AIGrandStrategyTypes eGrandStrategy;
+	CvAIGrandStrategyXMLEntry* pGrandStrategy;
+	CvString strGrandStrategyName;
+
+	CvPlayerTraits* pPlayerTraits = pPlayer->GetPlayerTraits();
+
+	// Loop through all GrandStrategies and get priority. Since these are usually 100+, we will divide by 10 later
+	for (iGrandStrategiesLoop = 0; iGrandStrategiesLoop < GC.GetGameAIGrandStrategies()->GetNumAIGrandStrategies(); iGrandStrategiesLoop++)
+	{
+		eGrandStrategy = (AIGrandStrategyTypes)iGrandStrategiesLoop;
+		pGrandStrategy = GC.GetGameAIGrandStrategies()->GetEntry(iGrandStrategiesLoop);
+		strGrandStrategyName = (CvString)pGrandStrategy->GetType();
+
+		if (strGrandStrategyName == "AIGRANDSTRATEGY_CONQUEST")
+		{
+			iConquestInterest += pPlayer->GetGrandStrategyAI()->GetGrandStrategyPriority(eGrandStrategy);
+		}
+		else if (strGrandStrategyName == "AIGRANDSTRATEGY_CULTURE")
+		{
+			iCultureInterest += pPlayer->GetGrandStrategyAI()->GetGrandStrategyPriority(eGrandStrategy);
+		}
+		else if (strGrandStrategyName == "AIGRANDSTRATEGY_UNITED_NATIONS")
+		{
+			iDiploInterest += pPlayer->GetGrandStrategyAI()->GetGrandStrategyPriority(eGrandStrategy);
+		}
+		else if (strGrandStrategyName == "AIGRANDSTRATEGY_SPACESHIP")
+		{
+			iScienceInterest += pPlayer->GetGrandStrategyAI()->GetGrandStrategyPriority(eGrandStrategy);
+		}
+	}
+	if (pPlayerTraits->IsWarmonger())
+	{
+		iConquestInterest *= 3;
+		iScienceInterest *= 2;
+	}
+	if (pPlayerTraits->IsExpansionist())
+	{
+		iConquestInterest *= 2;
+		iCultureInterest *= 3;
+	}
+	if (pPlayerTraits->IsNerd())
+	{
+		iCultureInterest *= 2;
+		iScienceInterest *= 3;
+	}
+	if (pPlayerTraits->IsDiplomat())
+	{
+		iConquestInterest *= 2;
+		iDiploInterest *= 3;
+	}
+	if (pPlayerTraits->IsSmaller())
+	{
+		iCultureInterest *= 2;
+		iScienceInterest *= 3;
+	}
+	if (pPlayerTraits->IsTourism())
+	{
+		iCultureInterest *= 3;
+		iDiploInterest *= 2;
+	}
+	if (pPlayerTraits->IsReligious())
+	{
+		iCultureInterest *= 2;
+		iDiploInterest *= 3;
+	}
+
+	CvPolicyEntry* pkPolicyInfo = GC.getPolicyInfo(ePolicy);
+	if (pkPolicyInfo)
+	{
+		for (int iFlavor = 0; iFlavor < GC.getNumFlavorTypes(); iFlavor++)
+		{
+			FlavorTypes eFlavor = (FlavorTypes)iFlavor;
+			if (eFlavor == NO_FLAVOR)
+				continue;
+
+			int iFlavorValue = pkPolicyInfo->GetFlavorValue(eFlavor);
+			if (iFlavorValue > 0)
+			{
+				iWeight += pPlayer->GetGrandStrategyAI()->GetPersonalityAndGrandStrategy((FlavorTypes)iFlavor);
+
+				if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_DIPLOMACY")
+				{
+					iDiploValue += iFlavorValue;
+
+					for (int iMinorCivLoop = MAX_MAJOR_CIVS; iMinorCivLoop < MAX_CIV_PLAYERS; iMinorCivLoop++)
+					{
+						PlayerTypes eMinor = (PlayerTypes)iMinorCivLoop;
+						if (eMinor == NO_PLAYER)
+							continue;
+
+						// Loop through all minors - if we're itching to conquer, bail out on diplo policies.
+						if (GET_PLAYER(eMinor).isMinorCiv() && GET_PLAYER(eMinor).isAlive())
+						{
+							if (pPlayer->GetDiplomacyAI()->GetMinorCivApproach(eMinor) >= MINOR_CIV_APPROACH_CONQUEST)
+							{
+								iDiploValue -= iFlavorValue;
+								break;
+							}
+						}
+					}
+				}
+				//War
+				if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_OFFENSE" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_DEFENSE" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_CITY_DEFENSE" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_MILITARY_TRAINING" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_MOBILE" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_RANGED")
+				{
+					iConquestValue += iFlavorValue;
+				}
+				else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_AIR" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_ANTIAIR" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_AIR_CARRIER" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_AIRLIFT")
+				{
+					iConquestValue += iFlavorValue;
+				}
+				else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_NAVAL" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_NAVAL_RECON" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_RECON")
+				{
+					iConquestValue += iFlavorValue;
+				}
+				else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_EXPANSION" )
+				{
+					iWeight += iFlavorValue;
+				}
+				else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_PRODUCTION")
+				{
+					iWeight += iFlavorValue;
+				}
+				else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_GOLD")
+				{
+					iDiploValue += iFlavorValue;
+				}
+				else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_GREAT_PEOPLE")
+				{
+					iCultureValue += iFlavorValue;
+				}
+				else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_GROWTH")
+				{
+					iWeight += iFlavorValue;
+				}
+				else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_HAPPINESS")
+				{
+					iWeight += iFlavorValue;
+				}
+				else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_INFRASTRUCTURE")
+				{
+					iWeight += iFlavorValue;
+				}
+				else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_I_LAND_TRADE_ROUTE" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_I_LAND_TRADE_ROUTE")
+				{
+					iDiploValue += iFlavorValue;
+				}
+				else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_I_SEA_TRADE_ROUTE" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_I_SEA_TRADE_ROUTE")
+				{
+					iDiploValue += iFlavorValue;
+				}
+				else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_RELIGION")
+				{
+					iWeight += iFlavorValue;
+				}
+				else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_SCIENCE")
+				{
+					iScienceValue += iFlavorValue;
+				}
+				else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_SPACESHIP")
+				{
+					iScienceValue += iFlavorValue;
+				}
+				else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_TILE_IMPROVEMENT")
+				{
+					iWeight += iFlavorValue;
+				}
+				else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_WONDER")
+				{
+					iCultureValue += iFlavorValue;
+				}
+				else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_WATER_CONNECTION" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_I_TRADE_DESTINATION")
+				{
+					iDiploValue += iFlavorValue;
+				}
+				else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_USE_NUKE" || GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_NUKE")
+				{
+					iConquestValue += iFlavorValue;
+				}
+				else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_ESPIONAGE")
+				{
+					iDiploValue += iFlavorValue;
+				}
+				else if (GC.getFlavorTypes((FlavorTypes)iFlavor) == "FLAVOR_ARCHAEOLOGY")
+				{
+					iCultureValue += iFlavorValue;
+				}
+			}
+		}
+	}
+
+	Firaxis::Array< int, NUM_YIELD_TYPES > yield = WeightPolicyAttributes(pPlayer, ePolicy);
+	if (yield.size() != 0)
+	{
+		for (int i = 0; i < NUM_YIELD_TYPES; i++)
+		{
+			iWeight += yield[i];
+		}		
+
+		iConquestValue += yield[YIELD_GREAT_GENERAL_POINTS];
+		iConquestValue += yield[YIELD_GREAT_ADMIRAL_POINTS];
+
+		iCultureValue += yield[YIELD_TOURISM];
+
+		iScienceValue += yield[YIELD_SCIENCE];
+
+		iDiploValue += yield[YIELD_GOLD] / 2;
+		iDiploValue += yield[YIELD_PRODUCTION] / 2;
+	}
+
+	iConquestValue *= (100 + (iConquestInterest / 10));
+	iConquestValue /= 100;
+
+	iCultureValue *= (100 + (iCultureInterest / 10));
+	iCultureValue /= 100;
+
+	iDiploValue *= (100 + (iDiploInterest / 10));
+	iDiploValue /= 100;
+
+	iScienceValue *= (100 + (iScienceInterest / 10));
+	iScienceValue /= 100;
+
+	//And now add them in. Halve if not our main focus.
+	if (pPlayer->GetDiplomacyAI()->IsGoingForCultureVictory() || pPlayer->GetDiplomacyAI()->IsCloseToCultureVictory())
+	{
+		iWeight += iCultureValue;
+	}
+	else
+	{
+		iWeight += (iCultureValue / 2);
+	}
+	if (pPlayer->GetDiplomacyAI()->IsGoingForDiploVictory() || pPlayer->GetDiplomacyAI()->IsCloseToDiploVictory())
+	{
+		iWeight += iDiploValue;
+	}
+	else
+	{
+		iWeight += (iDiploValue / 2);
+	}
+	if (pPlayer->GetDiplomacyAI()->IsGoingForSpaceshipVictory() || pPlayer->GetDiplomacyAI()->IsCloseToSSVictory())
+	{
+		iWeight += iScienceValue;
+	}
+	else
+	{
+		iWeight += (iScienceValue / 2);
+	}
+
+	if (pPlayer->GetDiplomacyAI()->IsGoingForWorldConquest() || pPlayer->GetDiplomacyAI()->IsCloseToDominationVictory())
+	{
+		iWeight += iConquestValue;
+	}
+	else
+	{
+		iWeight += (iConquestValue / 2);
+	}
+
+	//If this is an ideology policy, let's snap those up.
+	if (m_pCurrentPolicies->GetPolicies()->GetPolicyEntry(ePolicy)->GetLevel() > 0)
+	{
+		iWeight *= (m_pCurrentPolicies->GetPolicies()->GetPolicyEntry(ePolicy)->GetLevel() + 1);
+	}
+	if (!pPlayer->GetCorporations()->HasFoundedCorporation())
+	{
+		//Corporate-specific policies should only be taken if you have a corporation.
+		if (m_pCurrentPolicies->GetPolicies()->GetPolicyEntry(ePolicy)->IsCorporationOfficesAsFranchises() || m_pCurrentPolicies->GetPolicies()->GetPolicyEntry(ePolicy)->IsCorporationRandomForeignFranchise() || m_pCurrentPolicies->GetPolicies()->GetPolicyEntry(ePolicy)->IsCorporationFreeFranchiseAbovePopular())
+		{
+			iWeight = 0;
+		}
+	}
+	//Older branches should be slowly phased out.
+	PolicyBranchTypes ePolicyBranch = (PolicyBranchTypes)m_pCurrentPolicies->GetPolicies()->GetPolicyEntry(ePolicy)->GetPolicyBranchType();
+	if (ePolicyBranch != NO_POLICY_BRANCH_TYPE)
+	{
+		CvPolicyBranchEntry* pkPolicyBranchInfo = GC.getPolicyBranchInfo(ePolicyBranch);
+		if (pkPolicyBranchInfo)
+		{
+			//If we're already in this branch, let's get a bonus based on how many we have in it (this will push the AI to finish branches quickly.
+			if (m_pCurrentPolicies->GetNumPoliciesOwnedInBranch(ePolicyBranch) > 0 || m_pCurrentPolicies->IsPolicyBranchUnlocked(ePolicyBranch))
+			{
+				iWeight *= max(1, m_pCurrentPolicies->GetNumPoliciesOwnedInBranch(ePolicyBranch));
+			}
+			else
+			{
+				int iPolicyEra = pkPolicyBranchInfo->GetEraPrereq();
+				int iPlayerEra = pPlayer->GetCurrentEra();
+				if (iPolicyEra < iPlayerEra && iPlayerEra > 0)
+				{
+					iWeight /= max(2, ((iPlayerEra * 5) - iPolicyEra));
+				}
+			}
+		}
+		if (ePolicyBranch == (PolicyBranchTypes)GC.getInfoTypeForString("POLICY_BRANCH_PATRONAGE", true))
+		{
+			if (GC.getGame().GetNumMinorCivsAlive() <= 0)
+			{
+				iWeight = 0;
+			}
+			else if (pPlayer->GetDiplomacyAI()->GetNumMinorCivApproach(MINOR_CIV_APPROACH_FRIENDLY) <= 0)
+			{
+				iWeight /= 5;
+			}
+		}
+	}
+	// Does this policy finish a branch for us?
+	if (m_pCurrentPolicies->WillFinishBranchIfAdopted(ePolicy))
+	{
+		int iPolicyBranch = m_pCurrentPolicies->GetPolicies()->GetPolicyEntry(ePolicy)->GetPolicyBranchType();
+		if (iPolicyBranch != NO_POLICY_BRANCH_TYPE && m_pCurrentPolicies->GetPolicies()->GetPolicyBranchEntry(iPolicyBranch) != NULL)
+		{
+			int iFinisherPolicy = m_pCurrentPolicies->GetPolicies()->GetPolicyBranchEntry(iPolicyBranch)->GetFreeFinishingPolicy();
+			if (iFinisherPolicy != NO_POLICY)
+			{
+				iWeight += m_PolicyAIWeights.GetWeight(iFinisherPolicy);
+			}
+		}
+	}
+	return iWeight;
+}
+
 /// Priority for opening up this branch
-int CvPolicyAI::WeighBranch(PolicyBranchTypes eBranch)
+int CvPolicyAI::WeighBranch(CvPlayer* pPlayer, PolicyBranchTypes eBranch)
 {
 	int iWeight = 0;
 
@@ -1750,20 +4777,67 @@ int CvPolicyAI::WeighBranch(PolicyBranchTypes eBranch)
 				if(!m_pCurrentPolicies->HasPolicy(ePolicyLoop))
 				{
 					// From this branch we are considering opening?
-					if(pkLoopPolicyInfo->GetPolicyBranchType() == eBranch)
+					if (pkLoopPolicyInfo->GetPolicyBranchType() == eBranch)
 					{
-						// With no prereqs?
-						if(pkLoopPolicyInfo->GetPrereqAndPolicies(0) == NO_POLICY)
+						iWeight += WeighPolicy(pPlayer, ePolicyLoop);
+					}
+				}
+			}
+		}
+		//Free Policy
+		iWeight += WeighPolicy(pPlayer, (PolicyTypes)pkPolicyBranchInfo->GetFreePolicy());
+		iWeight += WeighPolicy(pPlayer, (PolicyTypes)pkPolicyBranchInfo->GetFreeFinishingPolicy());
+
+		BuildingClassTypes eBuildingClass;
+		for (int iI = 0; iI < GC.getNumBuildingClassInfos(); iI++)
+		{
+			eBuildingClass = (BuildingClassTypes)iI;
+
+			if (pPlayer->getCapitalCity() != NULL)
+			{
+				CvBuildingClassInfo* pkBuildingClassInfo = GC.getBuildingClassInfo(eBuildingClass);
+				if (pkBuildingClassInfo)
+				{
+					const BuildingTypes eBuilding = ((BuildingTypes)(pPlayer->getCivilizationInfo().getCivilizationBuildings(eBuildingClass)));
+					if (NO_BUILDING != eBuilding)
+					{
+						CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(eBuilding);
+						if (pkBuildingInfo)
 						{
-							iWeight += m_PolicyAIWeights.GetWeight(iPolicyLoop);
+							if (pkBuildingInfo->GetPolicyBranchType() != NO_POLICY_BRANCH_TYPE && pkBuildingInfo->GetPolicyBranchType() == eBranch)
+							{
+								int iValue = pPlayer->getCapitalCity()->GetCityStrategyAI()->GetBuildingProductionAI()->CheckBuildingBuildSanity(eBuilding, 50, 10, 10, 10, false, true, true);
+								if (iValue > 0)
+								{
+									if (pkBuildingInfo->GetFaithCost() != 0)
+									{
+										if (pPlayer->GetPlayerTraits()->IsReligious())
+											iValue *= 2;
+										else
+											iValue /= 2;
+
+										iValue -= pPlayer->getNumBuildings(eBuilding) * 10;
+
+										iWeight += max(0, iValue);
+									}
+									else
+									{
+										if (pkBuildingInfo->IsCapitalOnly() && !pPlayer->GetPlayerTraits()->IsSmaller())
+											iValue /= 3;
+										else if (pkBuildingClassInfo->getMaxGlobalInstances() == 1)
+											iValue /= 2;
+
+										iValue -= pPlayer->getNumBuildings(eBuilding) * 10;
+
+										iWeight += max(0, iValue);
+									}
+								}
+							}
 						}
 					}
 				}
 			}
 		}
-
-		// Add weight of free policy from branch
-		iWeight += m_PolicyAIWeights.GetWeight(pkPolicyBranchInfo->GetFreePolicy());
 	}
 
 	return iWeight;
@@ -1795,6 +4869,64 @@ bool CvPolicyAI::IsBranchEffectiveInGame(PolicyBranchTypes eBranch)
 	return true;
 }
 
+void CvPolicyAI::LogPolicyAttributeYields(CvPlayer* pPlayer, PolicyTypes ePolicy, Firaxis::Array<int, NUM_YIELD_TYPES> yields)
+{
+	if (GC.getLogging() && GC.getAILogging())
+	{
+		CvString strOutBuf;
+		CvString strBaseString;
+		CvString strTemp;
+		CvString playerName;
+		CvString strDesc;
+
+		CvString strLogName;
+
+		// Open the log file
+		if (GC.getPlayerAndCityAILogSplit())
+		{
+			strLogName = "PolicyAIYieldAttributesLog_" + playerName + ".csv";
+		}
+		else
+		{
+			strLogName = "PolicyAIYieldAttributesLog.csv";
+		}
+
+		// Find the name of this civ and city
+		playerName = pPlayer->getCivilizationShortDescription();
+
+		FILogFile* pLog;
+		pLog = LOGFILEMGR.GetLog(strLogName, FILogFile::kDontTimeStamp);
+
+		// Get the leading info for this line
+		strBaseString.Format("%03d, ", GC.getGame().getElapsedGameTurns());
+		strBaseString += playerName + ", ";
+
+		CvPolicyEntry* pPolicyEntry = GC.getPolicyInfo(ePolicy);
+		const char* szPolicyType = (pPolicyEntry != NULL) ? pPolicyEntry->GetDescription() : "Unknown";
+		int iTotal = 0;
+		for (int i = 0; i < NUM_YIELD_TYPES; i++)
+		{
+			if (GC.getYieldInfo((YieldTypes)i) == NULL)
+				continue;
+
+			int value = yields[i];
+
+			if (value == 0)
+				continue;
+
+			iTotal += value;
+
+			strTemp.Format("%s, %s, %d", szPolicyType, GC.getYieldInfo((YieldTypes)i)->GetDescription(), value);
+			strOutBuf = strBaseString + strTemp;
+			pLog->Msg(strOutBuf);
+
+		}
+
+		strTemp.Format("Policy Attributes Total: %d", iTotal);
+		strOutBuf = strBaseString + strTemp;
+		pLog->Msg(strOutBuf);
+	}
+}
 /// Log all possible policy choices
 void CvPolicyAI::LogPossiblePolicies()
 {
@@ -1832,7 +4964,7 @@ void CvPolicyAI::LogPossiblePolicies()
 
 				PolicyTypes ePolicy = (PolicyTypes)(m_AdoptablePolicies.GetElement(iI) - iNumBranches);
 				CvPolicyEntry* pPolicyEntry = GC.getPolicyInfo(ePolicy);
-				const char* szPolicyType = (pPolicyEntry != NULL)? pPolicyEntry->GetType() : "Unknown";
+				const char* szPolicyType = (pPolicyEntry != NULL)? pPolicyEntry->GetDescription() : "Unknown";
 				strTemp.Format("%s, %d", szPolicyType, iWeight);
 			}
 			strOutBuf = strBaseString + strTemp;
@@ -1863,7 +4995,7 @@ void CvPolicyAI::LogPolicyChoice(PolicyTypes ePolicy)
 		strBaseString += playerName + ", ";
 
 		CvPolicyEntry* pPolicyEntry = GC.getPolicyInfo(ePolicy);
-		const char* szPolicyType = (pPolicyEntry != NULL)? pPolicyEntry->GetType() : "Unknown";
+		const char* szPolicyType = (pPolicyEntry != NULL) ? pPolicyEntry->GetDescription() : "Unknown";
 		strTemp.Format("CHOSEN, %s", szPolicyType);
 
 		strOutBuf = strBaseString + strTemp;

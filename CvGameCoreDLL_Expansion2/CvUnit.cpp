@@ -134,7 +134,6 @@ CvUnit::CvUnit() :
 	, m_iX("CvUnit::m_iX", m_syncArchive, true)
 	, m_iY("CvUnit::m_iY", m_syncArchive, true)
 	, m_iLastMoveTurn("CvUnit::m_iLastMoveTurn", m_syncArchive)
-	, m_iCycleOrder(-1)
 	, m_iDeployFromOperationTurn("CvUnit::DeployFromOperationTurn", m_syncArchive)
 	, m_iReconX("CvUnit::m_iReconX", m_syncArchive)
 	, m_iReconY("CvUnit::m_iReconY", m_syncArchive)
@@ -155,8 +154,8 @@ CvUnit::CvUnit() :
 	, m_iCombatTimer("CvUnit::m_iCombatTimer", m_syncArchive)
 	, m_iCombatFirstStrikes("CvUnit::m_iCombatFirstStrikes", m_syncArchive)
 	, m_iCombatDamage("CvUnit::m_iCombatDamage", m_syncArchive)
-	, m_iFortifyTurns("CvUnit::m_iFortifyTurns", m_syncArchive, true)
-	, m_bFortifiedThisTurn("CvUnit::m_bFortifiedThisTurn", m_syncArchive)
+	, m_bMovedThisTurn("CvUnit::m_bMovedThisTurn", m_syncArchive)
+	, m_bFortified("CvUnit::m_bFortified", m_syncArchive)
 	, m_iBlitzCount("CvUnit::m_iBlitzCount", m_syncArchive)
 	, m_iAmphibCount("CvUnit::m_iAmphibCount", m_syncArchive)
 	, m_iRiverCrossingNoPenaltyCount("CvUnit::m_iRiverCrossingNoPenaltyCount", m_syncArchive)
@@ -173,6 +172,7 @@ CvUnit::CvUnit() :
 #if defined(MOD_BALANCE_CORE)
 	, m_iMountainsDoubleMoveCount("CvUnit::m_iMountainsDoubleMoveCount", m_syncArchive)
 	, m_iAOEDamageOnKill("CvUnit::m_iAOEDamageOnKill", m_syncArchive)
+	, m_iAoEDamageOnMove("CvUnit::m_iAoEDamageOnMove", m_syncArchive)
 	, m_iSplashDamage("CvUnit::m_iSplashDamage", m_syncArchive)
 	, m_iMultiAttackBonus("CvUnit::m_iMultiAttackBonus", m_syncArchive)
 	, m_iLandAirDefenseValue("CvUnit::m_iLandAirDefenseValue", m_syncArchive)
@@ -183,6 +183,9 @@ CvUnit::CvUnit() :
 	, m_iExtraMoveDiscount("CvUnit::m_iExtraMoveDiscount", m_syncArchive)
 	, m_iExtraRange("CvUnit::m_iExtraRange", m_syncArchive)
 	, m_iExtraIntercept("CvUnit::m_iExtraIntercept", m_syncArchive)
+#if defined(MOD_BALANCE_CORE)
+	, m_iExtraAirInterceptRange("CvUnit::m_iExtraAirInterceptRange", m_syncArchive) // JJ: This is new
+#endif
 	, m_iExtraEvasion("CvUnit::m_iExtraEvasion", m_syncArchive)
 	, m_iExtraFirstStrikes("CvUnit::m_iExtraFirstStrikes", m_syncArchive)
 	, m_iExtraChanceFirstStrikes("CvUnit::m_iExtraChanceFirstStrikes", m_syncArchive)
@@ -193,6 +196,7 @@ CvUnit::CvUnit() :
 	, m_eUnitContract("CvUnit::m_eUnitContract", m_syncArchive)
 	, m_iNegatorPromotion("CvUnit::m_iNegatorPromotion", m_syncArchive)
 #endif
+	, m_bIsNoMaintenance("CvUnit::m_bIsNoMaintenance", m_syncArchive)
 	, m_iExtraEnemyHeal("CvUnit::m_iExtraEnemyHeal", m_syncArchive)
 	, m_iExtraNeutralHeal("CvUnit::m_iExtraNeutralHeal", m_syncArchive)
 	, m_iExtraFriendlyHeal("CvUnit::m_iExtraFriendlyHeal", m_syncArchive)
@@ -275,6 +279,8 @@ CvUnit::CvUnit() :
 #if defined(MOD_PROMOTIONS_AURA_CHANGE)
 	, m_iAuraRangeChange("CvUnit::m_iAuraRangeChange", m_syncArchive)
 	, m_iAuraEffectChange("CvUnit::m_iAuraEffectChange", m_syncArchive)
+	, m_iNumRepairCharges("CvUnit::m_iNumRepairCharges", m_syncArchive)
+	, m_iMilitaryCapChange("CvUnit::m_iMilitaryCapChange", m_syncArchive)
 #endif
 	, m_iGreatGeneralModifier("CvUnit::m_iGreatGeneralModifier", m_syncArchive)
 	, m_iGreatGeneralReceivesMovementCount("CvUnit::m_iGreatGeneralReceivesMovementCount", m_syncArchive)
@@ -331,8 +337,9 @@ CvUnit::CvUnit() :
 	, m_combatUnit()
 	, m_transportUnit()
 	, m_extraDomainModifiers()
-	, m_yieldModifier()
-	, m_strNameIAmNotSupposedToBeUsedAnyMoreBecauseThisShouldNotBeCheckedAndWeNeedToPreserveSaveGameCompatibility("CvUnit::m_strNameIAmNotSupposedToBeUsedAnyMoreBecauseThisShouldNotBeCheckedAndWeNeedToPreserveSaveGameCompatibility", m_syncArchive, "")
+	, m_YieldModifier()
+	, m_YieldChange()
+	, m_iGarrisonYieldChange()
 	, m_strScriptData("CvUnit::m_szScriptData", m_syncArchive)
 	, m_iScenarioData("CvUnit::m_iScenarioData", m_syncArchive)
 	, m_terrainDoubleMoveCount("CvUnit::m_terrainDoubleMoveCount", m_syncArchive)
@@ -343,10 +350,15 @@ CvUnit::CvUnit() :
 	, m_extraTerrainDefensePercent("CvUnit::m_extraTerrainDefensePercent", m_syncArchive/*, true*/)
 	, m_extraFeatureAttackPercent("CvUnit::m_extraFeatureAttackPercent", m_syncArchive/*, true*/)
 	, m_extraFeatureDefensePercent("CvUnit::m_extraFeatureDefensePercent", m_syncArchive/*, true*/)
-	, m_extraUnitClassAttackMod("CvUnit::m_extraFeatureDefensePercent", m_syncArchive/*, true*/)
-	, m_extraUnitClassDefenseMod("CvUnit::m_extraFeatureDefensePercent", m_syncArchive/*, true*/)
+	, m_extraUnitClassAttackMod("CvUnit::m_extraUnitClassAttackMod", m_syncArchive/*, true*/)
+	, m_extraUnitClassDefenseMod("CvUnit::m_extraUnitClassDefenseMod", m_syncArchive/*, true*/)
 	, m_extraUnitCombatModifier("CvUnit::m_extraUnitCombatModifier", m_syncArchive/*, true*/)
 	, m_unitClassModifier("CvUnit::m_unitClassModifier", m_syncArchive/*, true*/)
+#if defined(MOD_BALANCE_CORE)
+	, m_iCombatModPerAdjacentUnitCombatModifier("CvUnit::m_iCombatModPerAdjacentUnitCombatModifier", m_syncArchive/*, true*/)
+	, m_iCombatModPerAdjacentUnitCombatAttackMod("CvUnit::m_iCombatModPerAdjacentUnitCombatAttackMod", m_syncArchive/*, true*/)
+	, m_iCombatModPerAdjacentUnitCombatDefenseMod("CvUnit::m_iCombatModPerAdjacentUnitCombatDefenseMod", m_syncArchive/*, true*/)
+#endif
 	, m_iMissionTimer("CvUnit::m_iMissionTimer", m_syncArchive)
 	, m_iMissionAIX("CvUnit::m_iMissionAIX", m_syncArchive)
 	, m_iMissionAIY("CvUnit::m_iMissionAIY", m_syncArchive)
@@ -376,10 +388,12 @@ CvUnit::CvUnit() :
 	, m_iBarbCombatBonus("CvUnit::m_iBarbCombatBonus", m_syncArchive)
 	, m_iCanMoraleBreak("CvUnit::m_iCanMoraleBreak", m_syncArchive)
 	, m_iDamageAoEFortified("CvUnit::m_iDamageAoEFortified", m_syncArchive)
+	, m_iWorkRateMod("CvUnit::m_iWorkRateMod", m_syncArchive)
 	, m_iDamageReductionCityAssault("CvUnit::m_iDamageReductionCityAssault", m_syncArchive)
 	, m_iStrongerDamaged("CvUnit::m_iStrongerDamaged", m_syncArchive)
 	, m_iGoodyHutYieldBonus("CvUnit::m_iGoodyHutYieldBonus", m_syncArchive)
 	, m_iReligiousPressureModifier("CvUnit::m_iReligiousPressureModifier", m_syncArchive)
+	, m_iAdjacentCityDefenseMod("CvUnit::m_iAdjacentCityDefenseMod", m_syncArchive)
 #endif
 #if defined(MOD_PROMOTIONS_VARIABLE_RECON)
 	, m_iExtraReconRange("CvUnit::m_iExtraReconRange", m_syncArchive)
@@ -402,6 +416,35 @@ CvUnit::CvUnit() :
 	, m_iCombatBonusFromNearbyUnitClass("CvUnit::m_iCombatBonusFromNearbyUnitClass", m_syncArchive)
 	, m_iNearbyUnitClassBonusRange("CvUnit::m_iNearbyUnitClassBonusRange", m_syncArchive)
 	, m_iNearbyUnitClassBonus("CvUnit::m_iNearbyUnitClassBonus", m_syncArchive)
+	, m_bNearbyPromotion("CvUnit::m_bNearbyPromotion", m_syncArchive)
+	, m_iNearbyUnitPromotionRange("CvUnit::m_iNearbyUnitPromotionRange", m_syncArchive)
+	, m_inearbyCityCombatMod("CvUnit::m_inearbyCityCombatMod", m_syncArchive)
+	, m_inearbyFriendlyCityCombatMod("CvUnit::m_inearbyFriendlyCityCombatMod", m_syncArchive)
+	, m_inearbyEnemyCityCombatMod("CvUnit::m_inearbyEnemyCityCombatMod", m_syncArchive)
+	, m_bIsFriendlyLands("CvUnit::m_bIsFriendlyLands", m_syncArchive)
+	, m_iPillageBonusStrengthPercent("CvUnit::m_iPillageBonusStrengthPercent", m_syncArchive)
+	, m_iStackedGreatGeneralExperience("CvUnit::m_iStackedGreatGeneralExperience", m_syncArchive)
+	, m_bIsHighSeaRaider("CvUnit::m_bIsHighSeaRaider", m_syncArchive)
+	, m_iWonderProductionModifier("CvUnit::m_iWonderProductionModifier", m_syncArchive)
+	, m_iUnitProductionModifier("CvUnit::m_iUnitProductionModifier", m_syncArchive)
+	, m_iNearbyEnemyDamage("CvUnit::m_iNearbyEnemyDamage", m_syncArchive)
+	, m_iGGGAXPPercent("CvUnit::m_iGGGAXPPercent", m_syncArchive)
+	, m_iGiveCombatMod("CvUnit::m_iGiveCombatMod", m_syncArchive)
+	, m_iGiveHPIfEnemyKilled("CvUnit::m_iGiveHPIfEnemyKilled", m_syncArchive)
+	, m_iGiveExperiencePercent("CvUnit::m_iGiveExperiencePercent", m_syncArchive)
+	, m_igiveOutsideFriendlyLandsModifier("CvUnit::m_igiveOutsideFriendlyLandsModifier", m_syncArchive)
+	, m_pabGiveDomainBonus("CvUnit::m_pabGiveDomainBonus", m_syncArchive)
+	, m_igiveExtraAttacks("CvUnit::m_igiveExtraAttacks", m_syncArchive)
+	, m_igiveDefenseMod("CvUnit::m_igiveDefenseMod", m_syncArchive)
+	, m_bgiveInvisibility("CvUnit::m_bgiveInvisibility", m_syncArchive)
+	, m_bconvertUnit("CvUnit::m_bconvertUnit", m_syncArchive)
+	, m_eConvertDomain("CvUnit::m_eConvertDomain", m_syncArchive)
+	, m_eConvertDomainUnit("CvUnit::m_eConvertDomainUnit", m_syncArchive)
+	, m_bconvertEnemyUnitToBarbarian("CvUnit::m_bconvertEnemyUnitToBarbarian", m_syncArchive)
+	, m_bconvertOnFullHP("CvUnit::m_bconvertOnFullHP", m_syncArchive)
+	, m_bconvertOnDamage("CvUnit::m_bconvertOnDamage", m_syncArchive)
+	, m_idamageThreshold("CvUnit::m_idamageThreshold", m_syncArchive)
+	, m_econvertDamageOrFullHPUnit("CvUnit::m_econvertDamageOrFullHPUnit", m_syncArchive)
 #endif
 #if defined(MOD_PROMOTIONS_CROSS_MOUNTAINS)
 	, m_iCanCrossMountainsCount("CvUnit::m_iCanCrossMountainsCount", m_syncArchive)
@@ -527,6 +570,9 @@ void CvUnit::initWithNameOffset(int iID, UnitTypes eUnit, int iNameOffset, UnitA
 
 			if(GC.getPromotionInfo(ePromotion)->IsHoveringUnit())
 				setHasPromotion(ePromotion, true);
+
+			if(GC.getPromotionInfo(ePromotion)->IsConvertUnit())
+				setHasPromotion(ePromotion, true);
 		}
 	}
 
@@ -543,9 +589,9 @@ void CvUnit::initWithNameOffset(int iID, UnitTypes eUnit, int iNameOffset, UnitA
 	// Init pre-setup() data
 	setXY(iX, iY, false, false, false, false, bNoMove);
 #if defined(MOD_BALANCE_CORE)
-	if(plot() != NULL && plot()->getWorkingCity() != NULL && plot()->getWorkingCity()->getOwner() == getOwner())
+	if(plot() != NULL && plot()->getOwningCity() != NULL && plot()->getOwningCity()->getOwner() == getOwner())
 	{
-		setOriginCity(plot()->getWorkingCity()->GetID());
+		setOriginCity(plot()->getOwningCity()->GetID());
 	}
 #endif
 	//--------------------------------
@@ -579,7 +625,7 @@ void CvUnit::initWithNameOffset(int iID, UnitTypes eUnit, int iNameOffset, UnitA
 	{
 		if(iNameOffset == -1)
 		{
-			iNameOffset = GC.getGame().getJonRandNum(iNumNames, "Unit name selection");
+			iNameOffset = GC.getGame().getSmallFakeRandNum(iNumNames, *plot());
 		}
 #if defined(MOD_BALANCE_CORE)
 		CvString strName = NULL;
@@ -598,7 +644,7 @@ void CvUnit::initWithNameOffset(int iID, UnitTypes eUnit, int iNameOffset, UnitA
 		}
 		if(vfPossibleUnits.size() > 0)
 		{
-			int iRoll = GC.getGame().getJonRandNum(vfPossibleUnits.size(), "Rolling for era-specific unit");
+			int iRoll = GC.getGame().getSmallFakeRandNum(vfPossibleUnits.size(), iID);
 			strName = getUnitInfo().GetUnitNames(vfPossibleUnits[iRoll]);
 			setName(strName);
 			SetGreatWork(getUnitInfo().GetGreatWorks(vfPossibleUnits[iRoll]));
@@ -628,7 +674,7 @@ void CvUnit::initWithNameOffset(int iID, UnitTypes eUnit, int iNameOffset, UnitA
 			}
 			if(vfPossibleUnits.size() > 0)
 			{
-				int iRoll = GC.getGame().getJonRandNum(vfPossibleUnits.size(), "Rolling for era-specific unit");
+				int iRoll = GC.getGame().getSmallFakeRandNum(vfPossibleUnits.size(), iID);
 				strName = getUnitInfo().GetUnitNames(vfPossibleUnits[iRoll]);
 				setName(strName);
 				SetGreatWork(getUnitInfo().GetGreatWorks(vfPossibleUnits[iRoll]));
@@ -709,8 +755,17 @@ void CvUnit::initWithNameOffset(int iID, UnitTypes eUnit, int iNameOffset, UnitA
 	//get builder strength
 	if (getUnitInfo().GetBuilderStrength() > 0)
 	{
-		// use speed modifier to increase the work count. *4 because a 25% increase = +1 work = +100 strength
-		setBuilderStrength(getUnitInfo().GetBuilderStrength() + kPlayer.getWorkerSpeedModifier() * 4 + kPlayer.GetPlayerTraits()->GetWorkerSpeedModifier() * 4);
+		// use speed modifier to increase the work count.
+		int ibuildercharges = getUnitInfo().GetBuilderStrength();
+		const int iworkerspeedmodifier = kPlayer.getWorkerSpeedModifier() + kPlayer.GetPlayerTraits()->GetWorkerSpeedModifier();
+		if (0 != iworkerspeedmodifier)
+		{
+			float fTemp = (float)ibuildercharges;
+			fTemp *= (100 + iworkerspeedmodifier);
+			fTemp /= 100;
+			ibuildercharges = (int)ceil(fTemp); // Round up
+		}
+		setBuilderStrength(ibuildercharges);
 	}
 #endif
 #if defined(MOD_BALANCE_CORE_SETTLER_RESET_FOOD)
@@ -720,6 +775,22 @@ void CvUnit::initWithNameOffset(int iID, UnitTypes eUnit, int iNameOffset, UnitA
 		if(pCity != NULL)
 		{
 			pCity->setFood(0);
+		}
+	}
+	if (plot() != NULL)
+	{
+		CvCity* pCity = plot()->getPlotCity();
+		if (pCity != NULL)
+		{
+			if (GET_PLAYER(getOwner()).GetFlatDefenseFromAirUnits() != 0 && getUnitInfo().GetAirUnitCap() != 0)
+			{
+				pCity->updateStrengthValue();
+			}
+
+			if (GET_PLAYER(getOwner()).GetNeedsModifierFromAirUnits() != 0 && getUnitInfo().GetAirUnitCap() != 0)
+			{
+				GET_PLAYER(getOwner()).DoUpdateTotalUnhappiness();
+			}
 		}
 	}
 #endif
@@ -770,6 +841,15 @@ void CvUnit::initWithNameOffset(int iID, UnitTypes eUnit, int iNameOffset, UnitA
 		kPlayer.changeNumNukeUnits(1);
 	}
 
+#if defined(MOD_BALANCE_CORE)
+	SetNoMaintenance(getUnitInfo().IsNoMaintenance());
+
+	if (getUnitInfo().IsMilitarySupport() && (isNoSupply() || isContractUnit()))
+	{
+		GET_PLAYER(getOwner()).changeNumUnitsSupplyFree(1);
+	}
+#endif
+
 	if(getUnitInfo().IsMilitarySupport())
 	{
 #if defined(MOD_BATTLE_ROYALE)
@@ -790,7 +870,7 @@ void CvUnit::initWithNameOffset(int iID, UnitTypes eUnit, int iNameOffset, UnitA
 			if(ePromotion == ePromotionRoughTerrain && kPlayer.GetPlayerTraits()->IsConquestOfTheWorld())
 				continue;
 
-			if(!GC.getPromotionInfo(ePromotion)->IsHoveringUnit())	// Hovering units handled above
+			if(!GC.getPromotionInfo(ePromotion)->IsHoveringUnit() && !GC.getPromotionInfo(ePromotion)->IsConvertUnit())	// Hovering and Convert domain units handled above
 				setHasPromotion(ePromotion, true);
 		}
 	}
@@ -856,6 +936,7 @@ void CvUnit::initWithNameOffset(int iID, UnitTypes eUnit, int iNameOffset, UnitA
 			}
 		}
 	}
+
 #endif
 
 	// Free Promotions from Policies, Techs, etc.
@@ -901,7 +982,24 @@ void CvUnit::initWithNameOffset(int iID, UnitTypes eUnit, int iNameOffset, UnitA
 		if(bGivePromotion)
 			setHasPromotion(ePromotionEmbarkation, true);
 	}
-	
+#if defined(MOD_BALANCE_CORE_MILITARY)
+	// These get done in SetXY, but if the unit doesn't have the promotion, the variable doesn't get stored.
+	kPlayer.UpdateAreaEffectUnit(this);
+	if (isGiveInvisibility())
+	{
+		int iLoop;
+		int iRange = GetNearbyUnitPromotionsRange();
+		for (CvUnit* pLoopUnit = kPlayer.firstUnit(&iLoop); pLoopUnit != NULL; pLoopUnit = kPlayer.nextUnit(&iLoop))
+		{
+			if (plotDistance(getX(), getY(), pLoopUnit->getX(), pLoopUnit->getY()) > iRange)
+				continue;
+			if (pLoopUnit->IsHiddenByNearbyUnit(pLoopUnit->plot()))
+			{
+				pLoopUnit->plot()->updateVisibility();
+			}
+		}
+	}
+#endif
 #if defined(MOD_PROMOTIONS_DEEP_WATER_EMBARKATION)
 	// Flip Deep Water Embarkation to Defensive Deep Water Embarkation if the player has the required trait
 	if (IsEmbarkDeepWater()) {
@@ -968,8 +1066,15 @@ void CvUnit::initWithNameOffset(int iID, UnitTypes eUnit, int iNameOffset, UnitA
 			if (eReligion > RELIGION_PANTHEON)
 			{
 				GetReligionData()->SetReligion(eReligion);
-				GetReligionData()->SetSpreadsLeft(getUnitInfo().GetReligionSpreads() + pPlotCity->GetCityBuildings()->GetMissionaryExtraSpreads());
-				GetReligionData()->SetReligiousStrength(getUnitInfo().GetReligiousStrength());
+				GetReligionData()->SetSpreadsLeft(getUnitInfo().GetReligionSpreads() + pPlotCity->GetCityBuildings()->GetMissionaryExtraSpreads() + GET_PLAYER(getOwner()).GetNumMissionarySpreads());
+				int iStrength = getUnitInfo().GetReligiousStrength();
+#if defined(MOD_BALANCE_CORE)
+				iStrength *= (100 + GET_PLAYER(getOwner()).GetMissionaryExtraStrength() + GET_PLAYER(getOwner()).GetPlayerTraits()->GetExtraMissionaryStrength());
+#else
+				iStrength *= (100 + GET_PLAYER(getOwner()).GetMissionaryExtraStrength());
+#endif
+				iStrength /= 100;
+				GetReligionData()->SetReligiousStrength(iStrength);
 			}
 		}
 #if defined(MOD_GLOBAL_RELIGIOUS_SETTLERS) && defined(MOD_BALANCE_CORE_SETTLER_ADVANCED)
@@ -984,7 +1089,7 @@ void CvUnit::initWithNameOffset(int iID, UnitTypes eUnit, int iNameOffset, UnitA
 			CvCityReligions *pCityReligions = pPlotCity->GetCityReligions();
 
 			int totalFollowers = pPlotCity->getPopulation();
-			int randFollower = GC.getGame().getJonRandNum(totalFollowers, "Religious Settlers: Picking a random religion for the settler") + 1;
+			int randFollower = GC.getGame().getSmallFakeRandNum(totalFollowers, pPlotCity->getPopulation()) + 1;
 
 			for (int i = RELIGION_PANTHEON; i < GC.getNumReligionInfos(); i++)
 			{
@@ -1015,7 +1120,7 @@ void CvUnit::initWithNameOffset(int iID, UnitTypes eUnit, int iNameOffset, UnitA
 			CvCityReligions *pCityReligions = pPlotCity->GetCityReligions();
 
 			int totalFollowers = pPlotCity->getPopulation();
-			int randFollower = GC.getGame().getJonRandNum(totalFollowers, "Religious Settlers: Picking a random religion for the settler") + 1;
+			int randFollower = GC.getGame().getSmallFakeRandNum(totalFollowers, pPlotCity->getPopulation()) + 1;
 
 			for (int i = RELIGION_PANTHEON; i < GC.getNumReligionInfos(); i++)
 			{
@@ -1075,7 +1180,7 @@ void CvUnit::initWithNameOffset(int iID, UnitTypes eUnit, int iNameOffset, UnitA
 	GreatPersonTypes eGreatPerson = GetGreatPersonFromUnitClass(getUnitClassType());
 	if (eGreatPerson != NO_GREATPERSON && bHistoric)
 	{
-		CvCity* pCity = plot()->getWorkingCity();
+		CvCity* pCity = plot()->getOwningCity();
 		if (pCity != NULL && pCity->getOwner() == GetID())
 		{
 			GET_PLAYER(getOwner()).doInstantYield(INSTANT_YIELD_TYPE_GP_BORN, false, eGreatPerson, NO_BUILDING, 0, true, NO_PLAYER, NULL, false, pCity);
@@ -1091,8 +1196,6 @@ void CvUnit::initWithNameOffset(int iID, UnitTypes eUnit, int iNameOffset, UnitA
 	if(getOwner() == GC.getGame().getActivePlayer())
 	{
 		DLLUI->setDirty(GameData_DIRTY_BIT, true);
-
-		kPlayer.GetUnitCycler().AddUnit( GetID() );
 	}
 
 	// Message for World Unit being born
@@ -1136,7 +1239,7 @@ void CvUnit::initWithNameOffset(int iID, UnitTypes eUnit, int iNameOffset, UnitA
 	if(IsGreatPerson() && bHistoric)
 	{
 		int iTourism = kPlayer.GetHistoricEventTourism(HISTORIC_EVENT_GP);
-		kPlayer.ChangeNumHistoricEvents(1);
+		kPlayer.ChangeNumHistoricEvents(HISTORIC_EVENT_GP, 1);
 		// Culture boost based on previous turns
 		if(iTourism > 0)
 		{
@@ -1158,6 +1261,23 @@ void CvUnit::initWithNameOffset(int iID, UnitTypes eUnit, int iNameOffset, UnitA
 				}
 			}
 		}
+#if defined(MOD_API_UNIFIED_YIELDS)
+		CvPlayer* pPlayer = &GET_PLAYER(getOwner());
+		CvAssertMsg(pPlayer, "Owner of unit not expected to be NULL. Please send Anton your save file and version.");
+		if (pPlayer)
+		{
+			int iGATurnsfromGPBirth = pPlayer->GetPlayerTraits()->GetGoldenAgeFromGreatPersonBirth(GetGreatPersonFromUnitClass(getUnitClassType())); // JJ: Get number of GA turns as defined in table Trait_GoldenAgeFromGreatPersonBirth for this GP type
+			if (iGATurnsfromGPBirth > 0) // JJ: If someone defined a positive value (no such thing as negative GA turns!)
+			{
+				iGATurnsfromGPBirth = iGATurnsfromGPBirth * (100 + pPlayer->getGoldenAgeLengthModifier()) / 100; // Adjust for in-game modifiers (eg Persia, GA monopoly, etc)
+				iGATurnsfromGPBirth *= GC.getGame().getGameSpeedInfo().getGoldenAgePercent(); // JJ: Adjust for game speed
+				iGATurnsfromGPBirth /= 100;
+				int iValue = pPlayer->GetGoldenAgeProgressMeter();
+				int bFree = 1; // JJ: Does not increase the cost of the next GA
+				pPlayer->changeGoldenAgeTurns(iGATurnsfromGPBirth, iValue, bFree);
+			}
+		}
+#endif
 	}
 #endif
 #if defined(MOD_BALANCE_CORE)
@@ -1252,7 +1372,6 @@ void CvUnit::reset(int iID, UnitTypes eUnit, PlayerTypes eOwner, bool bConstruct
 	m_iX = INVALID_PLOT_COORD;
 	m_iY = INVALID_PLOT_COORD;
 	m_iLastMoveTurn = 0;
-	m_iCycleOrder = -1;
 	m_iDeployFromOperationTurn = -100;
 	m_iReconX = INVALID_PLOT_COORD;
 	m_iReconY = INVALID_PLOT_COORD;
@@ -1272,8 +1391,8 @@ void CvUnit::reset(int iID, UnitTypes eUnit, PlayerTypes eOwner, bool bConstruct
 	m_iCombatTimer = 0;
 	m_iCombatFirstStrikes = 0;
 	m_iCombatDamage = 0;
-	m_iFortifyTurns = 0;
-	m_bFortifiedThisTurn = false;
+	m_bMovedThisTurn = false;
+	m_bFortified = false;
 	m_iBlitzCount = 0;
 	m_iAmphibCount = 0;
 	m_iRiverCrossingNoPenaltyCount = 0;
@@ -1296,6 +1415,7 @@ void CvUnit::reset(int iID, UnitTypes eUnit, PlayerTypes eOwner, bool bConstruct
 #if defined(MOD_BALANCE_CORE)
 	m_iMountainsDoubleMoveCount = 0;
 	m_iAOEDamageOnKill = 0;
+	m_iAoEDamageOnMove = 0;
 	m_iSplashDamage = 0;
 	m_iMultiAttackBonus = 0;
 	m_iLandAirDefenseValue = 0;
@@ -1309,6 +1429,9 @@ void CvUnit::reset(int iID, UnitTypes eUnit, PlayerTypes eOwner, bool bConstruct
 	m_iExtraMoveDiscount = 0;
 	m_iExtraRange = 0;
 	m_iExtraIntercept = 0;
+#if defined(MOD_BALANCE_CORE)
+	m_iExtraAirInterceptRange = 0; // JJ: This is new
+#endif
 	m_iExtraEvasion = 0;
 	m_iExtraFirstStrikes = 0;
 	m_iExtraChanceFirstStrikes = 0;
@@ -1319,6 +1442,7 @@ void CvUnit::reset(int iID, UnitTypes eUnit, PlayerTypes eOwner, bool bConstruct
 	m_eUnitContract = NO_CONTRACT;
 	m_iNegatorPromotion = -1;
 #endif
+	m_bIsNoMaintenance = false;
 	m_iExtraEnemyHeal = 0;
 	m_iExtraNeutralHeal = 0;
 	m_iExtraFriendlyHeal = 0;
@@ -1379,6 +1503,37 @@ void CvUnit::reset(int iID, UnitTypes eUnit, PlayerTypes eOwner, bool bConstruct
 	m_iNearbyUnitClassBonus = 0;
 	m_iNearbyUnitClassBonusRange = 0;
 	m_iCombatBonusFromNearbyUnitClass = NO_UNITCLASS;
+	m_bNearbyPromotion = false;
+	m_iNearbyUnitPromotionRange = 0;
+	m_inearbyCityCombatMod = 0;
+	m_inearbyFriendlyCityCombatMod = 0;
+	m_inearbyEnemyCityCombatMod = 0;
+	m_bIsFriendlyLands = false;
+	m_iPillageBonusStrengthPercent = 0;
+	m_iStackedGreatGeneralExperience = 0;
+	m_bIsHighSeaRaider = false;
+	m_iWonderProductionModifier = 0;
+	m_iUnitProductionModifier = 0;
+	m_iNearbyEnemyDamage = 0;
+	m_iGGGAXPPercent = 0;
+	m_iGiveCombatMod = 0;
+	m_iGiveHPIfEnemyKilled = 0;
+	m_iGiveExperiencePercent = 0;
+	m_igiveOutsideFriendlyLandsModifier = 0;
+	m_igiveExtraAttacks = 0;
+	m_igiveDefenseMod = 0;
+	m_bgiveInvisibility = false;
+	m_bconvertUnit = false;
+	m_eConvertDomainUnit = NO_UNIT;
+	m_eConvertDomain = NO_DOMAIN;
+	m_bconvertEnemyUnitToBarbarian = false;
+	m_bconvertOnFullHP = false;
+	m_bconvertOnDamage = false;
+	m_idamageThreshold = 0;
+	m_econvertDamageOrFullHPUnit = NO_UNIT;
+#endif
+#if defined(MOD_CIV6_WORKER)
+	m_iBuilderStrength = 0;
 #endif
 #if defined(MOD_PROMOTIONS_CROSS_MOUNTAINS)
 	m_iCanCrossMountainsCount = 0;
@@ -1398,10 +1553,12 @@ void CvUnit::reset(int iID, UnitTypes eUnit, PlayerTypes eOwner, bool bConstruct
 	m_iBarbCombatBonus = 0;
 	m_iCanMoraleBreak = 0;
 	m_iDamageAoEFortified = 0;
+	m_iWorkRateMod = 0;
 	m_iDamageReductionCityAssault = 0;
 	m_iStrongerDamaged = 0;
 	m_iGoodyHutYieldBonus = 0;
 	m_iReligiousPressureModifier = 0;
+	m_iAdjacentCityDefenseMod = 0;
 #endif
 #if defined(MOD_PROMOTIONS_GG_FROM_BARBARIANS)
 	m_iGGFromBarbariansCount = 0;
@@ -1437,6 +1594,8 @@ void CvUnit::reset(int iID, UnitTypes eUnit, PlayerTypes eOwner, bool bConstruct
 #if defined(MOD_PROMOTIONS_AURA_CHANGE)
 	m_iAuraRangeChange = 0;
 	m_iAuraEffectChange = 0;
+	m_iNumRepairCharges = 0;
+	m_iMilitaryCapChange = 0;
 #endif
 	m_iGreatGeneralModifier = 0;
 	m_iGreatGeneralReceivesMovementCount = 0;
@@ -1512,16 +1671,21 @@ void CvUnit::reset(int iID, UnitTypes eUnit, PlayerTypes eOwner, bool bConstruct
 	m_combatUnit.reset();
 	m_transportUnit.reset();
 	m_extraDomainModifiers.clear();
+	m_pabGiveDomainBonus.clear();
 
 	for(iI = 0; iI < NUM_DOMAIN_TYPES; iI++)
 	{
 		m_extraDomainModifiers.push_back(0);
 	}
 
-	m_yieldModifier.clear();
+	m_YieldModifier.clear();
+	m_YieldChange.clear();
+	m_iGarrisonYieldChange.clear();
 	for (iI = 0; iI < NUM_YIELD_TYPES; iI++)
 	{
-		m_yieldModifier.push_back(0);
+		m_YieldModifier.push_back(0);
+		m_YieldChange.push_back(0);
+		m_iGarrisonYieldChange.push_back(0);
 	}
 
 #if defined(MOD_PROMOTIONS_UNIT_NAMING)
@@ -1533,7 +1697,6 @@ void CvUnit::reset(int iID, UnitTypes eUnit, PlayerTypes eOwner, bool bConstruct
 #endif
 	m_eGreatWork = NO_GREAT_WORK;
 	m_iTourismBlastStrength = 0;
-	m_strNameIAmNotSupposedToBeUsedAnyMoreBecauseThisShouldNotBeCheckedAndWeNeedToPreserveSaveGameCompatibility = "";
 	m_strScriptData ="";
 	m_iScenarioData = 0;
 
@@ -1602,6 +1765,8 @@ void CvUnit::reset(int iID, UnitTypes eUnit, PlayerTypes eOwner, bool bConstruct
 		m_aiNumTimesAttackedThisTurn.clear();
 		m_aiNumTimesAttackedThisTurn.resize(REALLY_MAX_PLAYERS);
 		m_yieldFromScouting.clear();
+		m_pabGiveDomainBonus.clear();
+		m_pabGiveDomainBonus.resize(NUM_DOMAIN_TYPES, false);
 #endif
 		
 		m_yieldFromKills.resize(NUM_YIELD_TYPES);
@@ -1627,9 +1792,22 @@ void CvUnit::reset(int iID, UnitTypes eUnit, PlayerTypes eOwner, bool bConstruct
 		CvAssertMsg((0 < GC.getNumUnitCombatClassInfos()), "GC.getNumUnitCombatClassInfos() is not greater than zero but an array is being allocated in CvUnit::reset");
 		m_extraUnitCombatModifier.clear();
 		m_extraUnitCombatModifier.resize(GC.getNumUnitCombatClassInfos());
+#if defined(MOD_BALANCE_CORE)
+		m_iCombatModPerAdjacentUnitCombatModifier.clear();
+		m_iCombatModPerAdjacentUnitCombatModifier.resize(GC.getNumUnitCombatClassInfos());
+		m_iCombatModPerAdjacentUnitCombatAttackMod.clear();
+		m_iCombatModPerAdjacentUnitCombatAttackMod.resize(GC.getNumUnitCombatClassInfos());
+		m_iCombatModPerAdjacentUnitCombatDefenseMod.clear();
+		m_iCombatModPerAdjacentUnitCombatDefenseMod.resize(GC.getNumUnitCombatClassInfos());
+#endif
 		for(int i = 0; i < GC.getNumUnitCombatClassInfos(); i++)
 		{
 			m_extraUnitCombatModifier.setAt(i,0);
+#if defined(MOD_BALANCE_CORE)
+			m_iCombatModPerAdjacentUnitCombatModifier.setAt(i,0);
+			m_iCombatModPerAdjacentUnitCombatAttackMod.setAt(i,0);
+			m_iCombatModPerAdjacentUnitCombatDefenseMod.setAt(i,0);
+#endif
 		}
 
 		m_unitClassModifier.clear();
@@ -1680,10 +1858,7 @@ void CvUnit::setupGraphical()
 
 		pDLL->GameplayUnitShouldDimFlag(pDllUnit.get(), /*bDim*/ getMoves() <= 0);
 
-		if(getFortifyTurns() > 0)
-		{
-			pDLL->GameplayUnitFortify(pDllUnit.get(), true);
-		}
+		pDLL->GameplayUnitFortify(pDllUnit.get(), IsFortified());
 
 		int iNewValue = getDamage();
 		if(iNewValue > 0)
@@ -1745,6 +1920,11 @@ void CvUnit::uninitInfos()
 
 	m_extraUnitClassAttackMod.dirtyGet().clear();
 	m_extraUnitClassDefenseMod.dirtyGet().clear();
+#if defined(MOD_BALANCE_CORE)
+	m_iCombatModPerAdjacentUnitCombatModifier.clear();
+	m_iCombatModPerAdjacentUnitCombatAttackMod.clear();
+	m_iCombatModPerAdjacentUnitCombatDefenseMod.clear();
+#endif
 #if defined(MOD_API_UNIFIED_YIELDS)
 	m_yieldFromKills.clear();
 	m_yieldFromBarbarianKills.clear();
@@ -1758,7 +1938,11 @@ void CvUnit::uninitInfos()
 
 
 //	--------------------------------------------------------------------------------
+#if defined(MOD_BALANCE_CORE)
+void CvUnit::convert(CvUnit* pUnit, bool bIsUpgrade, bool bSupply)
+#else
 void CvUnit::convert(CvUnit* pUnit, bool bIsUpgrade)
+#endif
 {
 	VALIDATE_OBJECT
 	IDInfo* pUnitNode;
@@ -1786,6 +1970,14 @@ void CvUnit::convert(CvUnit* pUnit, bool bIsUpgrade)
 			}
 #endif
 #if defined(MOD_BALANCE_CORE)
+			if (pUnit->isConvertOnDamage() && pkPromotionInfo->IsConvertOnDamage())
+			{
+				continue;
+			}
+			if (pUnit->isConvertOnFullHP() && pkPromotionInfo->IsConvertOnFullHP())
+			{
+				continue;
+			}
 			bool bFree = false;
 			if (ePromotion == (PromotionTypes)GC.getPROMOTION_OCEAN_IMPASSABLE())
 			{
@@ -1929,9 +2121,9 @@ void CvUnit::convert(CvUnit* pUnit, bool bIsUpgrade)
 
 	if (pUnit->getOriginCity() == NULL)
 	{
-		if (plot() != NULL && plot()->getWorkingCity() != NULL && plot()->getWorkingCity()->getOwner() == getOwner())
+		if (plot() != NULL && plot()->getOwningCity() != NULL && plot()->getOwningCity()->getOwner() == getOwner())
 		{
-			setOriginCity(plot()->getWorkingCity()->GetID());
+			setOriginCity(plot()->getOwningCity()->GetID());
 		}
 	}
 	else
@@ -1988,7 +2180,11 @@ void CvUnit::convert(CvUnit* pUnit, bool bIsUpgrade)
 		}
 	}
 
+#if defined(MOD_BALANCE_CORE)
+	pUnit->kill(true, NO_PLAYER, bSupply);
+#else
 	pUnit->kill(true, NO_PLAYER, true);
+#endif
 }
 
 //	----------------------------------------------------------------------------
@@ -1996,6 +2192,7 @@ void CvUnit::convert(CvUnit* pUnit, bool bIsUpgrade)
 //	Parameters:
 //		bDelay			- If true, the unit will be partially cleaned up, but its final removal will happen at the end of the frame.
 //		ePlayer			- Optional player ID who is doing the killing.
+//      bSupply         - true (default) - grants resources and increases Supply Cap is eligible; false - doesn't grant respurces, doesn't increase Supply Cap
 void CvUnit::kill(bool bDelay, PlayerTypes ePlayer /*= NO_PLAYER*/, bool bSupply)
 {
 	//nothing to do
@@ -2113,7 +2310,7 @@ void CvUnit::kill(bool bDelay, PlayerTypes ePlayer /*= NO_PLAYER*/, bool bSupply
 			//Human killed me?
 			if (MOD_BALANCE_CORE_DIFFICULTY && !kPlayer.isHuman() && GET_PLAYER(ePlayer).isHuman())
 			{
-				int iHandicap = GC.getGame().getHandicapInfo().getAIDifficultyBonus() * (getUnitInfo().GetPower());
+				int iHandicap = GC.getGame().getHandicapInfo().getAIDifficultyBonusBase() * (getUnitInfo().GetPower());
 				iHandicap /= 25;
 				if (getOriginCity() != NULL && getOwner() == getOriginCity()->getOwner())
 				{
@@ -2278,25 +2475,40 @@ void CvUnit::kill(bool bDelay, PlayerTypes ePlayer /*= NO_PLAYER*/, bool bSupply
 				}
 			}
 		}
-		if (bSupply && getUnitInfo().GetSupplyCapBoost() != 0)
+		if (bSupply)
 		{
-			if (GET_PLAYER(getOwner()).getCapitalCity() != NULL)
+			for (int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
 			{
-				GET_PLAYER(getOwner()).getCapitalCity()->changeCitySupplyFlat(getUnitInfo().GetSupplyCapBoost());
-				if (GET_PLAYER(getOwner()).GetID() == GC.getGame().getActivePlayer())
+				int Gained = getUnitInfo().GetResourceQuantityExpended((ResourceTypes)iResourceLoop);
+				if (Gained != 0)
 				{
-					char text[256] = { 0 };
-					float fDelay = 0.5f;
-					sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_WAR]", getUnitInfo().GetSupplyCapBoost());
-					DLLUI->AddPopupText(getX(), getY(), text, fDelay);
-					CvNotifications* pNotification = GET_PLAYER(getOwner()).GetNotifications();
-					if (pNotification)
+					GET_PLAYER(getOwner()).changeNumResourceTotal((ResourceTypes)iResourceLoop, Gained);
+				}
+			}
+		}
+		if (bSupply)
+		{
+			int iSupply = getUnitInfo().GetSupplyCapBoost() + GetMilitaryCapChange();
+			if (iSupply > 0)
+			{
+				if (GET_PLAYER(getOwner()).getCapitalCity() != NULL)
+				{
+					GET_PLAYER(getOwner()).getCapitalCity()->changeCitySupplyFlat(iSupply);
+					if (GET_PLAYER(getOwner()).GetID() == GC.getGame().getActivePlayer())
 					{
-						CvString strMessage;
-						CvString strSummary;
-						strMessage = GetLocalizedText("TXT_KEY_UNIT_EXPENDED_SUPPLY", getNameKey(), getUnitInfo().GetSupplyCapBoost());
-						strSummary = GetLocalizedText("TXT_KEY_UNIT_EXPENDED_SUPPLY_S");
-						pNotification->Add(NOTIFICATION_GENERIC, strMessage, strSummary, getX(), getY(), getOwner());
+						char text[256] = { 0 };
+						float fDelay = 0.5f;
+						sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_WAR]", iSupply);
+						DLLUI->AddPopupText(getX(), getY(), text, fDelay);
+						CvNotifications* pNotification = GET_PLAYER(getOwner()).GetNotifications();
+						if (pNotification)
+						{
+							CvString strMessage;
+							CvString strSummary;
+							strMessage = GetLocalizedText("TXT_KEY_UNIT_EXPENDED_SUPPLY", getNameKey(), iSupply);
+							strSummary = GetLocalizedText("TXT_KEY_UNIT_EXPENDED_SUPPLY_S");
+							pNotification->Add(NOTIFICATION_GENERIC, strMessage, strSummary, getX(), getY(), getOwner());
+						}
 					}
 				}
 			}
@@ -2343,7 +2555,6 @@ void CvUnit::kill(bool bDelay, PlayerTypes ePlayer /*= NO_PLAYER*/, bool bSupply
 	}
 
 	DLLUI->RemoveFromSelectionList(pDllThisUnit.get());
-	GET_PLAYER(getOwner()).GetUnitCycler().RemoveUnit(GetID());
 
 	// Killing a unit while in combat is not something we really expect to happen.
 	// It is *mostly* safe for it to happen, but combat systems must be able to gracefully handle the disapperance of a unit.
@@ -2394,6 +2605,13 @@ void CvUnit::kill(bool bDelay, PlayerTypes ePlayer /*= NO_PLAYER*/, bool bSupply
 #endif
 	}
 
+#if defined(MOD_BALANCE_CORE)
+	if (getUnitInfo().IsMilitarySupport() && (isNoSupply() || isContractUnit()))
+	{
+		GET_PLAYER(getOwner()).changeNumUnitsSupplyFree(-1);
+	}
+#endif
+
 	// A unit dying reduces the Great General meter
 #if defined(MOD_UNITS_XP_TIMES_100)
 	if (getExperienceTimes100() > 0 && ePlayer != NO_PLAYER)
@@ -2440,6 +2658,23 @@ void CvUnit::kill(bool bDelay, PlayerTypes ePlayer /*= NO_PLAYER*/, bool bSupply
 	if(pPlot)
 		pPlot->removeUnit(this, false);
 
+	if (pPlot)
+	{
+		CvCity* pCity = pPlot->getPlotCity();
+		if (pCity != NULL)
+		{
+			if (GET_PLAYER(getOwner()).GetFlatDefenseFromAirUnits() != 0 && getUnitInfo().GetAirUnitCap() != 0)
+			{
+				pCity->updateStrengthValue();
+			}
+			
+			if (GET_PLAYER(getOwner()).GetNeedsModifierFromAirUnits() != 0 && getUnitInfo().GetAirUnitCap() != 0)
+			{
+				GET_PLAYER(getOwner()).DoUpdateTotalUnhappiness();
+			}
+		}
+	}
+
 	// Remove Resource Quantity from Used
 	for(int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
 	{
@@ -2448,12 +2683,30 @@ void CvUnit::kill(bool bDelay, PlayerTypes ePlayer /*= NO_PLAYER*/, bool bSupply
 			GET_PLAYER(getOwner()).changeNumResourceUsed((ResourceTypes) iResourceLoop, -getUnitInfo().GetResourceQuantityRequirement(iResourceLoop));
 		}
 	}
-#if defined(MOD_BALANCE_CORE)
-	if (isTrade() || IsCivilianUnit() || isNoSupply() || isContractUnit())
+	// Let's force a visibility update to all nearby units (in the domain)--within range--if this general is captured or killed regardless if there is another general around to give the bonus
+	if (isGiveInvisibility())
 	{
-		GET_PLAYER(getOwner()).changeNumFreeUnits(-1);
+		int iLoop;
+		int iRange = GetNearbyUnitPromotionsRange();
+		CvPlayerAI& kPlayer = GET_PLAYER(getOwner());
+		for (CvUnit* pLoopUnit = kPlayer.firstUnit(&iLoop); pLoopUnit != NULL; pLoopUnit = kPlayer.nextUnit(&iLoop))
+		{
+			if (!pLoopUnit->IsCombatUnit())
+				continue;
+
+			if (!IsGiveDomainBonus(pLoopUnit->getDomainType()))
+				continue;
+
+			if (plotDistance(getX(), getY(), pLoopUnit->getX(), pLoopUnit->getY()) > iRange)
+				continue;
+
+			if (pLoopUnit->getInvisibleType() == NO_INVISIBLE)
+			{
+				auto_ptr<ICvUnit1> pDllUnit(new CvDllUnit(pLoopUnit));
+				gDLL->GameplayUnitVisibility(pDllUnit.get(), true /*bVisible*/, true);
+			}
+		}
 	}
-#endif
 	//////////////////////////////////////////////////////////////////////////
 	// WARNING: This next statement will delete 'this'
 	// ANYTHING BELOW HERE MUST NOT REFERENCE THE UNIT!
@@ -2486,6 +2739,7 @@ bool CvUnit::getCaptureDefinition(CvUnitCaptureDefinition* pkCaptureDef, PlayerT
 	kCaptureDef.eCapturingPlayer = (eCapturingPlayer != NO_PLAYER) ? eCapturingPlayer : getCapturingPlayer();
 	kCaptureDef.bEmbarked = m_bEmbarked;
 	kCaptureDef.eCaptureUnitType = NO_UNIT;
+	kCaptureDef.iUnitID = GetID();
 #if defined(MOD_API_EXTENSIONS)
 	kCaptureDef.iScenarioData = m_iScenarioData;
 #endif
@@ -2545,228 +2799,237 @@ bool CvUnit::getCaptureDefinition(CvUnitCaptureDefinition* pkCaptureDef, PlayerT
 //	Please note this method is static because it is often called AFTER the original unit
 //	has been deleted.
 
-/* static */ CvUnit* CvUnit::createCaptureUnit(const CvUnitCaptureDefinition& kCaptureDef)
+/* static */ CvUnit* CvUnit::createCaptureUnit(const CvUnitCaptureDefinition& kCaptureDef, bool ForcedCapture)
 {
-	CvUnit* pkCapturedUnit = NULL;
+	if (kCaptureDef.eCapturingPlayer == NO_PLAYER || kCaptureDef.eCaptureUnitType == NO_UNIT)
+		return NULL;
 
-	if(kCaptureDef.eCapturingPlayer != NO_PLAYER && kCaptureDef.eCaptureUnitType != NO_UNIT)
+	CvPlot* pkPlot = GC.getMap().plot(kCaptureDef.iX , kCaptureDef.iY);
+	if (!pkPlot)
+		return NULL;
+
+	CvPlayerAI& kCapturingPlayer = GET_PLAYER(kCaptureDef.eCapturingPlayer);
+	CvUnit* pkCapturedUnit = kCapturingPlayer.initUnit(kCaptureDef.eCaptureUnitType, kCaptureDef.iX, kCaptureDef.iY);
+
+	if (!pkCapturedUnit)
+		return NULL;
+
+	pkCapturedUnit->GetReligionData()->SetReligion(kCaptureDef.eReligion);
+	pkCapturedUnit->GetReligionData()->SetReligiousStrength(kCaptureDef.iReligiousStrength);
+	pkCapturedUnit->GetReligionData()->SetSpreadsLeft(kCaptureDef.iSpreadsLeft);
+
+	pkCapturedUnit->SetOriginalOwner(kCaptureDef.eOriginalOwner);
+
+	if (MOD_BALANCE_CORE_BARBARIAN_THEFT && pkCapturedUnit->IsCivilianUnit() && pkCapturedUnit->GetOriginalOwner() != kCapturingPlayer.GetID())
 	{
-		CvPlot* pkPlot = GC.getMap().plot(kCaptureDef.iX , kCaptureDef.iY);
-		if(pkPlot)
+		PromotionTypes ePromotionForced = (PromotionTypes)GC.getInfoTypeForString("PROMOTION_PRISONER_WAR");
+		if (ePromotionForced != NO_PROMOTION && !pkCapturedUnit->HasPromotion(ePromotionForced))
 		{
-			CvPlayerAI& kCapturingPlayer = GET_PLAYER(kCaptureDef.eCapturingPlayer);
-			if(kCapturingPlayer.isHuman() || kCapturingPlayer.AI_captureUnit(kCaptureDef.eCaptureUnitType, pkPlot) || 0 == GC.getAI_CAN_DISBAND_UNITS())
-			{
-				pkCapturedUnit = kCapturingPlayer.initUnit(kCaptureDef.eCaptureUnitType, kCaptureDef.iX, kCaptureDef.iY);
-
-				if(pkCapturedUnit != NULL)
-				{
-					pkCapturedUnit->GetReligionData()->SetReligion(kCaptureDef.eReligion);
-					pkCapturedUnit->GetReligionData()->SetReligiousStrength(kCaptureDef.iReligiousStrength);
-					pkCapturedUnit->GetReligionData()->SetSpreadsLeft(kCaptureDef.iSpreadsLeft);
-
-					pkCapturedUnit->SetOriginalOwner(kCaptureDef.eOriginalOwner);
-
+			pkCapturedUnit->setHasPromotion(ePromotionForced, true);
+		}
+	}
 #if defined(MOD_API_EXTENSIONS)
-					pkCapturedUnit->setScenarioData(kCaptureDef.iScenarioData);
+	pkCapturedUnit->setScenarioData(kCaptureDef.iScenarioData);
 #endif
 
-					if(GC.getLogging() && GC.getAILogging())
+	if(GC.getLogging() && GC.getAILogging())
+	{
+		CvString szMsg;
+		szMsg.Format("Captured: %s, Enemy was: %s", GC.getUnitInfo(kCaptureDef.eOldType)->GetDescription(), kCapturingPlayer.getCivilizationShortDescription());
+		GET_PLAYER(kCaptureDef.eOldPlayer).GetTacticalAI()->LogTacticalMessage(szMsg, true /*bSkipLogDominanceZone*/);
+	}
+
+	if(kCaptureDef.bEmbarked)
+	{
+		auto_ptr<ICvUnit1> pDllUnit(new CvDllUnit(pkCapturedUnit));
+		gDLL->GameplayUnitEmbark(pDllUnit.get(), true);
+		pkCapturedUnit->setEmbarked(true);
+		if (!pkCapturedUnit->jumpToNearestValidPlot())
+		{
+			pkCapturedUnit->kill(true);
+			pkCapturedUnit = NULL;
+		}
+	}
+
+	bool bDisbanded = false;
+	if (pkCapturedUnit != NULL)
+	{
+		pkCapturedUnit->finishMoves();
+
+		// Minor civs can't capture settlers, ever!
+		if(!bDisbanded && GET_PLAYER(pkCapturedUnit->getOwner()).isMinorCiv() && (pkCapturedUnit->isFound() || pkCapturedUnit->IsFoundAbroad()))
+		{
+			bDisbanded = true;
+			pkCapturedUnit->kill(false);
+			pkCapturedUnit = NULL;
+		}
+		if (pkCapturedUnit != NULL && pkCapturedUnit->IsCombatUnit())
+		{
+			if(!pkCapturedUnit->jumpToNearestValidPlot())
+			{
+				pkCapturedUnit->kill(true);
+				pkCapturedUnit = NULL;
+			}
+		}
+	}
+
+	// Captured civilian who could be returned?
+	if(!kCaptureDef.bAsIs)
+	{
+		bool bShowingHumanPopup = true;
+		bool bShowingActivePlayerPopup = true;
+
+		// Only active player gets the choice
+		if(GC.getGame().getActivePlayer() != kCaptureDef.eCapturingPlayer)
+		{
+			bShowingActivePlayerPopup = false;
+		}
+
+		// Original owner is dead!
+		if(!GET_PLAYER(kCaptureDef.eOriginalOwner).isAlive())
+			bShowingHumanPopup = false;
+
+		// If original owner
+		else if(kCaptureDef.eOriginalOwner == kCaptureDef.eCapturingPlayer)
+			bShowingHumanPopup = false;
+
+		// Players at war
+		else if (GET_TEAM(GET_PLAYER(kCaptureDef.eOriginalOwner).getTeam()).isAtWar(kCapturingPlayer.getTeam()))
+			bShowingHumanPopup = false;
+
+		else if (GET_TEAM(GET_PLAYER(kCaptureDef.eOriginalOwner).getTeam()).isAtWar(kCapturingPlayer.getTeam()))
+			bShowingHumanPopup = false;
+
+		// Players haven't met
+		else if(!GET_TEAM(GET_PLAYER(kCaptureDef.eOriginalOwner).getTeam()).isHasMet(kCapturingPlayer.getTeam()))
+			bShowingHumanPopup = false;
+
+#if defined(MOD_BALANCE_CORE)
+		// Not human?
+		else if(!GET_PLAYER(GC.getGame().getActivePlayer()).isHuman())
+			bShowingHumanPopup = false;
+
+		if (ForcedCapture)
+			bShowingHumanPopup = false;
+#endif
+
+		// Show the popup
+		if(bShowingHumanPopup && bShowingActivePlayerPopup && pkCapturedUnit)
+		{
+			CvPopupInfo kPopupInfo(BUTTONPOPUP_RETURN_CIVILIAN, kCaptureDef.eCapturingPlayer, kCaptureDef.eOriginalOwner, pkCapturedUnit->GetID());
+			DLLUI->AddPopup(kPopupInfo);
+			// We are adding a popup that the player must make a choice in, make sure they are not in the end-turn phase.
+			if (kCapturingPlayer.isLocalPlayer())
+				CancelActivePlayerEndTurn();
+		}
+
+		// Take it automatically!
+		else if(!bShowingHumanPopup && !bDisbanded && pkCapturedUnit != NULL && !pkCapturedUnit->isBarbarian())	// Don't process if the AI decided to disband the unit, or the barbs captured something
+		{
+			// If the unit originally belonged to us, we've already done what we needed to do
+			if(kCaptureDef.eCapturingPlayer != kCaptureDef.eOriginalOwner)
+			{
+#if defined(MOD_BALANCE_CORE)
+				if (kCaptureDef.eOriginalOwner != NO_PLAYER && GET_PLAYER(kCaptureDef.eOriginalOwner).isAlive() && !GET_PLAYER(kCaptureDef.eCapturingPlayer).isHuman() && !GET_PLAYER(kCaptureDef.eCapturingPlayer).IsAtWarWith(kCaptureDef.eOriginalOwner))
+				{
+					MajorCivOpinionTypes eMajorOpinion = NO_MAJOR_CIV_OPINION_TYPE;
+					MinorCivApproachTypes eMinorOpinion = NO_MINOR_CIV_APPROACH;
+					if(GET_PLAYER(kCaptureDef.eOriginalOwner).isMajorCiv())
 					{
-						CvString szMsg;
-						szMsg.Format("Captured: %s, Enemy was: %s", GC.getUnitInfo(kCaptureDef.eOldType)->GetDescription(), kCapturingPlayer.getCivilizationShortDescription());
-						GET_PLAYER(kCaptureDef.eOldPlayer).GetTacticalAI()->LogTacticalMessage(szMsg, true /*bSkipLogDominanceZone*/);
-					}
-
-					if(kCaptureDef.bEmbarked)
-					{
-						auto_ptr<ICvUnit1> pDllUnit(new CvDllUnit(pkCapturedUnit));
-						gDLL->GameplayUnitEmbark(pDllUnit.get(), true);
-						pkCapturedUnit->setEmbarked(true);
-						if (!pkCapturedUnit->jumpToNearestValidPlot())
-						{
-							pkCapturedUnit->kill(true);
-							pkCapturedUnit = NULL;
-						}
-					}
-
-					bool bDisbanded = false;
-					if (pkCapturedUnit != NULL)
-					{
-						pkCapturedUnit->finishMoves();
-
-						// Minor civs can't capture settlers, ever!
-						if(!bDisbanded && GET_PLAYER(pkCapturedUnit->getOwner()).isMinorCiv() && (pkCapturedUnit->isFound() || pkCapturedUnit->IsFoundAbroad()))
-						{
-							bDisbanded = true;
-							pkCapturedUnit->kill(false);
-							pkCapturedUnit = NULL;
-						}
-						if (pkCapturedUnit != NULL && pkCapturedUnit->IsCombatUnit())
-						{
-							if(!pkCapturedUnit->jumpToNearestValidPlot())
-							{
-								pkCapturedUnit->kill(true);
-								pkCapturedUnit = NULL;
-							}
-						}
-					}
-
-					// Captured civilian who could be returned?
-					if(!kCaptureDef.bAsIs)
-					{
-						bool bShowingHumanPopup = true;
-						bool bShowingActivePlayerPopup = true;
-
-						// Only active player gets the choice
-						if(GC.getGame().getActivePlayer() != kCaptureDef.eCapturingPlayer)
-						{
-							bShowingActivePlayerPopup = false;
-						}
-
-						// Original owner is dead!
-						if(!GET_PLAYER(kCaptureDef.eOriginalOwner).isAlive())
-							bShowingHumanPopup = false;
-
-						// If original owner
-						else if(kCaptureDef.eOriginalOwner == kCaptureDef.eCapturingPlayer)
-							bShowingHumanPopup = false;
-
-						// Players at war
-						else if(GET_TEAM(GET_PLAYER(kCaptureDef.eOriginalOwner).getTeam()).isAtWar(kCapturingPlayer.getTeam()))
-							bShowingHumanPopup = false;
-
-						// Players haven't met
-						else if(!GET_TEAM(GET_PLAYER(kCaptureDef.eOriginalOwner).getTeam()).isHasMet(kCapturingPlayer.getTeam()))
-							bShowingHumanPopup = false;
-
-#if defined(MOD_BALANCE_CORE)
-						// Not human?
-						else if(!GET_PLAYER(GC.getGame().getActivePlayer()).isHuman())
-							bShowingHumanPopup = false;
-#endif
-
-						// Show the popup
-						if(bShowingHumanPopup && bShowingActivePlayerPopup && pkCapturedUnit)
-						{
-							CvPopupInfo kPopupInfo(BUTTONPOPUP_RETURN_CIVILIAN, kCaptureDef.eCapturingPlayer, kCaptureDef.eOriginalOwner, pkCapturedUnit->GetID());
-							DLLUI->AddPopup(kPopupInfo);
-							// We are adding a popup that the player must make a choice in, make sure they are not in the end-turn phase.
-							if (kCapturingPlayer.isLocalPlayer())
-								CancelActivePlayerEndTurn();
-						}
-
-						// Take it automatically!
-						else if(!bShowingHumanPopup && !bDisbanded && pkCapturedUnit != NULL && !pkCapturedUnit->isBarbarian())	// Don't process if the AI decided to disband the unit, or the barbs captured something
-						{
-							// If the unit originally belonged to us, we've already done what we needed to do
-							if(kCaptureDef.eCapturingPlayer != kCaptureDef.eOriginalOwner)
-							{
-#if defined(MOD_BALANCE_CORE)
-								if (kCaptureDef.eOriginalOwner != NO_PLAYER && GET_PLAYER(kCaptureDef.eOriginalOwner).isAlive() && !GET_PLAYER(kCaptureDef.eCapturingPlayer).isHuman() && !GET_PLAYER(kCaptureDef.eCapturingPlayer).IsAtWarWith(kCaptureDef.eOriginalOwner))
-								{
-									MajorCivOpinionTypes eMajorOpinion = NO_MAJOR_CIV_OPINION_TYPE;
-									MinorCivApproachTypes eMinorOpinion = NO_MINOR_CIV_APPROACH;
-									if(GET_PLAYER(kCaptureDef.eOriginalOwner).isMajorCiv())
-									{
-										eMajorOpinion = kCapturingPlayer.GetDiplomacyAI()->GetMajorCivOpinion(kCaptureDef.eOriginalOwner);
-									}
-									else
-									{
-										eMinorOpinion = kCapturingPlayer.GetDiplomacyAI()->GetMinorCivApproach(kCaptureDef.eOriginalOwner);
-									}
-
-									if(GET_PLAYER(kCaptureDef.eOriginalOwner).isMajorCiv() && eMajorOpinion >= MAJOR_CIV_OPINION_FAVORABLE)
-									{	
-										kCapturingPlayer.DoCivilianReturnLogic(true, kCaptureDef.eOriginalOwner, pkCapturedUnit->GetID());
-									}
-									else if(GET_PLAYER(kCaptureDef.eOriginalOwner).isMinorCiv() && (eMinorOpinion == MINOR_CIV_APPROACH_FRIENDLY || eMinorOpinion == MINOR_CIV_APPROACH_PROTECTIVE))
-									{
-										kCapturingPlayer.DoCivilianReturnLogic(true, kCaptureDef.eOriginalOwner, pkCapturedUnit->GetID());
-									}
-									else
-									{
-										kCapturingPlayer.DoCivilianReturnLogic(false, kCaptureDef.eOriginalOwner, pkCapturedUnit->GetID());
-									}
-								}
-								else
-								{
-#endif
-
-								kCapturingPlayer.DoCivilianReturnLogic(false, kCaptureDef.eOriginalOwner, pkCapturedUnit->GetID());
-#if defined(MOD_BALANCE_CORE)
-								}
-							}
-#endif
-						}
-						// if Venice
-						else if (kCapturingPlayer.GetPlayerTraits()->IsNoAnnexing())
-						{
-#if defined(MOD_BALANCE_CORE)
-							if(kCaptureDef.eOriginalOwner != NO_PLAYER && !GET_PLAYER(kCaptureDef.eCapturingPlayer).isHuman())
-							{
-								MajorCivOpinionTypes eMajorOpinion = NO_MAJOR_CIV_OPINION_TYPE;
-								MinorCivApproachTypes eMinorOpinion = NO_MINOR_CIV_APPROACH;
-								if(GET_PLAYER(kCaptureDef.eOriginalOwner).isMajorCiv())
-								{
-									eMajorOpinion = kCapturingPlayer.GetDiplomacyAI()->GetMajorCivOpinion(kCaptureDef.eOriginalOwner);
-								}
-								else
-								{
-									eMinorOpinion = kCapturingPlayer.GetDiplomacyAI()->GetMinorCivApproach(kCaptureDef.eOriginalOwner);
-								}
-
-								if(GET_PLAYER(kCaptureDef.eOriginalOwner).isMajorCiv() && eMajorOpinion >= MAJOR_CIV_OPINION_FAVORABLE)
-								{	
-									kCapturingPlayer.DoCivilianReturnLogic(true, kCaptureDef.eOriginalOwner, pkCapturedUnit->GetID());
-								}
-								else if(GET_PLAYER(kCaptureDef.eOriginalOwner).isMinorCiv() && (eMinorOpinion == MINOR_CIV_APPROACH_FRIENDLY || eMinorOpinion == MINOR_CIV_APPROACH_PROTECTIVE))
-								{
-									kCapturingPlayer.DoCivilianReturnLogic(true, kCaptureDef.eOriginalOwner, pkCapturedUnit->GetID());
-								}
-								else
-								{
-									kCapturingPlayer.DoCivilianReturnLogic(false, kCaptureDef.eOriginalOwner, pkCapturedUnit->GetID());
-								}
-							}
-							else
-							{
-#endif
-
-							kCapturingPlayer.DoCivilianReturnLogic(false, kCaptureDef.eOriginalOwner, pkCapturedUnit->GetID());
-#if defined(MOD_BALANCE_CORE)
-							}
-#endif
-						}
+						eMajorOpinion = kCapturingPlayer.GetDiplomacyAI()->GetMajorCivOpinion(kCaptureDef.eOriginalOwner);
 					}
 					else
 					{
-						// restore combat units at some percentage of their original health
-						if (pkCapturedUnit != NULL)
-						{
-							int iCapturedHealth = (pkCapturedUnit->GetMaxHitPoints() * GC.getCOMBAT_CAPTURE_HEALTH()) / 100;
-							pkCapturedUnit->setDamage(iCapturedHealth);
-						}
+						eMinorOpinion = kCapturingPlayer.GetDiplomacyAI()->GetMinorCivApproach(kCaptureDef.eOriginalOwner);
 					}
 
-					if(kCaptureDef.eCapturingPlayer == GC.getGame().getActivePlayer())
+					if(GET_PLAYER(kCaptureDef.eOriginalOwner).isMajorCiv() && eMajorOpinion >= MAJOR_CIV_OPINION_FAVORABLE)
+					{	
+						kCapturingPlayer.DoCivilianReturnLogic(true, kCaptureDef.eOriginalOwner, pkCapturedUnit->GetID());
+					}
+					else if(GET_PLAYER(kCaptureDef.eOriginalOwner).isMinorCiv() && (eMinorOpinion == MINOR_CIV_APPROACH_FRIENDLY || eMinorOpinion == MINOR_CIV_APPROACH_PROTECTIVE))
 					{
-						CvString strBuffer;
-						CvUnitEntry* pkUnitInfo = GC.getUnitInfo(kCaptureDef.eCaptureUnitType);
-						if (pkUnitInfo)
-						{
-							if (kCaptureDef.eOriginalOwner == kCaptureDef.eCapturingPlayer){
-								//player recaptured a friendly unit
-								strBuffer = GetLocalizedText("TXT_KEY_MISC_YOU_RECAPTURED_UNIT", pkUnitInfo->GetTextKey());
-							}
-							else{
-								strBuffer = GetLocalizedText("TXT_KEY_MISC_YOU_CAPTURED_UNIT", pkUnitInfo->GetTextKey());
-							}
-							DLLUI->AddUnitMessage(0, IDInfo(kCaptureDef.eCapturingPlayer, pkCapturedUnit->GetID()), kCaptureDef.eCapturingPlayer, true, GC.getEVENT_MESSAGE_TIME(), strBuffer/*, "AS2D_UNITCAPTURE", MESSAGE_TYPE_INFO, GC.getUnitInfo(eCaptureUnitType)->GetButton(), (ColorTypes)GC.getInfoTypeForString("COLOR_GREEN"), pPlot->getX(), pPlot->getY()*/);
-						}
+						kCapturingPlayer.DoCivilianReturnLogic(true, kCaptureDef.eOriginalOwner, pkCapturedUnit->GetID());
+					}
+					else
+					{
+						kCapturingPlayer.DoCivilianReturnLogic(false, kCaptureDef.eOriginalOwner, pkCapturedUnit->GetID());
 					}
 				}
+				else
+				{
+#endif
+
+				kCapturingPlayer.DoCivilianReturnLogic(false, kCaptureDef.eOriginalOwner, pkCapturedUnit->GetID());
+#if defined(MOD_BALANCE_CORE)
+				}
 			}
+#endif
+		}
+		// if Venice
+		else if (kCapturingPlayer.GetPlayerTraits()->IsNoAnnexing())
+		{
+#if defined(MOD_BALANCE_CORE)
+			if(kCaptureDef.eOriginalOwner != NO_PLAYER && !GET_PLAYER(kCaptureDef.eCapturingPlayer).isHuman())
+			{
+				MajorCivOpinionTypes eMajorOpinion = NO_MAJOR_CIV_OPINION_TYPE;
+				MinorCivApproachTypes eMinorOpinion = NO_MINOR_CIV_APPROACH;
+				if(GET_PLAYER(kCaptureDef.eOriginalOwner).isMajorCiv())
+				{
+					eMajorOpinion = kCapturingPlayer.GetDiplomacyAI()->GetMajorCivOpinion(kCaptureDef.eOriginalOwner);
+				}
+				else
+				{
+					eMinorOpinion = kCapturingPlayer.GetDiplomacyAI()->GetMinorCivApproach(kCaptureDef.eOriginalOwner);
+				}
+
+				if(GET_PLAYER(kCaptureDef.eOriginalOwner).isMajorCiv() && eMajorOpinion >= MAJOR_CIV_OPINION_FAVORABLE)
+				{	
+					kCapturingPlayer.DoCivilianReturnLogic(true, kCaptureDef.eOriginalOwner, pkCapturedUnit->GetID());
+				}
+				else if(GET_PLAYER(kCaptureDef.eOriginalOwner).isMinorCiv() && (eMinorOpinion == MINOR_CIV_APPROACH_FRIENDLY || eMinorOpinion == MINOR_CIV_APPROACH_PROTECTIVE))
+				{
+					kCapturingPlayer.DoCivilianReturnLogic(true, kCaptureDef.eOriginalOwner, pkCapturedUnit->GetID());
+				}
+				else
+				{
+					kCapturingPlayer.DoCivilianReturnLogic(false, kCaptureDef.eOriginalOwner, pkCapturedUnit->GetID());
+				}
+			}
+			else
+			{
+#endif
+
+			kCapturingPlayer.DoCivilianReturnLogic(false, kCaptureDef.eOriginalOwner, pkCapturedUnit->GetID());
+#if defined(MOD_BALANCE_CORE)
+			}
+#endif
+		}
+	}
+	else
+	{
+		// restore combat units at some percentage of their original health
+		if (pkCapturedUnit != NULL)
+		{
+			int iCapturedHealth = (pkCapturedUnit->GetMaxHitPoints() * GC.getCOMBAT_CAPTURE_HEALTH()) / 100;
+			pkCapturedUnit->setDamage(iCapturedHealth);
+		}
+	}
+
+	if(kCaptureDef.eCapturingPlayer == GC.getGame().getActivePlayer())
+	{
+		CvString strBuffer;
+		CvUnitEntry* pkUnitInfo = GC.getUnitInfo(kCaptureDef.eCaptureUnitType);
+		if (pkUnitInfo)
+		{
+			if (kCaptureDef.eOriginalOwner == kCaptureDef.eCapturingPlayer){
+				//player recaptured a friendly unit
+				strBuffer = GetLocalizedText("TXT_KEY_MISC_YOU_RECAPTURED_UNIT", pkUnitInfo->GetTextKey());
+			}
+			else{
+				strBuffer = GetLocalizedText("TXT_KEY_MISC_YOU_CAPTURED_UNIT", pkUnitInfo->GetTextKey());
+			}
+			DLLUI->AddUnitMessage(0, IDInfo(kCaptureDef.eCapturingPlayer, pkCapturedUnit->GetID()), kCaptureDef.eCapturingPlayer, true, GC.getEVENT_MESSAGE_TIME(), strBuffer/*, "AS2D_UNITCAPTURE", MESSAGE_TYPE_INFO, GC.getUnitInfo(eCaptureUnitType)->GetButton(), (ColorTypes)GC.getInfoTypeForString("COLOR_GREEN"), pPlot->getX(), pPlot->getY()*/);
 		}
 	}
 
@@ -2779,9 +3042,12 @@ void CvUnit::doTurn()
 	VALIDATE_OBJECT
 	CvAssertMsg(!IsDead(), "isDead did not return false as expected");
 
+	// reset cache
+	m_lastStrengthModifiers.clear();
+
 	// Wake unit if skipped last turn
 	ActivityTypes eActivityType = GetActivityType();
-	bool bHoldCheck = (eActivityType == ACTIVITY_HOLD) && (isHuman() || !getFortifyTurns());
+	bool bHoldCheck = (eActivityType == ACTIVITY_HOLD) && (isHuman() || !IsFortified());
 	bool bHealCheck = (eActivityType == ACTIVITY_HEAL) && (!isHuman() || IsAutomated() || !IsHurt());
 #if defined(MOD_BUGFIX_UNITS_AWAKE_IN_DANGER)
 	if (MOD_BUGFIX_UNITS_AWAKE_IN_DANGER) {
@@ -2856,14 +3122,8 @@ void CvUnit::doTurn()
 #endif
 
 	// Only increase our Fortification level if we've actually been told to Fortify
-	if(IsFortifiedThisTurn())
-	{
-		changeFortifyTurns(1);
-		if (GetDamageAoEFortified() > 0)
-		{
-			DoAoEDamage(GetDamageAoEFortified());
-		}
-	}
+	if(IsFortified() && GetDamageAoEFortified() > 0)
+		DoAoEDamage(GetDamageAoEFortified(), "TXT_KEY_MISC_YOU_UNIT_WAS_DAMAGED_AOE_STRIKE_FORTIFY");
 
 	// Recon unit? If so, he sees what's around him
 	if(IsRecon())
@@ -2876,18 +3136,6 @@ void CvUnit::doTurn()
 	{
 		auto_ptr<ICvUnit1> pDllUnit(new CvDllUnit(this));
 		gDLL->GameplayUnitShouldDimFlag(pDllUnit.get(), /*bDim*/ false);
-	}
-
-	// If we told our Unit to sleep last turn and it can now Fortify switch states
-	if(GetActivityType() == ACTIVITY_SLEEP)
-	{
-		if(isFortifyable())
-		{
-			CvUnit::dispatchingNetMessage(true);
-			PushMission(CvTypes::getMISSION_FORTIFY());
-			CvUnit::dispatchingNetMessage(false);
-			SetFortifiedThisTurn(true);
-		}
 	}
 
 #if defined(MOD_BALANCE_CORE)
@@ -2913,9 +3161,9 @@ void CvUnit::doTurn()
 	DoImprovementExperience(plot());
 	DoStackedGreatGeneralExperience(plot());
 	DoConvertOnDamageThreshold(plot());
-	DoNearbyUnitPromotion(this, plot());
+	DoNearbyUnitPromotion();
 	DoConvertEnemyUnitToBarbarian(plot());
-	DoConvertReligiousUnitsToMilitary(plot());
+	DoConvertReligiousUnitsToMilitary();
 #endif
 }
 //	--------------------------------------------------------------------------------
@@ -3509,6 +3757,10 @@ void CvUnit::DoLocationPromotions(bool bSpawn, CvPlot* pOldPlot, CvPlot* pNewPlo
 						}
 					}
 				}
+				if (pNewPlot->GetPlotMovesChange() > 0)
+				{
+					setMoves(movesLeft() + (pNewPlot->GetPlotMovesChange() * GC.getMOVE_DENOMINATOR()));
+				}
 			}
 		}
 		// Terrain that provides free promotions?
@@ -4060,8 +4312,14 @@ bool CvUnit::isBetterDefenderThan(const CvUnit* pDefender, const CvUnit* pAttack
 		}
 	}
 
-	iOurDefense = GetMaxDefenseStrength(plot(), pAttacker);
+	iOurDefense = GetMaxDefenseStrength(plot(), pAttacker, false, true);
 	if(::isWorldUnitClass(getUnitClassType()))
+	{
+		iOurDefense /= 2;
+	}
+
+	//special check for naval garrison in city
+	if (getDomainType() == DOMAIN_SEA && !plot()->isWater())
 	{
 		iOurDefense /= 2;
 	}
@@ -4091,8 +4349,14 @@ bool CvUnit::isBetterDefenderThan(const CvUnit* pDefender, const CvUnit* pAttack
 
 	iOurDefense /= (getCargo() + 1);
 
-	iTheirDefense = pDefender->GetMaxDefenseStrength(plot(), pAttacker);
+	iTheirDefense = pDefender->GetMaxDefenseStrength(plot(), pAttacker, false, true);
 	if(::isWorldUnitClass(pDefender->getUnitClassType()))
+	{
+		iTheirDefense /= 2;
+	}
+
+	//special check for naval garrison in city
+	if (pDefender->getDomainType()==DOMAIN_SEA && !pDefender->plot()->isWater())
 	{
 		iTheirDefense /= 2;
 	}
@@ -5192,14 +5456,8 @@ int CvUnit::getCombatDamage(int iStrength, int iOpponentStrength, int iCurrentDa
 	int iRoll = 0;
 	if(bIncludeRand)
 	{
-		if (isBarbarian())
-		{
-			iRoll = /*1200*/ (GC.getGame().getSmallFakeRandNum(10, *plot()) * 120);
-		}
-		else
-		{
-			iRoll = /*1200*/ GC.getGame().getJonRandNum(GC.getATTACK_SAME_STRENGTH_POSSIBLE_EXTRA_DAMAGE(), "Unit Combat Damage");
-		}
+		iRoll = /*1200*/ GC.getGame().getSmallFakeRandNum(GC.getATTACK_SAME_STRENGTH_POSSIBLE_EXTRA_DAMAGE() / 100, *plot()) * 100;
+
 		iRoll *= iDamageRatio;
 #if defined(MOD_UNITS_MAX_HP)
 		iRoll /= GetMaxHitPoints();
@@ -5350,9 +5608,11 @@ bool CvUnit::jumpToNearestValidPlot()
 				int iValue = (plotDistance(getX(), getY(), pLoopPlot->getX(), pLoopPlot->getY()) * 2);
 
 				if(pNearestCity != NULL)
-				{
 					iValue += plotDistance(pLoopPlot->getX(), pLoopPlot->getY(), pNearestCity->getX(), pNearestCity->getY());
-				}
+
+				//avoid putting ships on lakes etc
+				if (getDomainType() == DOMAIN_SEA && pLoopPlot->area()->getCitiesPerPlayer(getOwner()) == 0)
+					iValue += 12;
 
 				if (iValue < iBestValue || (iValue == iBestValue && GC.getGame().getSmallFakeRandNum(3, *pLoopPlot)<2))
 				{
@@ -5421,10 +5681,13 @@ bool CvUnit::jumpToNearestValidPlotWithinRange(int iRange)
 			{
 				int iValue = (plotDistance(getX(), getY(), pLoopPlot->getX(), pLoopPlot->getY()) * 2);
 
+				//avoid putting ships on lakes etc
+				if (getDomainType() == DOMAIN_SEA && pLoopPlot->area()->getCitiesPerPlayer(getOwner()) == 0)
+					iValue += 12;
+
+				//try to stay within the same area
 				if(pLoopPlot->area() != area())
-				{
-					iValue *= 3;
-				}
+					iValue += 5;
 
 				if (iValue < iBestValue || (iValue == iBestValue && GC.getGame().getSmallFakeRandNum(3, *pLoopPlot)<2))
 				{
@@ -5670,6 +5933,9 @@ bool CvUnit::canScrap(bool bTestVisible) const
 		return false;
 	}
 
+	if (GetDanger() > 0)
+		return false;
+
 	if(!bTestVisible)
 	{
 		if(GC.getUNIT_DELETE_DISABLED() == 1)
@@ -5729,7 +5995,7 @@ int CvUnit::GetScrapGold() const
 
 #if defined(MOD_CIV6_WORKER)
 	//if we are a builder (something with builderstrength), our value decrease with our build strength
-	if (getBuilderStrength() > 0)
+	if (MOD_CIV6_WORKER && getBuilderStrength() > 0)
 	{
 		iNumGold *= getUnitInfo().GetBuilderStrength() - getBuilderStrength();
 		iNumGold /= getUnitInfo().GetBuilderStrength();
@@ -5799,6 +6065,9 @@ bool CvUnit::canGift(bool bTestVisible, bool bTestTransport) const
 	}
 
 	if (getDamage() > 0)
+		return false;
+
+	if (GetDanger() > 0)
 		return false;
 
 	// Minors
@@ -5951,6 +6220,9 @@ bool CvUnit::CanDistanceGift(PlayerTypes eToPlayer) const
 	{
 		// No settlers
 		if(isFound() || IsFoundAbroad())
+			return false;
+
+		if (getDamage() > 0)
 			return false;
 
 		// No scouts
@@ -6336,7 +6608,7 @@ void CvUnit::unloadAll()
 bool CvUnit::canHold(const CvPlot* pPlot) const // skip turn
 {
 	VALIDATE_OBJECT
-	if(isHuman() && !getFortifyTurns())  // we aren't fortified
+	if(isHuman() && !IsFortified())  // we aren't fortified
 	{
 #if defined(MOD_GLOBAL_STACKING_RULES)
 		if(pPlot->getMaxFriendlyUnitsOfType(this) > pPlot->getUnitLimit())
@@ -6357,12 +6629,12 @@ bool CvUnit::canSleep(const CvPlot* pPlot) const
 {
 	VALIDATE_OBJECT
 	// Can't sleep if we're a Unit that can normally fortify
-	if(!noDefensiveBonus() && IsCombatUnit())
+	if(canFortify(pPlot))
 	{
 		return false;
 	}
 
-	if(isHuman() && !getFortifyTurns())  // we aren't fortified
+	if(isHuman() && !IsFortified())  // we aren't fortified
 	{
 #if defined(MOD_GLOBAL_STACKING_RULES)
 		if(pPlot->getMaxFriendlyUnitsOfType(this) > pPlot->getUnitLimit())
@@ -6372,11 +6644,6 @@ bool CvUnit::canSleep(const CvPlot* pPlot) const
 		{
 			return false;
 		}
-	}
-
-	if(isFortifyable())
-	{
-		return false;
 	}
 
 	if(isWaiting())
@@ -6391,30 +6658,16 @@ bool CvUnit::canSleep(const CvPlot* pPlot) const
 //	--------------------------------------------------------------------------------
 bool CvUnit::canFortify(const CvPlot* pPlot) const
 {
-	VALIDATE_OBJECT
-	if(isHuman() && !getFortifyTurns())  // we aren't fortified
-	{
 #if defined(MOD_GLOBAL_STACKING_RULES)
-		if(pPlot->getMaxFriendlyUnitsOfType(this) > pPlot->getUnitLimit())
+	if(pPlot->getMaxFriendlyUnitsOfType(this) > pPlot->getUnitLimit())
 #else
-		if(pPlot->getMaxFriendlyUnitsOfType(this) > GC.getPLOT_UNIT_LIMIT())
+	if(pPlot->getMaxFriendlyUnitsOfType(this) > GC.getPLOT_UNIT_LIMIT())
 #endif
-		{
-			return false;
-		}
-	}
-
-	if(!isFortifyable(true))
 	{
 		return false;
 	}
 
-	if(isWaiting())
-	{
-		return false;
-	}
-
-	return true;
+	return IsEverFortifyable() && isNativeDomain(pPlot);
 }
 
 //	--------------------------------------------------------------------------------
@@ -6468,15 +6721,19 @@ bool CvUnit::IsCityAttackSupport() const
 {
 	VALIDATE_OBJECT
 #if defined(MOD_BALANCE_CORE)
-	if(getUnitInfo().IsCityAttackSupport())
-	{
-		return true;
-	}
-#endif
+	//city attack support units are civilians with a sapper bonus
+	//sapper is a separate promotion that can theoretically apply to combat units as well
+	if (IsCombatUnit())
+		return false;
+
+	return getUnitInfo().IsCityAttackSupport();
+#else
 	return m_iCityAttackOnlyCount > 0;
+#endif
 }
 
 //	--------------------------------------------------------------------------------
+//this is no longer used
 void CvUnit::ChangeCityAttackOnlyCount(int iChange)
 {
 	VALIDATE_OBJECT
@@ -6806,7 +7063,7 @@ bool CvUnit::canDisembarkOnto(const CvPlot& originPlot, const CvPlot& targetPlot
 bool CvUnit::CanEverEmbark() const
 {
 	VALIDATE_OBJECT
-	return (getDomainType() == DOMAIN_LAND && IsHasEmbarkAbility() && !isCargo() && !canMoveAllTerrain());
+	return (getDomainType() == DOMAIN_LAND && IsHasEmbarkAbility() && !isCargo() && !canMoveAllTerrain() && !isConvertUnit());
 }
 
 //	--------------------------------------------------------------------------------
@@ -7427,7 +7684,7 @@ bool CvUnit::canHeal(const CvPlot* pPlot, bool bTestVisible, bool bCheckMovement
 bool CvUnit::canSentry(const CvPlot* pPlot) const
 {
 	VALIDATE_OBJECT
-	if(isHuman() && !getFortifyTurns())  // we aren't fortified
+	if(isHuman() && !IsFortified())  // we aren't fortified
 	{
 #if defined(MOD_GLOBAL_STACKING_RULES)
 		if(pPlot->getMaxFriendlyUnitsOfType(this) > pPlot->getUnitLimit())
@@ -7696,41 +7953,25 @@ int CvUnit::healTurns(const CvPlot* pPlot) const
 void CvUnit::doHeal()
 {
 	VALIDATE_OBJECT
-	if(!isBarbarian())
+	if (isBarbarian())
 	{
-		//this always returns false for barbarians, therefore inside the conditional
-		if(!canHeal(plot()))
-			return;
-
-#if defined(MOD_BALANCE_CORE_MILITARY_RESISTANCE)
-		if(MOD_BALANCE_CORE_MILITARY_RESISTANCE && !GET_PLAYER(getOwner()).isMinorCiv())
+		if (IsCombatUnit())
 		{
-			CvPlayerAI& kPlayer = GET_PLAYER(getOwner());
-
-			// Loop through all resources
-			ResourceTypes eResource;
-			int iNumResourceInfos = GC.getNumResourceInfos();
-			for(int iResourceLoop = 0; iResourceLoop < iNumResourceInfos; iResourceLoop++)
+			ImprovementTypes eCamp = (ImprovementTypes)GC.getBARBARIAN_CAMP_IMPROVEMENT();
+			if (IsHurt() && !hasMoved() && (plot()->getImprovementType() == eCamp || plot()->getOwner() == BARBARIAN_PLAYER))
 			{
-				eResource = (ResourceTypes) iResourceLoop;
-
-				if(m_pUnitInfo->GetResourceQuantityRequirement(eResource) > 0)
-				{
-					int iAvailable = kPlayer.getNumResourceAvailable(eResource);
-					if(iAvailable < 0)
-					{
-						return;
-					}
-				}
+				changeDamage(-GC.getBALANCE_BARBARIAN_HEAL_RATE());
 			}
 		}
-#endif
-
+	}
+	else if (canHeal(plot())) //normal player units
+	{
 		int iHealRate = healRate(plot());
 		if (iHealRate==0)
 			return;
 
 		changeDamage( -iHealRate );
+
 #if defined(MOD_BALANCE_CORE_BELIEFS)
 		if(GET_PLAYER(getOwner()).getCapitalCity() != NULL && (plot()->getOwner() == getOwner()) && (plot()->getTurnDamage(false, false, true, true) == 0))
 		{
@@ -7786,17 +8027,6 @@ void CvUnit::doHeal()
 		}
 #endif
 	}
-	else //barbarian!
-	{
-		if(IsCombatUnit())
-		{
-			ImprovementTypes eCamp = (ImprovementTypes)GC.getBARBARIAN_CAMP_IMPROVEMENT();
-			if( IsHurt() && !hasMoved() && (plot()->getImprovementType()==eCamp || plot()->getOwner()==BARBARIAN_PLAYER) )
-			{
-				changeDamage( -GC.getBALANCE_BARBARIAN_HEAL_RATE() );
-			}
-		}
-	}
 }
 
 //	--------------------------------------------------------------------------------
@@ -7814,7 +8044,7 @@ void CvUnit::DoAttrition()
 	{
 		if(isEnemy(pPlot->getTeam(), pPlot) && getEnemyDamageChance() > 0 && getEnemyDamage() > 0)
 		{
-			if(GC.getGame().getJonRandNum(100, "Enemy Territory Damage Chance") < getEnemyDamageChance())
+			if (GC.getGame().getSmallFakeRandNum(10, *pPlot) * 10 < getEnemyDamageChance())
 			{
 				strAppendText =  GetLocalizedText("TXT_KEY_MISC_YOU_UNIT_WAS_DAMAGED_ATTRITION");
 				changeDamage(getEnemyDamage(), NO_PLAYER, 0.0, &strAppendText);
@@ -7823,7 +8053,7 @@ void CvUnit::DoAttrition()
 #if defined(MOD_BALANCE_CORE)
 		else if(isEnemy(pPlot->getTeam(), pPlot) && getEnemyDamageChance() > 0 && getEnemyDamage() < 0)
 		{
-			if(GC.getGame().getJonRandNum(100, "Enemy Territory Heal Chance") <= getEnemyDamageChance())
+			if (GC.getGame().getSmallFakeRandNum(10, *pPlot) * 10 <= getEnemyDamageChance())
 			{
 				strAppendText =  GetLocalizedText("TXT_KEY_MISC_YOU_ENEMY_UNITS_DEFECT");
 				changeDamage(getEnemyDamage(), NO_PLAYER, 0.0, &strAppendText);
@@ -7832,7 +8062,7 @@ void CvUnit::DoAttrition()
 #endif
 		else if(getNeutralDamageChance() > 0 && getNeutralDamage() > 0)
 		{
-			if(GC.getGame().getJonRandNum(100, "Neutral Territory Damage Chance") < getNeutralDamageChance())
+			if(GC.getGame().getSmallFakeRandNum(10, *pPlot) * 10 < getNeutralDamageChance())
 			{
 				strAppendText =  GetLocalizedText("TXT_KEY_MISC_YOU_UNIT_WAS_DAMAGED_ATTRITION");
 				changeDamage(getNeutralDamage(), NO_PLAYER, 0.0, &strAppendText);
@@ -8352,7 +8582,7 @@ bool CvUnit::isNukeVictim(const CvPlot* pPlot, TeamTypes eTeam) const
 
 
 //	--------------------------------------------------------------------------------
-bool CvUnit::canNuke(const CvPlot* /*pPlot*/) const
+bool CvUnit::canNuke() const
 {
 	VALIDATE_OBJECT
 	if(GetNukeDamageLevel() == -1)
@@ -8369,7 +8599,7 @@ bool CvUnit::canNukeAt(const CvPlot* pPlot, int iX, int iY) const
 {
 	VALIDATE_OBJECT
 
-	if(!canNuke(pPlot))
+	if(!canNuke())
 	{
 		return false;
 	}
@@ -8826,7 +9056,7 @@ bool CvUnit::changeTradeUnitHomeCity(int iX, int iY)
 	}
 
 	setXY(iX, iY);
-	setMoves(0);
+	finishMoves();
 	return true;
 }
 
@@ -8935,7 +9165,7 @@ bool CvUnit::changeAdmiralPort(int iX, int iY)
 	}
 
 	setXY(iX, iY);
-	setMoves(0);
+	finishMoves();
 	return true;
 }
 
@@ -8966,55 +9196,32 @@ bool CvUnit::canPlunderTradeRoute(const CvPlot* pPlot, bool bOnlyTestVisibility)
 
 	if (GET_PLAYER(m_eOwner).GetTrade()->ContainsOpposingPlayerTradeUnit(pPlot))
 	{
-		if (!bOnlyTestVisibility)
-		{
-			std::vector<int> aiTradeUnitsAtPlot;
-			aiTradeUnitsAtPlot = GET_PLAYER(m_eOwner).GetTrade()->GetOpposingTradeUnitsAtPlot(pPlot, true);
-			if (aiTradeUnitsAtPlot.size() <= 0)
-			{
-				return false;
-			}
-
 #if defined(MOD_BALANCE_CORE)
-			for (uint uiTradeRoute = 0; uiTradeRoute < aiTradeUnitsAtPlot.size(); uiTradeRoute++)
-			{
-				PlayerTypes eTradeUnitOwner = GC.getGame().GetGameTrade()->GetOwnerFromID(aiTradeUnitsAtPlot[uiTradeRoute]);
-				if (eTradeUnitOwner == NO_PLAYER)
-				{
-					// invalid TradeUnit
-					continue;
-				}
+		std::vector<int> aiTradeUnitsAtPlot;
+		aiTradeUnitsAtPlot = GET_PLAYER(m_eOwner).GetTrade()->GetOpposingTradeUnitsAtPlot(pPlot, true);
 
-				TeamTypes eTeam = GET_PLAYER(eTradeUnitOwner).getTeam();
-				if (!GET_TEAM(GET_PLAYER(m_eOwner).getTeam()).isAtWar(eTeam))
-					continue;
-
-				CorporationTypes eCorporation = GET_PLAYER(eTradeUnitOwner).GetCorporations()->GetFoundedCorporation();
-				if (eCorporation != NO_CORPORATION)
-				{
-					CvCorporationEntry* pkCorporation = GC.getCorporationInfo(eCorporation);
-					if (pkCorporation && pkCorporation->IsTradeRoutesInvulnerable())
-					{
-						return false;
-					}
-				}
-				return true;
-			}
-			return false;
-#else
-			PlayerTypes eTradeUnitOwner = GC.getGame().GetGameTrade()->GetOwnerFromID(aiTradeUnitsAtPlot[0]);
+		for (uint uiTradeRoute = 0; uiTradeRoute < aiTradeUnitsAtPlot.size(); uiTradeRoute++)
+		{
+			PlayerTypes eTradeUnitOwner = GC.getGame().GetGameTrade()->GetOwnerFromID(aiTradeUnitsAtPlot[uiTradeRoute]);
 			if (eTradeUnitOwner == NO_PLAYER)
 			{
 				// invalid TradeUnit
-				return false;
+				continue;
 			}
 
 			TeamTypes eTeam = GET_PLAYER(eTradeUnitOwner).getTeam();
-			if (!GET_TEAM(GET_PLAYER(m_eOwner).getTeam()).isAtWar(eTeam))
+			if (!GET_TEAM(GET_PLAYER(m_eOwner).getTeam()).isAtWar(eTeam) && !GET_PLAYER(m_eOwner).GetPlayerTraits()->IsCanPlunderWithoutWar())
+				continue;
+
+			if (GET_PLAYER(m_eOwner).GetPlayerTraits()->IsCanPlunderWithoutWar())
 			{
-				return false;
+				PlayerTypes eTradeUnitDest = GC.getGame().GetGameTrade()->GetDestFromID(aiTradeUnitsAtPlot[uiTradeRoute]);
+				if (eTradeUnitDest == m_eOwner)
+				{
+					return false;
+				}
 			}
-#if defined(MOD_BALANCE_CORE)
+
 			CorporationTypes eCorporation = GET_PLAYER(eTradeUnitOwner).GetCorporations()->GetFoundedCorporation();
 			if (eCorporation != NO_CORPORATION)
 			{
@@ -9024,8 +9231,27 @@ bool CvUnit::canPlunderTradeRoute(const CvPlot* pPlot, bool bOnlyTestVisibility)
 					return false;
 				}
 			}
+		}
 #endif
-#endif
+		if (!bOnlyTestVisibility)
+		{
+			if (aiTradeUnitsAtPlot.size() <= 0)
+			{
+				return false;
+			}
+
+			PlayerTypes eTradeUnitOwner = GC.getGame().GetGameTrade()->GetOwnerFromID(aiTradeUnitsAtPlot[0]);
+			if (eTradeUnitOwner == NO_PLAYER)
+			{
+				// invalid TradeUnit
+				return false;
+			}
+
+			TeamTypes eTeam = GET_PLAYER(eTradeUnitOwner).getTeam();
+			if (!GET_TEAM(GET_PLAYER(m_eOwner).getTeam()).isAtWar(eTeam) && !GET_PLAYER(m_eOwner).GetPlayerTraits()->IsCanPlunderWithoutWar())
+			{
+				return false;
+			}
 		}
 		return true;
 	}
@@ -9075,7 +9301,7 @@ bool CvUnit::plunderTradeRoute()
 			}
 		}
 		TeamTypes eTeam = GET_PLAYER(eTradeUnitOwner).getTeam();
-		if (GET_TEAM(GET_PLAYER(m_eOwner).getTeam()).isAtWar(eTeam))
+		if (GET_TEAM(GET_PLAYER(m_eOwner).getTeam()).isAtWar(eTeam) || GET_PLAYER(m_eOwner).GetPlayerTraits()->IsCanPlunderWithoutWar())
 		{
 #if defined(MOD_API_EXTENSIONS)
 			pTrade->PlunderTradeRoute(aiTradeUnitsAtPlot[0], this);
@@ -9083,9 +9309,16 @@ bool CvUnit::plunderTradeRoute()
 			pTrade->PlunderTradeRoute(aiTradeUnitsAtPlot[0]);
 #endif
 			bGood = true;
+
+			if (GC.getLogging() && GC.getAILogging() && GET_PLAYER(m_eOwner).GetPlayerTraits()->IsCanPlunderWithoutWar())
+			{
+				CvString strLogString;
+				strLogString.Format("MOROCCO!! WE ARE PIRATES!!!");
+				GET_PLAYER(getOwner()).GetHomelandAI()->LogHomelandMessage(strLogString);
+			}
 		}
 	}
-	if(bGood)
+	if (bGood)
 	{
 		return true;
 	}
@@ -9305,7 +9538,7 @@ bool CvUnit::canGetFreeLuxury() const
 }
 bool CvUnit::createFreeLuxury()
 {
-	int iNumLuxuries = m_pUnitInfo->GetNumFreeLux();
+	int iNumLuxuries = m_pUnitInfo->GetNumFreeLux() + GET_PLAYER(getOwner()).GetAdmiralLuxuryBonus();
 	bool bResult = false;
 	if(iNumLuxuries > 0)
 	{
@@ -9320,7 +9553,7 @@ bool CvUnit::createFreeLuxury()
 			{
 				if(GC.getMap().getNumResources(eResource) <= 0)
 				{
-					int iRandomFlavor = GC.getGame().getJonRandNum(100, "Resource Flavor");
+					int iRandomFlavor = GC.getGame().getSmallFakeRandNum(10, iResourceLoop) * 10;
 					//If we've already got this resource, divide the value by the amount.
 					if(GET_PLAYER(getOwner()).getNumResourceTotal(eResource, false) > 0)
 					{
@@ -9342,7 +9575,7 @@ bool CvUnit::createFreeLuxury()
 				CvResourceInfo* pkResource = GC.getResourceInfo(eResource);
 				if (pkResource != NULL && pkResource->getResourceUsage() == RESOURCEUSAGE_LUXURY)
 				{
-					int iRandomFlavor = GC.getGame().getJonRandNum(100, "Resource Flavor");
+					int iRandomFlavor = GC.getGame().getSmallFakeRandNum(10, iResourceLoop) * 10;
 					//If we've already got this resource, divide the value by the amount.
 					if(GET_PLAYER(getOwner()).getNumResourceTotal(eResource, false) > 0)
 					{
@@ -9364,7 +9597,7 @@ bool CvUnit::createFreeLuxury()
 				CvResourceInfo* pkResource = GC.getResourceInfo(eResource);
 				if (pkResource != NULL && pkResource->getResourceUsage() == RESOURCEUSAGE_LUXURY)
 				{
-					int iRandomFlavor = GC.getGame().getJonRandNum(100, "Resource Flavor");
+					int iRandomFlavor = GC.getGame().getSmallFakeRandNum(10, iResourceLoop) * 10;
 					if(iRandomFlavor > iBestFlavor)
 					{
 						eResourceToGive = eResource;
@@ -9386,7 +9619,7 @@ bool CvUnit::createFreeLuxury()
 					if (pInfo)
 					{
 						Localization::String strText = Localization::Lookup("TXT_KEY_NOTIFICATION_CITY_FREE_RESOURCE");
-						strText <<  getNameKey() << pInfo->GetTextKey();
+						strText << getNameKey() << pInfo->GetTextKey() << iNumLuxuries;
 						Localization::String strSummary = Localization::Lookup("TXT_KEY_NOTIFICATION_CITY_FREE_RESOURCE_SUMMARY");
 						strSummary << getNameKey();
 						pNotifications->Add(NOTIFICATION_DISCOVERED_LUXURY_RESOURCE, strText.toUTF8(), strSummary.toUTF8(), getX(), getY(), eResourceToGive);
@@ -9583,11 +9816,7 @@ bool CvUnit::sellExoticGoods()
 					{
 						
 						CvPlot* pLoopPlot = pCity->GetCityCitizens()->GetCityPlotFromIndex(iCityPlotLoop);
-#if defined(MOD_PSEUDO_NATURAL_WONDER)
-						if(pLoopPlot != NULL && (pLoopPlot->getOwner() == ePlotOwner) && !pLoopPlot->isCity() && !pLoopPlot->isWater() && !pLoopPlot->isImpassable(getTeam()) && !pLoopPlot->IsNaturalWonder(true) && pLoopPlot->isCoastalLand() && (pLoopPlot->getResourceType() == NO_RESOURCE))
-#else
 						if(pLoopPlot != NULL && (pLoopPlot->getOwner() == ePlotOwner) && !pLoopPlot->isCity() && !pLoopPlot->isWater() && !pLoopPlot->isImpassable(getTeam()) && !pLoopPlot->IsNaturalWonder() && pLoopPlot->isCoastalLand() && (pLoopPlot->getResourceType() == NO_RESOURCE))
-#endif
 						{
 							if(pLoopPlot->getImprovementType() != NO_IMPROVEMENT)
 							{
@@ -9605,11 +9834,7 @@ bool CvUnit::sellExoticGoods()
 						for (int iCityPlotLoop = 0; iCityPlotLoop < pCity->GetNumWorkablePlots(); iCityPlotLoop++)
 						{
 							CvPlot* pLoopPlot = pCity->GetCityCitizens()->GetCityPlotFromIndex(iCityPlotLoop);
-#if defined(MOD_PSEUDO_NATURAL_WONDER)
-							if(pLoopPlot != NULL && (pLoopPlot->getOwner() == ePlotOwner) && !pLoopPlot->isCity() && !pLoopPlot->isWater() && !pLoopPlot->isImpassable(getTeam()) && !pLoopPlot->IsNaturalWonder(true) && pLoopPlot->isCoastalLand() && (pLoopPlot->getResourceType() == NO_RESOURCE))
-#else
 							if(pLoopPlot != NULL && (pLoopPlot->getOwner() == ePlotOwner) && !pLoopPlot->isCity() && !pLoopPlot->isWater() && !pLoopPlot->isImpassable(getTeam()) && !pLoopPlot->IsNaturalWonder() && pLoopPlot->isCoastalLand() && (pLoopPlot->getResourceType() == NO_RESOURCE))
-#endif
 							{
 								//If we can build on an empty spot, do so.
 								if(pLoopPlot->getImprovementType() == NO_IMPROVEMENT)
@@ -9633,6 +9858,7 @@ bool CvUnit::sellExoticGoods()
 					{
 						pBestPlot->setImprovementType(NO_IMPROVEMENT);
 						pBestPlot->setImprovementType(eFeitoria, getOwner());
+						pBestPlot->SilentlyResetAllBuildProgress();
 						
 						IDInfo* pUnitNode;
 						CvUnit* pLoopUnit;
@@ -9860,10 +10086,44 @@ bool CvUnit::rebase(int iX, int iY)
 
 	CvPlot* oldPlot = plot();
 
+	if (oldPlot->isCity())
+	{
+		CvCity* pCity = oldPlot->getPlotCity();
+		if (pCity != NULL)
+		{
+			if (GET_PLAYER(getOwner()).GetFlatDefenseFromAirUnits() != 0 && getUnitInfo().GetAirUnitCap() != 0)
+			{
+				pCity->updateStrengthValue();
+			}
+
+			if (GET_PLAYER(getOwner()).GetNeedsModifierFromAirUnits() != 0 && getUnitInfo().GetAirUnitCap() != 0)
+			{
+				GET_PLAYER(getOwner()).DoUpdateTotalUnhappiness();
+			}
+		}
+	}
+
 	CvPlot* pTargetPlot = GC.getMap().plot(iX, iY);
 	CvAssert(pTargetPlot != NULL);
 	if(pTargetPlot == NULL)
 		return false;
+
+	if (pTargetPlot->isCity())
+	{
+		CvCity* pCity = pTargetPlot->getPlotCity();
+		if (pCity != NULL)
+		{
+			if (GET_PLAYER(getOwner()).GetFlatDefenseFromAirUnits() != 0 && getUnitInfo().GetAirUnitCap() != 0)
+			{
+				pCity->updateStrengthValue();
+			}
+
+			if (GET_PLAYER(getOwner()).GetNeedsModifierFromAirUnits() != 0 && getUnitInfo().GetAirUnitCap() != 0)
+			{
+				GET_PLAYER(getOwner()).DoUpdateTotalUnhappiness();
+			}
+		}
+	}
 
 	finishMoves();
 
@@ -10166,8 +10426,7 @@ bool CvUnit::pillage()
 					}
 				}
 #endif
-				iPillageGold = GC.getGame().getJonRandNum(pkImprovement->GetPillageGold(), "Pillage Gold 1");
-				iPillageGold += GC.getGame().getJonRandNum(pkImprovement->GetPillageGold(), "Pillage Gold 2");
+				iPillageGold = GC.getGame().getSmallFakeRandNum(pkImprovement->GetPillageGold(), *plot());
 				iPillageGold += (getPillageChange() * iPillageGold) / 100;
 #if defined(HH_MOD_BUILDINGS_FRUITLESS_PILLAGE)
 				if (pPlot->getOwner() != NO_PLAYER)
@@ -10177,7 +10436,7 @@ bool CvUnit::pillage()
 						iPillageGold = 0;
 					} else
 					{
-						CvCity* pCityOfThisOtherTeamsPlot = pPlot->getWorkingCity();
+						CvCity* pCityOfThisOtherTeamsPlot = pPlot->getOwningCity();
 						if (pCityOfThisOtherTeamsPlot != NULL && pCityOfThisOtherTeamsPlot->IsLocalGainlessPillage())
 						{
 							iPillageGold = 0;
@@ -10273,11 +10532,15 @@ bool CvUnit::pillage()
 
 	if(bSuccessfulNonRoadPillage)
 	{
+		if (getPillageBonusStrengthPercent() != 0)
+		{
+			SetBaseCombatStrength(getUnitInfo().GetCombat() + ((getPillageBonusStrengthPercent() * getUnitInfo().GetCombat()) / 100));			
+		}
 #if defined(HH_MOD_BUILDINGS_FRUITLESS_PILLAGE)
 		//if the plot isn't guarded by a gainless pillage building for this player, nor this city
 		if (!(pPlot->getOwner() != NO_PLAYER && GET_PLAYER(pPlot->getOwner()).isBorderGainlessPillage()) )
 		{
-			CvCity* pCityOfThisPlot = pPlot->getWorkingCity();
+			CvCity* pCityOfThisPlot = pPlot->getOwningCity();
 			if ( pCityOfThisPlot == NULL || !(pCityOfThisPlot->IsLocalGainlessPillage()) )
 			{
 				if (hasHealOnPillage())
@@ -10704,6 +10967,19 @@ bool CvUnit::DoFoundReligion()
 #endif
 					}
 
+#if defined(MOD_EVENTS_FOUND_RELIGION)
+					if (MOD_EVENTS_FOUND_RELIGION) 
+					{
+						int iValue = 0;
+						if (GAMEEVENTINVOKE_VALUE(iValue, GAMEEVENT_GetBeliefToFound, kOwner.GetID(), eReligion) == GAMEEVENTRETURN_VALUE) {
+							// Defend against modder stupidity!
+							if (iValue > NO_BELIEF && iValue < GC.getNumBeliefInfos()) {
+								eBeliefs[3] = (BeliefTypes)iValue;
+							}
+						}
+					}
+#endif
+
 					pReligions->FoundReligion(getOwner(), eReligion, NULL, eBeliefs[0], eBeliefs[1], eBeliefs[2], eBeliefs[3], pkCity);
 #if defined(MOD_EVENTS_GREAT_PEOPLE)
 					kOwner.DoGreatPersonExpended(getUnitType(), this);
@@ -10953,6 +11229,7 @@ bool CvUnit::DoSpreadReligion()
 	{
 		if(CanSpreadReligion(plot()))
 		{
+			int iPreSpreadFollowers = 0;
 #if defined(MOD_RELIGION_CONVERSION_MODIFIERS)
 			int iConversionStrength = GetConversionStrength(pCity);
 #else
@@ -10960,47 +11237,47 @@ bool CvUnit::DoSpreadReligion()
 #endif
 			CvGameReligions* pReligions = GC.getGame().GetGameReligions();
 			ReligionTypes eReligion = GetReligionData()->GetReligion();
-			if(eReligion > RELIGION_PANTHEON)
+			if (eReligion <= RELIGION_PANTHEON)
+				return false;
+
+			const CvReligion* pReligion = pReligions->GetReligion(eReligion, getOwner());
+			if(pReligion)
 			{
-				const CvReligion* pReligion = pReligions->GetReligion(eReligion, getOwner());
-				if(pReligion)
-				{
 #if defined(MOD_API_UNIFIED_YIELDS)
-					// Requires majority for this city to be another religion
-					int iOtherFollowers = pCity->GetCityReligions()->GetFollowersOtherReligions(eReligion);
-					CvPlayer &kPlayer = GET_PLAYER(m_eOwner);
-					kPlayer.doInstantYield(INSTANT_YIELD_TYPE_SPREAD, false, NO_GREATPERSON, NO_BUILDING, iOtherFollowers, false, pCity->getOwner(), plot());
-					if(pCity->getOwner() != m_eOwner)
-					{
-						kPlayer.doInstantYield(INSTANT_YIELD_TYPE_F_SPREAD, false, NO_GREATPERSON, NO_BUILDING, (pCity->getPopulation() * 3), false, pCity->getOwner(), plot());
-					}
+				iPreSpreadFollowers = pCity->GetCityReligions()->GetNumFollowers(eReligion);
 #else
-					iScienceBonus = pReligion->m_Beliefs.GetSciencePerOtherReligionFollower();
-					if(iScienceBonus > 0)
+				iScienceBonus = pReligion->m_Beliefs.GetSciencePerOtherReligionFollower();
+				if(iScienceBonus > 0)
+				{
+					// Requires majority for this city to be another religion
+					ReligionTypes eCurrentReligion = pCity->GetCityReligions()->GetReligiousMajority();
+					if (eCurrentReligion != NO_RELIGION && eCurrentReligion != eReligion)
 					{
-						// Requires majority for this city to be another religion
-						ReligionTypes eCurrentReligion = pCity->GetCityReligions()->GetReligiousMajority();
-						if (eCurrentReligion != NO_RELIGION && eCurrentReligion != eReligion)
-						{
-							iScienceBonus *= pCity->GetCityReligions()->GetFollowersOtherReligions(eReligion);
-						}
-						else
-						{
-							iScienceBonus = 0;
-						}
+						iScienceBonus *= pCity->GetCityReligions()->GetFollowersOtherReligions(eReligion);
 					}
+					else
+					{
+						iScienceBonus = 0;
+					}
+				}
 #endif
 #if defined(MOD_BALANCE_CORE_BELIEFS)
-					CvCity* pHolyCity = NULL;
-					CvPlot* pHolyCityPlot = GC.getMap().plot(pReligion->m_iHolyCityX, pReligion->m_iHolyCityY);
-					if (pHolyCityPlot)
-					{
-						pHolyCity = pHolyCityPlot->getPlotCity();
-					}
-
-					iCSInfluence = (pReligion->m_Beliefs.GetMissionaryInfluenceCS(getOwner(), pHolyCity) * iEra);
-#endif
+				CvCity* pHolyCity = NULL;
+				CvPlot* pHolyCityPlot = GC.getMap().plot(pReligion->m_iHolyCityX, pReligion->m_iHolyCityY);
+				if (pHolyCityPlot)
+				{
+					pHolyCity = pHolyCityPlot->getPlotCity();
 				}
+
+				iCSInfluence = (pReligion->m_Beliefs.GetMissionaryInfluenceCS(getOwner(), pHolyCity) * iEra);
+#endif
+			}
+
+			CvPlayer &kPlayer = GET_PLAYER(m_eOwner);
+			if (pCity->getOwner() != m_eOwner)
+			{
+				int iOtherFollowers = pCity->GetCityReligions()->GetFollowersOtherReligions(eReligion);
+				kPlayer.doInstantYield(INSTANT_YIELD_TYPE_F_SPREAD, false, NO_GREATPERSON, NO_BUILDING, iOtherFollowers, false, pCity->getOwner(), plot());
 			}
 
 			if(IsGreatPerson())
@@ -11011,7 +11288,12 @@ bool CvUnit::DoSpreadReligion()
 			{
 				pCity->GetCityReligions()->AddReligiousPressure(FOLLOWER_CHANGE_MISSIONARY, eReligion, iConversionStrength, getOwner());
 			}
+
 			GetReligionData()->SetSpreadsLeft(GetReligionData()->GetSpreadsLeft() - 1);
+
+			int iPostFollowers = pCity->GetCityReligions()->GetNumFollowers(eReligion);
+			
+			kPlayer.doInstantYield(INSTANT_YIELD_TYPE_SPREAD, false, NO_GREATPERSON, NO_BUILDING, iPostFollowers - iPreSpreadFollowers, false, pCity->getOwner(), plot());
 
 			if (pCity->plot() && pCity->plot()->GetActiveFogOfWarMode() == FOGOFWARMODE_OFF)
 			{
@@ -11159,6 +11441,9 @@ bool CvUnit::CanRemoveHeresy(const CvPlot* pPlot) const
 	{
 		return false;
 	}
+
+	if (pCity->GetCityReligions()->GetFollowersOtherReligions(GetReligionData()->GetReligion()) <= 0)
+		return false;
 
 	if(isDelayedDeath())
 	{
@@ -11380,6 +11665,29 @@ bool CvUnit::canDiscover(const CvPlot* /*pPlot*/, bool bTestVisible) const
 	return true;
 }
 
+int CvUnit::GetScaleAmount(int iAmountToScale) const
+{
+	int iScaleTotal = 0;
+	for (int i = 0; i < GC.getNumImprovementInfos(); i++)
+	{
+		ImprovementTypes eImprovement = (ImprovementTypes)i;
+		if (eImprovement == NO_IMPROVEMENT)
+			continue;
+
+		int iScaleAmount = getUnitInfo().GetScalingFromOwnedImprovements(eImprovement);
+		if (iScaleAmount <= 0)
+			continue;
+
+		int iOwned = GET_PLAYER(getOwner()).CountAllImprovement(eImprovement, true);
+		iAmountToScale *= ((iOwned * iScaleAmount) + 100);
+		iAmountToScale /= 100;
+
+		iScaleTotal += iAmountToScale;
+	}
+
+	return iScaleTotal;
+}
+
 //	--------------------------------------------------------------------------------
 int CvUnit::getDiscoverAmount()
 {
@@ -11401,13 +11709,8 @@ int CvUnit::getDiscoverAmount()
 			//Let's make the GM a little more flexible.
 			if (MOD_BALANCE_CORE_NEW_GP_ATTRIBUTES)
 			{
-				ImprovementTypes eAcademy = (ImprovementTypes)GC.getInfoTypeForString("IMPROVEMENT_ACADEMY");
-				if (eAcademy != NO_IMPROVEMENT)
-				{
-					int iAcademies = pPlayer->CountAllImprovement(eAcademy);
-					iValue *= ((iAcademies * 10) + 100);
-					iValue /= 100;
-				}
+				//scale up our value
+				iValue = GetScaleAmount(iValue);
 			}
 #endif
 
@@ -11604,13 +11907,8 @@ int CvUnit::getMaxHurryProduction(CvCity* pCity) const
 	//Let's make the GM a little more flexible.
 	if (MOD_BALANCE_CORE_NEW_GP_ATTRIBUTES)
 	{
-		ImprovementTypes eManufactory = (ImprovementTypes)GC.getInfoTypeForString("IMPROVEMENT_MANUFACTORY");
-		if (eManufactory != NO_IMPROVEMENT)
-		{
-			int iManufactories = GET_PLAYER(getOwner()).CountAllImprovement(eManufactory);
-			iProduction *= ((iManufactories * 10) + 100);
-			iProduction /= 100;
-		}
+		//scale up our value
+		iProduction = GetScaleAmount(iProduction);
 	}
 #endif
 
@@ -11785,20 +12083,6 @@ int CvUnit::getTradeGold(const CvPlot* /*pPlot*/) const
 	// Amount of Gold also increases with how far into the game we are
 	iGold += (m_pUnitInfo->GetNumGoldPerEra() * GET_TEAM(getTeam()).GetCurrentEra());
 
-#if defined(MOD_BALANCE_CORE_NEW_GP_ATTRIBUTES)
-	//Let's make the GM a little more flexible.
-	if (MOD_BALANCE_CORE_NEW_GP_ATTRIBUTES)
-	{
-		ImprovementTypes eTown = (ImprovementTypes)GC.getInfoTypeForString("IMPROVEMENT_CUSTOMS_HOUSE");
-		if (eTown != NO_IMPROVEMENT)
-		{
-			int iTowns = GET_PLAYER(getOwner()).CountAllImprovement(eTown);
-			iGold *= ((iTowns * 10) + 100);
-			iGold /= 100;
-		}
-	}
-#endif
-
 	iGold *= GC.getGame().getGameSpeedInfo().getUnitTradePercent();
 	iGold /= 100;
 
@@ -11942,7 +12226,14 @@ bool CvUnit::trade()
 	{
 		if(m_pUnitInfo->GetNumGoldPerEra() > 0)
 		{
-			int iCap = 20;
+			int iCap = 10;
+#if defined(MOD_BALANCE_CORE_NEW_GP_ATTRIBUTES)
+			//Let's make the GM a little more flexible.
+			if (MOD_BALANCE_CORE_NEW_GP_ATTRIBUTES)
+			{
+				iCap = GetScaleAmount(iCap);
+			}
+#endif
 			iCap *= GC.getGame().getGameSpeedInfo().getTrainPercent();
 			iCap /= 100;
 			CvCity* pLoopCity;
@@ -12188,17 +12479,25 @@ bool CvUnit::repairFleet()
 		gDLL->GameplayUnitActivate(pDllUnit.get());
 	}
 
-	if(IsGreatPerson())
+	ChangeNumRepairCharges(-1);
+	if (GetNumRepairCharges() <= 0)
 	{
-		CvPlayer& kPlayer = GET_PLAYER(getOwner());
+		if (IsGreatPerson())
+		{
+			CvPlayer& kPlayer = GET_PLAYER(getOwner());
 #if defined(MOD_EVENTS_GREAT_PEOPLE)
-		kPlayer.DoGreatPersonExpended(getUnitType(), this);
+			kPlayer.DoGreatPersonExpended(getUnitType(), this);
 #else
-		kPlayer.DoGreatPersonExpended(getUnitType());
+			kPlayer.DoGreatPersonExpended(getUnitType());
 #endif
-	}
+		}
 
-	kill(true);
+		kill(true);
+	}
+	else
+	{
+		finishMoves();
+	}
 
 	return true;
 }
@@ -12448,7 +12747,7 @@ void CvUnit::PerformCultureBomb(int iRadius)
 			// Have to set owner after we do the above stuff
 			pLoopPlot->setOwner(getOwner(), iBestCityID);
 #if defined(MOD_BALANCE_CORE_POLICIES)
-			if(GET_PLAYER(getOwner()).IsCitadelBoost())
+			if(GET_PLAYER(getOwner()).IsCultureBombBoost())
 			{
 				CvCity* pCapitalCity = GET_PLAYER(getOwner()).getCapitalCity();
 				if(pCapitalCity != NULL)
@@ -12566,7 +12865,7 @@ bool CvUnit::goldenAge()
 						if(GET_PLAYER(getOwner()).HasGlobalMonopoly(eResourceLoop) && pInfo->getMonopolyGALength() > 0)
 						{
 							int iTemp = pInfo->getMonopolyGALength();
-							iTemp *= max(1, GET_PLAYER(getOwner()).GetMonopolyModPercent());
+							iTemp += GET_PLAYER(getOwner()).GetMonopolyModPercent();
 							iLengthModifier += iTemp;
 						}
 					}
@@ -12642,7 +12941,7 @@ int CvUnit::GetGoldenAgeTurns() const
 					if(kPlayer.HasGlobalMonopoly(eResourceLoop) && pInfo->getMonopolyGALength() > 0)
 					{
 						int iTemp = pInfo->getMonopolyGALength();
-						iTemp *= max(1, kPlayer.GetMonopolyModPercent());
+						iTemp += kPlayer.GetMonopolyModPercent();
 						iLengthModifier += iTemp;
 					}
 				}
@@ -12657,7 +12956,7 @@ int CvUnit::GetGoldenAgeTurns() const
 
 #if defined(MOD_BALANCE_CORE_NEW_GP_ATTRIBUTES)
 	//GA Mod
-	if (MOD_BALANCE_CORE_NEW_GP_ATTRIBUTES)
+	if (MOD_BALANCE_CORE_NEW_GP_ATTRIBUTES && getUnitInfo().GetScaleFromNumThemes() > 0)
 	{
 		int iTotalThemes = 0;
 		int iCityLoop;
@@ -12670,7 +12969,7 @@ int CvUnit::GetGoldenAgeTurns() const
 			}
 		}
 
-		iTotalThemes = (iTotalThemes * GC.getTHEME_GREAT_WORK_GA_MULTIPLIER());
+		iTotalThemes = (iTotalThemes * getUnitInfo().GetScaleFromNumThemes());
 		iGoldenAgeTurns *= (iTotalThemes + 100);
 		iGoldenAgeTurns /= 100;
 	}
@@ -12727,10 +13026,10 @@ int CvUnit::getGivePoliciesCulture()
 		}
 
 #if defined(MOD_BALANCE_CORE_NEW_GP_ATTRIBUTES)
-		if (MOD_BALANCE_CORE_NEW_GP_ATTRIBUTES)
+		if (MOD_BALANCE_CORE_NEW_GP_ATTRIBUTES && getUnitInfo().GetScaleFromNumGWs() > 0)
 		{
 			int iNumGreatWorks = kPlayer.GetCulture()->GetNumGreatWorks();
-			iNumGreatWorks = (iNumGreatWorks * GC.getGREAT_WORK_CULTURE_MULTIPLIER());
+			iNumGreatWorks = (iNumGreatWorks * getUnitInfo().GetScaleFromNumGWs());
 			iValue *= (iNumGreatWorks + 100);
 			iValue /= 100;
 		}
@@ -12765,9 +13064,9 @@ bool CvUnit::givePolicies()
 	{
 		kPlayer.changeJONSCulture(iCultureBonus);
 #if defined(MOD_BALANCE_CORE)
-		if(pPlot->getWorkingCity() != NULL && pPlot->getWorkingCity()->getOwner() == getOwner())
+		if(pPlot->getOwningCity() != NULL && pPlot->getOwningCity()->getOwner() == getOwner())
 		{
-			pPlot->getWorkingCity()->ChangeJONSCultureStored(iCultureBonus);
+			pPlot->getOwningCity()->ChangeJONSCultureStored(iCultureBonus);
 		}
 #endif
 		// Refresh - we might get to pick a policy this turn
@@ -12854,10 +13153,7 @@ int CvUnit::getBlastTourism()
 		return 0;
 	}
 
-	int iTourismBlast = GetTourismBlastStrength();
-	iTourismBlast = iTourismBlast * GC.getGame().getGameSpeedInfo().getCulturePercent() / 100;
-
-	return iTourismBlast;
+	return GetTourismBlastStrength();
 }
 
 //	--------------------------------------------------------------------------------
@@ -13015,7 +13311,12 @@ bool CvUnit::canBuild(const CvPlot* pPlot, BuildTypes eBuild, bool bTestVisible,
 {
 	VALIDATE_OBJECT
 	CvAssertMsg(eBuild < GC.getNumBuildInfos() && eBuild >= 0, "Index out of bounds");
-
+#if defined(MOD_CIV6_WORKER)
+	if (MOD_CIV6_WORKER && getBuilderStrength() <= 0)
+	{
+		return false;
+	}
+#endif
 #if defined(MOD_BALANCE_CORE)
 	if(!GET_PLAYER(getOwner()).GetPlayerTraits()->HasUnitClassCanBuild(eBuild, getUnitClassType()) && !m_pUnitInfo->GetBuilds(eBuild))
 #else
@@ -13136,10 +13437,8 @@ bool CvUnit::build(BuildTypes eBuild)
 	int iWorkRateWithMoves = workRate(false);
 
 	int iStartedYet = pPlot->getBuildProgress(eBuild);
-#if defined(MOD_CIV6_WORKER)
-	int iMaxTimetoBuild = pPlot->getBuildTime(eBuild, getOwner());
-#endif
 
+	bool NewBuild = false;
 	// if we are starting something new wipe out the old thing immediately
 	if(iStartedYet == 0)
 	{
@@ -13163,19 +13462,25 @@ bool CvUnit::build(BuildTypes eBuild)
 		}
 
 		// wipe out all build progress also
-
+		pPlot->SilentlyResetAllBuildProgress();
 		bFinished = pPlot->changeBuildProgress(eBuild, iWorkRateWithMoves, getOwner());
+		NewBuild = true;
 
 #if defined(MOD_BALANCE_CORE)
-		if (pPlot->getOwner() != getOwner() && pPlot->getOwner() != NO_PLAYER && pkBuildInfo && pkBuildInfo->GetID() == 29)
+		if (pPlot->getOwner() != getOwner() && pPlot->getOwner() != NO_PLAYER)
 		{
-			GET_PLAYER(pPlot->getOwner()).GetDiplomacyAI()->ChangeNegativeArchaeologyPoints(getOwner(), 5);
+			ResourceTypes eArtifactResourceType = static_cast<ResourceTypes>(GC.getARTIFACT_RESOURCE());
+			ResourceTypes eHiddenArtifactResourceType = static_cast<ResourceTypes>(GC.getHIDDEN_ARTIFACT_RESOURCE());
+			if (pPlot->getResourceType(pPlot->getTeam()) == eArtifactResourceType || (pPlot->getResourceType(pPlot->getTeam()) == eHiddenArtifactResourceType))
+			{
+				GET_PLAYER(pPlot->getOwner()).GetDiplomacyAI()->ChangeNegativeArchaeologyPoints(getOwner(), 5);
+			}
 		}
 #endif
 
 	}
 
-	bFinished = pPlot->changeBuildProgress(eBuild, iWorkRateWithMoves, getOwner());
+	bFinished = pPlot->changeBuildProgress(eBuild, iWorkRateWithMoves, getOwner(), NewBuild);
 
 #if defined(MOD_EVENTS_PLOT)
 	if (MOD_EVENTS_PLOT) {
@@ -13204,7 +13509,7 @@ bool CvUnit::build(BuildTypes eBuild)
 					{
 #if defined(MOD_BALANCE_CORE_POLICIES)
 						int iCultureBomb = pkImprovementInfo->GetCultureBombRadius();
-						iCultureBomb += GET_PLAYER(getOwner()).GetCitadelBoost();
+						iCultureBomb += GET_PLAYER(getOwner()).GetCultureBombBoost();
 
 						PerformCultureBomb(iCultureBomb);
 #else
@@ -13244,6 +13549,14 @@ bool CvUnit::build(BuildTypes eBuild)
 									{
 										continue;
 									}
+									if (pUnitEntry->GetCombat() == 0)
+									{
+										continue;
+									}
+									if (kPlayer.GetNumUnitsOutOfSupply() > 0)
+									{
+										continue;
+									}
 									if(!pUnitEntry->GetRangedCombat())
 									{
 										bool bBad = false;
@@ -13280,6 +13593,14 @@ bool CvUnit::build(BuildTypes eBuild)
 										continue;
 									}
 									if(pUnitEntry->GetRangedCombat() > 0)
+									{
+										continue;
+									}
+									if (pUnitEntry->GetCombat() == 0)
+									{
+										continue;
+									}
+									if (kPlayer.GetNumUnitsOutOfSupply() > 0)
 									{
 										continue;
 									}
@@ -13414,57 +13735,83 @@ bool CvUnit::build(BuildTypes eBuild)
 				if(IsGreatPerson())
 				{
 #if defined(MOD_EVENTS_GREAT_PEOPLE)
+#if defined(MOD_CIV6_WORKER)
+					if (MOD_CIV6_WORKER && getBuilderStrength() <= 0)
+					{
+						kPlayer.DoGreatPersonExpended(getUnitType(), this);
+					}
+					else
+#endif
 					kPlayer.DoGreatPersonExpended(getUnitType(), this);
 #else
 					kPlayer.DoGreatPersonExpended(getUnitType());
 #endif
 				}
 #if defined(MOD_BALANCE_CORE)
-				if(!pkBuildInfo->isKillOnlyCivilian() || (pkBuildInfo->isKillOnlyCivilian() && IsCivilianUnit()))
+#if defined(MOD_CIV6_WORKER)
+				if (MOD_CIV6_WORKER)
+				{
+					if ((!pkBuildInfo->isKillOnlyCivilian() && !IsGreatPerson()) || (pkBuildInfo->isKillOnlyCivilian() && IsCivilianUnit() && !IsGreatPerson()))
+					{
+						kill(true);
+					}
+					else if (IsGreatPerson() && getBuilderStrength() <= 0)
+					{
+						kill(true);
+					}
+				}
+				else if (!MOD_CIV6_WORKER)
 				{
 #endif
+					if (!pkBuildInfo->isKillOnlyCivilian() || (pkBuildInfo->isKillOnlyCivilian() && IsCivilianUnit()))
+					{
+#endif
 
-				kill(true);
+						kill(true);
 #if defined(MOD_BALANCE_CORE)
+					}
 				}
 #endif
 			}
 
 #if defined(MOD_CIV6_WORKER)
 			//if we are a builder (something with builderstrength)
-			if (getBuilderStrength() > 0)
+			if (MOD_CIV6_WORKER && getBuilderStrength() > 0)
 			{
 				//check the amount of work done
-				int iTotalCost = pkBuildInfo->getBuilderCost();
-				int iTimeUsed = pPlot->getBuildProgress(eBuild) - iStartedYet;
-				if (bFinished)
-				{
-					iTimeUsed = iMaxTimetoBuild - iStartedYet;
-				}
-				int iCostThisTurn = iTotalCost * iTimeUsed;
-				iCostThisTurn /= iMaxTimetoBuild;
-				
-				//special mod for route construction (used by a policy)
-				if (pkBuildInfo->getRoute() != NO_ROUTE)
-				{
-					iCostThisTurn *= 100 + kPlayer.GetRouteBuilderCostMod();
-					iCostThisTurn /= 100;
-				}
-
+				int iBuildCost = pkBuildInfo->getBuilderCost();
 				// remove this amount (and kill me if it's too high)
-				setBuilderStrength(getBuilderStrength() - iCostThisTurn);
-				if (m_iBuilderStrength == 0){
-					//delete unit
-					kill(true);
+				setBuilderStrength(getBuilderStrength() - iBuildCost);
+				if (getBuilderStrength() <= 0)
+				{
+					UnitTypes eArchaeologist = (UnitTypes)GC.getInfoTypeForString("UNIT_ARCHAEOLOGIST", true /*bHideAssert*/);
+					// We won't kill Combat Units and we won't kill great people that are combat units unless they run out of build charges. We'll kill Arcaeologists somewhere else.
+					if (!IsCombatUnit() && (getUnitType() != eArchaeologist))
+					{
+						//delete unit
+						kill(true);
+					}
+					
 				}
 			}
 #endif
-
+#if defined(MOD_BALANCE_CORE)
+			if (eImprovement != NO_IMPROVEMENT)
+			{
+				kPlayer.changeTotalImprovementsBuilt(1);
+				kPlayer.changeTotalImprovementsBuilt(eImprovement, 1);
+			}
+			else if ((RouteTypes)pkBuildInfo->getRoute() != NO_ROUTE)
+			{
+				kPlayer.changeTotalImprovementsBuilt(1); // This is here even though routes are not technically improvements, because Firaxis put this here (don't change behaviour of existing tables!)
+			}
+#else
 			// Add to player's Improvement count, which will increase cost of future Improvements
-			if(pkBuildInfo->getImprovement() != NO_IMPROVEMENT || pkBuildInfo->getRoute() != NO_ROUTE)	// Prevents chopping Forest or Jungle from counting
+			if (pkBuildInfo->getImprovement() != NO_IMPROVEMENT || pkBuildInfo->getRoute() != NO_ROUTE)	// Prevents chopping Forest or Jungle from counting
 			{
 				kPlayer.changeTotalImprovementsBuilt(1);
 			}
+#endif
 
 			if(GC.getLogging() && GC.getAILogging())
 			{
@@ -13934,12 +14281,12 @@ bool CvUnit::CanUpgradeTo(UnitTypes eUpgradeUnitType, bool bOnlyTestVisible) con
 		CvPlayerAI& kPlayer = GET_PLAYER(getOwner());
 
 		// Player must have enough Gold
-		if(kPlayer.GetTreasury()->GetGold() < upgradePrice(eUpgradeUnitType))
+		if((kPlayer.GetTreasury()->GetGold() < upgradePrice(eUpgradeUnitType) && !kPlayer.isMinorCiv()))
 			return false;
 
 		// Resource Requirements
 #if defined(MOD_BALANCE_CORE)
-		if (!isBarbarian())
+		if (!isBarbarian() && !kPlayer.isMinorCiv())
 		{
 #endif
 
@@ -14038,12 +14385,13 @@ bool CvUnit::CanUpgradeInTerritory(bool bOnlyTestVisible) const
 		// Must be in territory owned by the player or by a friendly City State
 		if (kPlotOwner != getOwner()) 
 		{
-			if(MOD_GLOBAL_CS_UPGRADES && kPlotOwner != NO_PLAYER && GET_PLAYER(getOwner()).CanUpgradeCSTerritory()) 
+			if(MOD_GLOBAL_CS_UPGRADES && kPlotOwner != NO_PLAYER && GET_PLAYER(getOwner()).CanUpgradeCSVassalTerritory()) 
 			{
 				const CvPlayer& pPlotOwner = GET_PLAYER(kPlotOwner);
 				if (!pPlotOwner.isMinorCiv())
 				{
-					return false;
+					if (!GET_TEAM(GET_PLAYER(kPlotOwner).getTeam()).IsVassal(getTeam()))
+						return false;
 				}
 				else
 				{
@@ -14052,7 +14400,7 @@ bool CvUnit::CanUpgradeInTerritory(bool bOnlyTestVisible) const
 						return false;
 					}
 				}
-			} 
+			}
 			else 
 			{
 				return false;
@@ -14121,6 +14469,19 @@ UnitTypes CvUnit::GetUpgradeUnitType() const
 			}
 		}
 	}
+	for (int iI = 0; iI < GC.getNumUnitClassInfos(); iI++)
+	{
+		const UnitClassTypes eUnitClass = static_cast<UnitClassTypes>(iI);
+		CvUnitClassInfo* pkUnitClassInfo = GC.getUnitClassInfo(eUnitClass);
+		if (pkUnitClassInfo)
+		{
+			if (GET_PLAYER(getOwner()).GetPlayerTraits()->HasSpecialUnitUpgrade(eUnitClass, getUnitType()))
+			{
+				eUpgradeUnitType = (UnitTypes)kCiv.getCivilizationUnits(eUnitClass);
+				break;
+			}
+		}
+	}
 
 	return eUpgradeUnitType;
 }
@@ -14142,6 +14503,9 @@ int CvUnit::upgradePrice(UnitTypes eUnit) const
 	{
 		return 0;
 	}
+
+	if (GET_PLAYER(getOwner()).isMinorCiv())
+		return 0;
 
 	iPrice = /*10*/ GC.getBASE_UNIT_UPGRADE_COST();
 
@@ -14207,7 +14571,7 @@ int CvUnit::upgradePrice(UnitTypes eUnit) const
 	}
 #endif
 
-	return iPrice;
+	return max(1, iPrice);
 }
 
 //	--------------------------------------------------------------------------------
@@ -14299,14 +14663,8 @@ CvUnit* CvUnit::DoUpgradeTo(UnitTypes eUnitType, bool bFree)
 			pNewUnit->m_iAttacksMade = m_iAttacksMade;
 			pNewUnit->m_iMadeInterceptionCount = m_iMadeInterceptionCount;
 			pNewUnit->m_eActivityType = m_eActivityType;
-			if (IsFortifiedThisTurn())
-			{
-				pNewUnit->SetFortifiedThisTurn(true);
-			}
-			else
-			{
-				pNewUnit->setFortifyTurns(getFortifyTurns());
-			}
+			pNewUnit->m_bMovedThisTurn = m_bMovedThisTurn;
+			pNewUnit->m_bFortified = m_bFortified;
 		}
 		else 
 #endif
@@ -14584,16 +14942,30 @@ int CvUnit::visibilityRange() const
 {
 	VALIDATE_OBJECT
 
-	int iRtnValue;
+	//in general vision range needs to be at least one, otherwise there will be stacking issues
+	int iRtnValue  = 0;
 
 	if(isEmbarked())
 	{
-		iRtnValue = GC.getEMBARKED_VISIBILITY_RANGE() + m_iEmbarkExtraVisibility;
+		iRtnValue = max(1,GC.getEMBARKED_VISIBILITY_RANGE() + m_iEmbarkExtraVisibility);
 	}
+#if defined(MOD_BALANCE_CORE)
+	else if (isTrade())
+	{
+		//special rules for trade units, default range is zero!
+		iRtnValue = GET_PLAYER(m_eOwner).GetTRVisionBoost();
 
+		CorporationTypes eCorporation = GET_PLAYER(m_eOwner).GetCorporations()->GetFoundedCorporation();
+		if (eCorporation != NO_CORPORATION)
+		{
+			CvCorporationEntry* pkCorporation = GC.getCorporationInfo(eCorporation);
+			iRtnValue += pkCorporation ? pkCorporation->GetTradeRouteVisionBoost() : 0;
+		}
+	}
+#endif
 	else
 	{
-		iRtnValue = m_pUnitInfo->GetBaseSightRange() + m_iExtraVisibilityRange;
+		iRtnValue = max(1,m_pUnitInfo->GetBaseSightRange() + m_iExtraVisibilityRange);
 	}
 
 	return iRtnValue;
@@ -14691,21 +15063,11 @@ int CvUnit::baseMoves(DomainTypes eIntoDomain /* = NO_DOMAIN */) const
 //	---------------------------------------------------------------------------
 int CvUnit::maxMoves() const
 {
-	VALIDATE_OBJECT
-#if defined(MOD_PROMOTIONS_FLAGSHIP)
-	if(IsGreatGeneral() || (MOD_PROMOTIONS_FLAGSHIP && IsGreatAdmiral()))
-#else
-	if(IsGreatGeneral())
-#endif
-	{
-		return GetGreatGeneralStackMovement();
-	}
-	else
-	{
-		return (baseMoves() * GC.getMOVE_DENOMINATOR());	// WARNING: Uses the current embark state of the unit!
-	}
+	if (plot() == NULL)
+		return 0;
+	// WARNING: Depends on the current embark state of the unit!
+	return (plot()->getOwner() == getOwner() ? ((baseMoves() + plot()->GetPlotMovesChange()) * GC.getMOVE_DENOMINATOR()) : (baseMoves() * GC.getMOVE_DENOMINATOR()));
 }
-
 
 //	--------------------------------------------------------------------------------
 int CvUnit::movesLeft() const
@@ -14727,7 +15089,7 @@ bool CvUnit::canMove() const
 bool CvUnit::hasMoved()	const
 {
 	VALIDATE_OBJECT
-	return (getMoves() < maxMoves());
+	return m_bMovedThisTurn;
 }
 
 
@@ -14866,19 +15228,31 @@ int CvUnit::workRate(bool bMax, BuildTypes /*eBuild*/) const
 	{
 		iRate = 100;
 	}
+
+	int Modifiers = 0;
+	if (MOD_BALANCE_CORE_BARBARIAN_THEFT && GetWorkRateMod() != 0)
+	{
+		Modifiers += GetWorkRateMod();
+	}
 #endif
 
 	CvPlayerAI& kPlayer = GET_PLAYER(getOwner());
 
-	iRate *= std::max(0, (kPlayer.getWorkerSpeedModifier() + kPlayer.GetPlayerTraits()->GetWorkerSpeedModifier() + 100));
-	iRate /= 100;
+	Modifiers += kPlayer.getWorkerSpeedModifier() + kPlayer.GetPlayerTraits()->GetWorkerSpeedModifier();
 
 	if(!kPlayer.isHuman() && !kPlayer.IsAITeammateOfHuman() && !kPlayer.isBarbarian())
 	{
-		iRate *= std::max(0, (GC.getGame().getHandicapInfo().getAIWorkRateModifier() + 100));
-		iRate /= 100;
+		Modifiers += GC.getGame().getHandicapInfo().getAIWorkRateModifier();
 	}
 
+	iRate *= Modifiers + 100;
+	iRate /= 100;
+#if defined(MOD_CIV6_WORKER)
+	if (MOD_CIV6_WORKER)
+	{
+		iRate = 100;
+	}
+#endif
 	return iRate;
 }
 
@@ -15215,7 +15589,7 @@ int CvUnit::GetBaseCombatStrengthConsideringDamage() const
 	}
 #endif
 
-	int iStrength = GetMaxAttackStrength(NULL,NULL,NULL) / 100;
+	int iStrength = GetMaxAttackStrength(NULL,NULL,NULL,true,true) / 100;
 
 	// How much does damage weaken the effectiveness of the Unit?
 	int iDamageMod = m_iDamage * iWoundedDamageMultiplier / 100;
@@ -15230,11 +15604,34 @@ int CvUnit::GetBaseCombatStrengthConsideringDamage() const
 	return iStrength;
 }
 
+SStrengthModifierInput::SStrengthModifierInput(const CvUnit* pOtherUnit, const CvPlot* pBattlePlot, bool bIgnoreUnitAdjacencyBoni, const CvPlot* pFromPlot, bool bQuickAndDirty)
+{
+	m_iOtherUnitID = pOtherUnit ? pOtherUnit->GetID() : 0;
+	m_iBattlePlot = pBattlePlot ? pBattlePlot->GetPlotIndex() : 0;
+	m_iFromPlot = pFromPlot ? pFromPlot->GetPlotIndex() : 0;
+	m_bIgnoreUnitAdjacencyBoni = bIgnoreUnitAdjacencyBoni;
+	m_bQuickAndDirty = bQuickAndDirty;
+}
+
+const bool SStrengthModifierInput::operator==(const SStrengthModifierInput& rhs) const
+{
+	return (m_iOtherUnitID == rhs.m_iOtherUnitID && m_iBattlePlot == rhs.m_iBattlePlot && m_iFromPlot == rhs.m_iFromPlot && 
+			m_bIgnoreUnitAdjacencyBoni == rhs.m_bIgnoreUnitAdjacencyBoni && m_bQuickAndDirty == rhs.m_bQuickAndDirty);
+}
+
+#define STRENGTH_MOD_MAX_CACHE_SIZE 5
 //	--------------------------------------------------------------------------------
 /// What are the generic strength modifiers for this Unit?
-int CvUnit::GetGenericMaxStrengthModifier(const CvUnit* pOtherUnit, const CvPlot* pBattlePlot, bool bIgnoreUnitAdjacencyBoni, const CvPlot* pFromPlot) const
+int CvUnit::GetGenericMaxStrengthModifier(const CvUnit* pOtherUnit, const CvPlot* pBattlePlot, 
+				bool bIgnoreUnitAdjacencyBoni, const CvPlot* pFromPlot, bool bQuickAndDirty) const
 {
 	VALIDATE_OBJECT
+
+	//simple caching for speedup
+	SStrengthModifierInput input(pOtherUnit, pBattlePlot, bIgnoreUnitAdjacencyBoni, pFromPlot, bQuickAndDirty);
+	for (size_t i = 0; i<m_lastStrengthModifiers.size(); i++)
+	if (input == m_lastStrengthModifiers[i].first)
+		return m_lastStrengthModifiers[i].second;
 
 	int iModifier = 0;
 	int iTempModifier;
@@ -15277,26 +15674,16 @@ int CvUnit::GetGenericMaxStrengthModifier(const CvUnit* pOtherUnit, const CvPlot
 	{
 		pFromPlot = plot();
 	}
-
-	// Great General nearby
-#if defined(MOD_PROMOTIONS_AURA_CHANGE)
-	int iAuraEffectChange = 0;
-	if(!bIgnoreUnitAdjacencyBoni && IsNearGreatGeneral(iAuraEffectChange) && !IsIgnoreGreatGeneralBenefit())
-#else
-	if(IsNearGreatGeneral() && !IsIgnoreGreatGeneralBenefit())
-#endif
+	if (GetNearbyCityBonusCombatMod(pBattlePlot) != 0)
 	{
-		iModifier += kPlayer.GetGreatGeneralCombatBonus();
-		iModifier += kPlayer.GetPlayerTraits()->GetGreatGeneralExtraBonus();
-#if defined(MOD_PROMOTIONS_AURA_CHANGE)
-		iModifier += iAuraEffectChange;
-#endif
-
-		if (IsStackedGreatGeneral(pFromPlot))
-		{
-			iModifier += GetGreatGeneralCombatModifier();
-		}
+		iModifier += GetNearbyCityBonusCombatMod(pBattlePlot);
 	}
+	// Great General nearby
+	if (!bIgnoreUnitAdjacencyBoni && !IsIgnoreGreatGeneralBenefit())
+	{
+		iModifier += GetAreaEffectBonus(AE_GREAT_GENERAL, pBattlePlot);
+	}
+
 #if defined(MOD_BALANCE_CORE)
 	int iCSStrengthMod = 0;
 	if(GET_PLAYER(getOwner()).isMinorCiv())
@@ -15332,29 +15719,52 @@ int CvUnit::GetGenericMaxStrengthModifier(const CvUnit* pOtherUnit, const CvPlot
 	iModifier += iCSStrengthMod;
 #endif
 
-	// Reverse Great General nearby
-	int iReverseGGModifier = GetReverseGreatGeneralModifier(pFromPlot);
-	if(iReverseGGModifier != 0)
+	//sometimes we ignore the finer points
+	if (!bQuickAndDirty)
 	{
-		iModifier += iReverseGGModifier;
-	}
+		// Reverse Great General nearby
+		int iReverseGGModifier = GetReverseGreatGeneralModifier(pFromPlot);
+		if (iReverseGGModifier != 0)
+		{
+			iModifier += iReverseGGModifier;
+		}
 
-	// Improvement with combat bonus (from trait) nearby
-	int iNearbyImprovementModifier = GetNearbyImprovementModifier(pFromPlot);
-	if(iNearbyImprovementModifier != 0)
-	{
-		iModifier += iNearbyImprovementModifier;
+		// Improvement with combat bonus (from trait) nearby
+		int iNearbyImprovementModifier = GetNearbyImprovementModifier(pFromPlot);
+		if (iNearbyImprovementModifier != 0)
+		{
+			iModifier += iNearbyImprovementModifier;
+		}
+		// UnitClass grants a combat bonus if nearby
+		int iNearbyUnitClassModifier = GetNearbyUnitClassModifierFromUnitClass(pBattlePlot);
+		if (iNearbyUnitClassModifier != 0)
+		{
+			iModifier += iNearbyUnitClassModifier;
+		}
+		// NearbyUnit gives a Combat Modifier?
+		int iGetGiveCombatModifier = GetGiveCombatModToUnit(pFromPlot);
+		if (iGetGiveCombatModifier != 0)
+		{
+			iModifier += iGetGiveCombatModifier;
+		}
+		// Adjacent Friendly military Unit?
+		if (pFromPlot->IsFriendlyUnitAdjacent(getTeam(), /*bCombatUnit*/ true))
+		{
+			iModifier += GetAdjacentModifier();
+			for (int iI = 0; iI < GC.getNumUnitCombatClassInfos(); iI++) // Stuff for per adjacent unit combat
+			{
+				const UnitCombatTypes eUnitCombat = static_cast<UnitCombatTypes>(iI);
+				CvBaseInfo* pkUnitCombatInfo = GC.getUnitCombatClassInfo(eUnitCombat);
+				int iModPerAdjacent = getCombatModPerAdjacentUnitCombatModifier(eUnitCombat);
+				if (pkUnitCombatInfo && iModPerAdjacent != 0)
+				{
+					int iNumFriendliesAdjacent = 0;
+					iNumFriendliesAdjacent += pFromPlot->GetNumSpecificFriendlyUnitCombatsAdjacent(getTeam(), eUnitCombat, NULL);
+					iModifier += (iNumFriendliesAdjacent * iModPerAdjacent);
+				}
+			}
+		}
 	}
-	// UnitClass grants a combat bonus if nearby
-	int iNearbyUnitClassModifier = GetNearbyUnitClassModifierFromUnitClass(pFromPlot);
-	if(iNearbyUnitClassModifier != 0)
-	{
-		iModifier += iNearbyUnitClassModifier;
-	}
-
-	// Adjacent Friendly military Unit?
-	if (pFromPlot->IsFriendlyUnitAdjacent(getTeam(), /*bCombatUnit*/ true))
-		iModifier += GetAdjacentModifier();
 
 	// Our empire fights well in Golden Ages?
 	if(kPlayer.isGoldenAge())
@@ -15380,7 +15790,7 @@ int CvUnit::GetGenericMaxStrengthModifier(const CvUnit* pOtherUnit, const CvPlot
 			iModifier += iTempModifier;
 
 			// Founder Belief bonus
-			CvCity* pPlotCity = pBattlePlot->getWorkingCity();
+			CvCity* pPlotCity = pBattlePlot->getOwningCity();
 			if(pPlotCity)
 			{
 				ReligionTypes eReligion = pPlotCity->GetCityReligions()->GetReligiousMajority();
@@ -15426,7 +15836,7 @@ int CvUnit::GetGenericMaxStrengthModifier(const CvUnit* pOtherUnit, const CvPlot
 			}
 #endif
 			// Founder Belief bonus (this must be a city controlled by an enemy)
-			CvCity* pPlotCity = pBattlePlot->getWorkingCity();
+			CvCity* pPlotCity = pBattlePlot->getOwningCity();
 			if(pPlotCity)
 			{
 				if(atWar(getTeam(), pPlotCity->getTeam()))
@@ -15559,7 +15969,7 @@ int CvUnit::GetGenericMaxStrengthModifier(const CvUnit* pOtherUnit, const CvPlot
 		CvAssertMsg(pOtherUnit != this, "Compared combat strength against one's own pointer. This is weird and probably wrong.");
 
 		// Flanking
-		if(!bIgnoreUnitAdjacencyBoni)
+		if(!bIgnoreUnitAdjacencyBoni && !bQuickAndDirty)
 		{
 			int iNumAdjacentFriends = pOtherUnit->GetNumEnemyUnitsAdjacent();
 			if(iNumAdjacentFriends > 0)
@@ -15653,18 +16063,24 @@ int CvUnit::GetGenericMaxStrengthModifier(const CvUnit* pOtherUnit, const CvPlot
 		}
 	}
 
+	//update cache
+	m_lastStrengthModifiers.push_back(std::make_pair(input, iModifier));
+	if (m_lastStrengthModifiers.size() == STRENGTH_MOD_MAX_CACHE_SIZE)
+		m_lastStrengthModifiers.erase(m_lastStrengthModifiers.begin());
+
 	return iModifier;
 }
 
 //	--------------------------------------------------------------------------------
 /// What is the max strength of this Unit when attacking?
-int CvUnit::GetMaxAttackStrength(const CvPlot* pFromPlot, const CvPlot* pToPlot, const CvUnit* pDefender, bool bIgnoreUnitAdjacencyBoni) const
+int CvUnit::GetMaxAttackStrength(const CvPlot* pFromPlot, const CvPlot* pToPlot, const CvUnit* pDefender, 
+								bool bIgnoreUnitAdjacencyBoni, bool bQuickAndDirty) const
 {
 	VALIDATE_OBJECT
 	if(GetBaseCombatStrength() == 0)
 		return 0;
 
-	int iModifier = GetGenericMaxStrengthModifier(pDefender, pToPlot, bIgnoreUnitAdjacencyBoni, pFromPlot);
+	int iModifier = GetGenericMaxStrengthModifier(pDefender, pToPlot, bIgnoreUnitAdjacencyBoni, pFromPlot, bQuickAndDirty);
 
 	// Generic Attack bonus
 	int iTempModifier = getAttackModifier();
@@ -15710,6 +16126,24 @@ int CvUnit::GetMaxAttackStrength(const CvPlot* pFromPlot, const CvPlot* pToPlot,
 		}
 	}
 #endif
+#if defined(MOD_BALANCE_CORE)
+	// Adjacent Friendly military Unit? (attack mod only)
+	if (pFromPlot != NULL && !bIgnoreUnitAdjacencyBoni && !bQuickAndDirty && pFromPlot->IsFriendlyUnitAdjacent(getTeam(), /*bCombatUnit*/ true))
+	{
+		for(int iI = 0; iI < GC.getNumUnitCombatClassInfos(); iI++) // Stuff for per adjacent unit combat
+		{
+			const UnitCombatTypes eUnitCombat = static_cast<UnitCombatTypes>(iI);
+			CvBaseInfo* pkUnitCombatInfo = GC.getUnitCombatClassInfo(eUnitCombat);
+			int iModPerAdjacent = getCombatModPerAdjacentUnitCombatAttackMod(eUnitCombat);
+			if (pkUnitCombatInfo && iModPerAdjacent != 0)
+			{
+				int iNumFriendliesAdjacent = 0;
+				iNumFriendliesAdjacent += pFromPlot->GetNumSpecificFriendlyUnitCombatsAdjacent(getTeam(), eUnitCombat, NULL);
+				iModifier += (iNumFriendliesAdjacent * iModPerAdjacent);
+			}
+		}
+	}
+#endif
 
 	////////////////////////
 	// KNOWN DESTINATION PLOT
@@ -15724,18 +16158,10 @@ int CvUnit::GetMaxAttackStrength(const CvPlot* pFromPlot, const CvPlot* pToPlot,
 			iModifier += iTempModifier;
 
 			// Nearby unit sapping this city
-			if(IsNearSapper(pToPlot->getPlotCity()))
-			{
-				iTempModifier = GC.getSAPPED_CITY_ATTACK_MODIFIER();
-				iModifier += iTempModifier;
-			}
+			iTempModifier = GetAreaEffectBonus(AE_SAPPER, pFromPlot, pToPlot->getPlotCity());
+			iModifier += iTempModifier;
+
 #if defined(MOD_BALANCE_CORE)
-			// Nearby unit sapping this city
-			else if(IsHalfNearSapper(pToPlot->getPlotCity()))
-			{
-				iTempModifier = (GC.getSAPPED_CITY_ATTACK_MODIFIER() / 2);
-				iModifier += iTempModifier;
-			}
 			//bonus for attacking same unit over and over in a turn?
 			iTempModifier = getMultiAttackBonus() + GET_PLAYER(getOwner()).GetPlayerTraits()->GetMultipleAttackBonus();
 			if (iTempModifier != 0)
@@ -15838,7 +16264,7 @@ int CvUnit::GetMaxAttackStrength(const CvPlot* pFromPlot, const CvPlot* pToPlot,
 		iModifier += iTempModifier;
 
 		// Bonus VS fortified
-		if(pDefender->getFortifyTurns() > 0)
+		if(pDefender->IsFortified())
 			iModifier += attackFortifiedModifier();
 
 		// Bonus VS wounded
@@ -15848,7 +16274,7 @@ int CvUnit::GetMaxAttackStrength(const CvPlot* pFromPlot, const CvPlot* pToPlot,
 			iModifier += attackFullyHealedModifier();
 
 		//More than half?
-		if (pDefender->getDamage() > (pDefender->GetMaxHitPoints() * .5))
+		if (pDefender->getDamage() < (pDefender->GetMaxHitPoints() * .5))
 			iModifier += attackAbove50HealthModifier();
 		else
 			iModifier += attackBelow50HealthModifier();
@@ -15873,7 +16299,7 @@ int CvUnit::GetMaxAttackStrength(const CvPlot* pFromPlot, const CvPlot* pToPlot,
 
 //	--------------------------------------------------------------------------------
 /// What is the max strength of this Unit when defending?
-int CvUnit::GetMaxDefenseStrength(const CvPlot* pInPlot, const CvUnit* pAttacker, bool bFromRangedAttack) const
+int CvUnit::GetMaxDefenseStrength(const CvPlot* pInPlot, const CvUnit* pAttacker, bool bFromRangedAttack, bool bQuickAndDirty) const
 {
 	VALIDATE_OBJECT
 
@@ -15886,7 +16312,7 @@ int CvUnit::GetMaxDefenseStrength(const CvPlot* pInPlot, const CvUnit* pAttacker
 		return 0;
 
 	int iTempModifier;
-	int iModifier = GetGenericMaxStrengthModifier(pAttacker, pInPlot, /*bIgnoreUnitAdjacency*/ bFromRangedAttack, pInPlot);
+	int iModifier = GetGenericMaxStrengthModifier(pAttacker, pInPlot, /*bIgnoreUnitAdjacency*/ bFromRangedAttack, pInPlot, bQuickAndDirty);
 
 	// Generic Defense Bonus
 	iTempModifier = getDefenseModifier();
@@ -15918,6 +16344,24 @@ int CvUnit::GetMaxDefenseStrength(const CvPlot* pInPlot, const CvUnit* pAttacker
 			if (pInfo && pInfo->getMonopolyDefenseBonus() > 0)
 			{
 				iModifier += pInfo->getMonopolyDefenseBonus();
+			}
+		}
+	}
+#endif
+#if defined(MOD_BALANCE_CORE)
+	// Adjacent Friendly military Unit? (defense mod only)
+	if (pInPlot != NULL && !bQuickAndDirty && pInPlot->IsFriendlyUnitAdjacent(getTeam(), /*bCombatUnit*/ true))
+	{
+		for(int iI = 0; iI < GC.getNumUnitCombatClassInfos(); iI++) // Stuff for per adjacent unit combat
+		{
+			const UnitCombatTypes eUnitCombat = static_cast<UnitCombatTypes>(iI);
+			CvBaseInfo* pkUnitCombatInfo = GC.getUnitCombatClassInfo(eUnitCombat);
+			int iModPerAdjacent = getCombatModPerAdjacentUnitCombatDefenseMod(eUnitCombat);
+			if (pkUnitCombatInfo && iModPerAdjacent != 0)
+			{
+				int iNumFriendliesAdjacent = 0;
+				iNumFriendliesAdjacent += pInPlot->GetNumSpecificFriendlyUnitCombatsAdjacent(getTeam(), eUnitCombat, NULL);
+				iModifier += (iNumFriendliesAdjacent * iModPerAdjacent);
 			}
 		}
 	}
@@ -16044,16 +16488,24 @@ int CvUnit::GetEmbarkedUnitDefense() const
 int CvUnit::GetResistancePower(const CvUnit* pOtherUnit) const
 {
 	int iResistance = 0;
-	if(MOD_BALANCE_CORE_MILITARY_RESISTANCE && !pOtherUnit->isBarbarian() && !GET_PLAYER(pOtherUnit->getOwner()).isMinorCiv() && pOtherUnit->getOwner() != NO_PLAYER)
+	if(MOD_BALANCE_CORE_MILITARY_RESISTANCE)
 	{
-		iResistance = (GET_PLAYER(pOtherUnit->getOwner()).GetFractionOriginalCapitalsUnderControl() / 2);
+		if (pOtherUnit->getOwner() == NO_PLAYER)
+			return 0;
 
-		if (GET_PLAYER(pOtherUnit->getOwner()).isHuman())
-		{
-			int iHandicap = GC.getGame().getHandicapInfo().getAIDifficultyBonus() * 10;
-			iResistance *= (100 + iHandicap);
-			iResistance /= 100;
-		}
+		if (pOtherUnit->isBarbarian() || isBarbarian())
+			return 0;
+
+		if (GET_PLAYER(pOtherUnit->getOwner()).isMinorCiv() || GET_PLAYER(getOwner()).isMinorCiv())
+			return 0;
+
+		if (plot()->getOwner() == pOtherUnit->getOwner())
+			return 0;
+
+		iResistance = GET_PLAYER(getOwner()).GetDominationResistance(pOtherUnit->getOwner());
+		//Not our territory?
+		if (plot()->getOwner() == NO_PLAYER)
+			iResistance /= 2;
 	}
 
 	return iResistance;
@@ -16107,7 +16559,8 @@ void CvUnit::SetBaseRangedCombatStrength(int iStrength)
 
 
 //	--------------------------------------------------------------------------------
-int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* pCity, bool bAttacking, bool bForRangedAttack, const CvPlot* pTargetPlot, const CvPlot* pFromPlot, bool bIgnoreUnitAdjacencyBoni) const
+int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* pCity, bool bAttacking, bool bForRangedAttack, 
+				const CvPlot* pTargetPlot, const CvPlot* pFromPlot, bool bIgnoreUnitAdjacencyBoni, bool bQuickAndDirty) const
 {
 	VALIDATE_OBJECT
 
@@ -16188,49 +16641,39 @@ int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* p
 	if(iTempModifier != 0)
 		iModifier += iTempModifier;
 #endif
+	if (GetNearbyCityBonusCombatMod(pMyPlot) != 0)
+	{
+		iModifier += GetNearbyCityBonusCombatMod(pMyPlot);
+	}
 
 	// Great General nearby
-#if defined(MOD_PROMOTIONS_AURA_CHANGE)
-	int iAuraEffectChange = 0;
-	if(!bIgnoreUnitAdjacencyBoni && IsNearGreatGeneral(iAuraEffectChange) && !IsIgnoreGreatGeneralBenefit())
-#else
-	if(IsNearGreatGeneral() && !IsIgnoreGreatGeneralBenefit())
-#endif
+	if (!bIgnoreUnitAdjacencyBoni && !IsIgnoreGreatGeneralBenefit())
 	{
-#if defined(MOD_BUGFIX_MINOR)
-		iModifier += kPlayer.GetGreatGeneralCombatBonus();
-#else
-		iModifier += /*25*/ GC.getGREAT_GENERAL_STRENGTH_MOD();
-#endif
-		iModifier += pTraits->GetGreatGeneralExtraBonus();
-#if defined(MOD_PROMOTIONS_AURA_CHANGE)
-		iModifier += iAuraEffectChange;
-#endif
+		iModifier += GetAreaEffectBonus(AE_GREAT_GENERAL, pMyPlot);
+	}
 
-		if (IsStackedGreatGeneral(pMyPlot))
+	// sometimes we want to ignore the finer points
+	if (!bQuickAndDirty)
+	{
+		// Reverse Great General nearby
+		int iReverseGGModifier = GetReverseGreatGeneralModifier(pMyPlot);
+		if (iReverseGGModifier != 0)
 		{
-			iModifier += GetGreatGeneralCombatModifier();
+			iModifier += iReverseGGModifier;
 		}
-	}
 
-	// Reverse Great General nearby
-	int iReverseGGModifier = GetReverseGreatGeneralModifier(pMyPlot);
-	if(iReverseGGModifier != 0)
-	{
-		iModifier += iReverseGGModifier;
-	}
-
-	// Improvement with combat bonus (from trait) nearby
-	int iNearbyImprovementModifier = GetNearbyImprovementModifier();
-	if(iNearbyImprovementModifier != 0)
-	{
-		iModifier += iNearbyImprovementModifier;
-	}
-	// UnitClass grants a combat bonus if nearby
-	int iNearbyUnitClassModifier = GetNearbyUnitClassModifierFromUnitClass();
-	if(iNearbyUnitClassModifier != 0)
-	{
-		iModifier += iNearbyUnitClassModifier;
+		// Improvement with combat bonus (from trait) nearby
+		int iNearbyImprovementModifier = GetNearbyImprovementModifier();
+		if (iNearbyImprovementModifier != 0)
+		{
+			iModifier += iNearbyImprovementModifier;
+		}
+		// UnitClass grants a combat bonus if nearby
+		int iNearbyUnitClassModifier = GetNearbyUnitClassModifierFromUnitClass();
+		if (iNearbyUnitClassModifier != 0)
+		{
+			iModifier += iNearbyUnitClassModifier;
+		}
 	}
 
 	// Our empire fights well in Golden Ages?
@@ -16289,7 +16732,7 @@ int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* p
 			iModifier += iTempModifier;
 
 			// Founder Belief bonus
-			CvCity* pPlotCity = pTargetPlot->getWorkingCity();
+			CvCity* pPlotCity = pTargetPlot->getOwningCity();
 			if (pPlotCity)
 			{
 				ReligionTypes eReligion = pPlotCity->GetCityReligions()->GetReligiousMajority();
@@ -16318,7 +16761,7 @@ int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* p
 			iModifier += iTempModifier;
 
 			// Founder Belief bonus (this must be a city controlled by an enemy)
-			CvCity* pPlotCity = pTargetPlot->getWorkingCity();
+			CvCity* pPlotCity = pTargetPlot->getOwningCity();
 			if (pPlotCity)
 			{
 				if (atWar(getTeam(), pPlotCity->getTeam()))
@@ -16361,7 +16804,7 @@ int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* p
 		iModifier += domainModifier(pOtherUnit->getDomainType());
 
 		// Bonus VS fortified
-		if(pOtherUnit->getFortifyTurns() > 0)
+		if(pOtherUnit->IsFortified())
 			iModifier += attackFortifiedModifier();
 
 		// Bonus VS wounded
@@ -16371,7 +16814,7 @@ int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* p
 			iModifier += attackFullyHealedModifier();
 
 		//More than half?
-		if (pOtherUnit->getDamage() > (pOtherUnit->GetMaxHitPoints() * .5))
+		if (pOtherUnit->getDamage() < (pOtherUnit->GetMaxHitPoints() * .5))
 			iModifier += attackAbove50HealthModifier();
 		else
 			iModifier += attackBelow50HealthModifier();
@@ -16443,23 +16886,11 @@ int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* p
 	if(pCity != NULL)
 	{
 		// Attacking a City
-		iTempModifier = cityAttackModifier();
-		iModifier += iTempModifier;
+		iModifier += cityAttackModifier();
 
 		// Nearby unit sapping this city
-		if(IsNearSapper(pCity))
-		{
-			iTempModifier = GC.getSAPPED_CITY_ATTACK_MODIFIER();
-			iModifier += iTempModifier;
-		}
-#if defined(MOD_BALANCE_CORE)
-		// Nearby unit sapping this city
-		else if(IsHalfNearSapper(pCity))
-		{
-			iTempModifier = (GC.getSAPPED_CITY_ATTACK_MODIFIER() / 2);
-			iModifier += iTempModifier;
-		}
-#endif
+		iModifier += GetAreaEffectBonus(AE_SAPPER, pMyPlot, pCity);
+
 		//bonus for attacking same unit over and over in a turn?
 		iTempModifier = getMultiAttackBonus() + GET_PLAYER(getOwner()).GetPlayerTraits()->GetMultipleAttackBonus();
 		if (iTempModifier != 0)
@@ -16558,10 +16989,11 @@ bool CvUnit::canAirDefend(const CvPlot* pPlot) const
 
 
 //	--------------------------------------------------------------------------------
-int CvUnit::GetAirCombatDamage(const CvUnit* pDefender, CvCity* pCity, bool bIncludeRand, int iAssumeExtraDamage, const CvPlot* pTargetPlot, const CvPlot* pFromPlot) const
+int CvUnit::GetAirCombatDamage(const CvUnit* pDefender, CvCity* pCity, bool bIncludeRand, int iAssumeExtraDamage, 
+						const CvPlot* pTargetPlot, const CvPlot* pFromPlot, bool bQuickAndDirty) const
 {
 #if defined(MOD_CORE_AIRCOMBAT_SIMPLIFIED)
-	return GetRangeCombatDamage(pDefender,pCity,bIncludeRand,iAssumeExtraDamage,pTargetPlot,pFromPlot);
+	return GetRangeCombatDamage(pDefender,pCity,bIncludeRand,iAssumeExtraDamage,pTargetPlot,pFromPlot,false,bQuickAndDirty);
 #else
 	VALIDATE_OBJECT
 
@@ -16678,7 +17110,8 @@ int CvUnit::GetAirCombatDamage(const CvUnit* pDefender, CvCity* pCity, bool bInc
 
 
 //	--------------------------------------------------------------------------------
-int CvUnit::GetRangeCombatDamage(const CvUnit* pDefender, CvCity* pCity, bool bIncludeRand, int iAssumeExtraDamage, const CvPlot* pTargetPlot, const CvPlot* pFromPlot, bool bIgnoreUnitAdjacencyBoni) const
+int CvUnit::GetRangeCombatDamage(const CvUnit* pDefender, CvCity* pCity, bool bIncludeRand, int iAssumeExtraDamage, 
+	const CvPlot* pTargetPlot, const CvPlot* pFromPlot, bool bIgnoreUnitAdjacencyBoni, bool bQuickAndDirty) const
 {
 	VALIDATE_OBJECT
 	if (pFromPlot == NULL)
@@ -16697,16 +17130,25 @@ int CvUnit::GetRangeCombatDamage(const CvUnit* pDefender, CvCity* pCity, bool bI
 		}
 	}
 
-	int iAttackerStrength = GetMaxRangedCombatStrength(pDefender, pCity, true, /*bForRangedAttack*/ true, pTargetPlot, pFromPlot, bIgnoreUnitAdjacencyBoni);
+	int iAttackerStrength = GetMaxRangedCombatStrength(pDefender, pCity, true, /*bForRangedAttack*/ true, 
+									pTargetPlot, pFromPlot, bIgnoreUnitAdjacencyBoni, bQuickAndDirty);
 	if (iAttackerStrength==0)
 		return 0;
 
 	int iDefenderStrength = 0;
 
+	//in case of a missile, look up the target (the generic call in case of a city target doesn't pass the defender)
+	if (AI_getUnitAIType() == UNITAI_MISSILE_AIR && pTargetPlot && pDefender == NULL)
+	{
+		pDefender = rangeStrikeTarget(*pTargetPlot, true);
+		if (!pDefender)
+			return 0;
+	}
+
 	CvPlayerAI& kPlayer = GET_PLAYER(getOwner());
 
-	// City is Defender
-	if (pCity != NULL)
+	// City is Defender - unless it's a missile
+	if (pCity != NULL && AI_getUnitAIType() != UNITAI_MISSILE_AIR)
 	{
 		iDefenderStrength = pCity->getStrengthValue();
 	}
@@ -16715,7 +17157,13 @@ int CvUnit::GetRangeCombatDamage(const CvUnit* pDefender, CvCity* pCity, bool bI
 	{
 		// If this is a defenseless unit, do a fixed amount of damage
 		if (!pDefender->IsCanDefend(pTargetPlot))
-			return /*4*/ GC.getNONCOMBAT_UNIT_RANGED_DAMAGE();
+		{
+			//can assassinate any civilian with one missile hit
+			if (AI_getUnitAIType() == UNITAI_MISSILE_AIR)
+				return pDefender->GetCurrHitPoints();
+			else
+				return GC.getNONCOMBAT_UNIT_RANGED_DAMAGE();
+		}
 
 		// Use Ranged combat value for defender (except impi)
 		if (pDefender->isRanged() && !pDefender->isRangedSupportFire())
@@ -16724,11 +17172,11 @@ int CvUnit::GetRangeCombatDamage(const CvUnit* pDefender, CvCity* pCity, bool bI
 			if ( (!pTargetPlot && pDefender->isEmbarked()) || (pTargetPlot && pTargetPlot->needsEmbarkation(pDefender) && pDefender->CanEverEmbark()) )
 				iDefenderStrength = pDefender->GetEmbarkedUnitDefense();
 			else
-				iDefenderStrength = pDefender->GetMaxRangedCombatStrength(this, /*pCity*/ NULL, false, false, pTargetPlot, pFromPlot);
+				iDefenderStrength = pDefender->GetMaxRangedCombatStrength(this, /*pCity*/ NULL, false, false, pTargetPlot, pFromPlot, false, bQuickAndDirty);
 		}
 		else
 			//this considers embarkation implicitly
-			iDefenderStrength = pDefender->GetMaxDefenseStrength(pTargetPlot, this, /*bFromRangedAttack*/ true);
+			iDefenderStrength = pDefender->GetMaxDefenseStrength(pTargetPlot, this, /*bFromRangedAttack*/ true, bQuickAndDirty);
 	}
 	else
 	{
@@ -16759,14 +17207,7 @@ int CvUnit::GetRangeCombatDamage(const CvUnit* pDefender, CvCity* pCity, bool bI
 	int iAttackerRoll = 0;
 	if(bIncludeRand)
 	{
-		if (isBarbarian())
-		{
-			iAttackerRoll = /*300*/ GC.getGame().getSmallFakeRandNum(10, *plot()) * 120;
-		}
-		else
-		{
-			iAttackerRoll = /*300*/ GC.getGame().getJonRandNum(GC.getRANGE_ATTACK_SAME_STRENGTH_POSSIBLE_EXTRA_DAMAGE(), "Unit Ranged Combat Damage");
-		}
+		iAttackerRoll = /*300*/ GC.getGame().getSmallFakeRandNum(GC.getRANGE_ATTACK_SAME_STRENGTH_POSSIBLE_EXTRA_DAMAGE()/ 100, *plot()) * 100;
 		iAttackerRoll *= iAttackerDamageRatio;
 		iAttackerRoll /= GC.getMAX_HIT_POINTS();
 	}
@@ -16842,14 +17283,15 @@ int CvUnit::GetRangeCombatSplashDamage(const CvPlot* pTargetPlot) const
 int CvUnit::GetAirStrikeDefenseDamage(const CvUnit* pAttacker, bool bIncludeRand, const CvPlot* pTargetPlot, const CvPlot* pFromPlot) const
 {
 #if defined(MOD_CORE_AIRCOMBAT_SIMPLIFIED)
-	pAttacker; pTargetPlot; pFromPlot;
+	pAttacker;  pTargetPlot; pFromPlot; //unused
+
 	//base value
 	if (MOD_BALANCE_CORE_MILITARY_PROMOTION_ADVANCED)
 	{
 		int iBaseValue = getUnitInfo().GetBaseLandAirDefense();
 		if (iBaseValue == 0)
 			if (bIncludeRand && !IsCivilianUnit())
-				return GC.getGame().getJonRandNum(3, "air attack attrition");
+				return GC.getGame().getSmallFakeRandNum(3, *plot());
 			else
 				return 0;
 		else
@@ -16857,7 +17299,7 @@ int CvUnit::GetAirStrikeDefenseDamage(const CvUnit* pAttacker, bool bIncludeRand
 			iBaseValue += getLandAirDefenseValue();
 
 			if (bIncludeRand)
-				return iBaseValue + GC.getGame().getJonRandNum(5, "air attack attrition");
+				return iBaseValue + GC.getGame().getSmallFakeRandNum(5, *plot());
 			else
 				return iBaseValue;
 		}
@@ -16865,7 +17307,7 @@ int CvUnit::GetAirStrikeDefenseDamage(const CvUnit* pAttacker, bool bIncludeRand
 	else
 	{
 		if (bIncludeRand)
-			return 8 + GC.getGame().getJonRandNum(5, "air attack attrition");
+			return 8 + GC.getGame().getSmallFakeRandNum(5, *plot());
 		else
 			return 10;
 	}	
@@ -16949,82 +17391,6 @@ int CvUnit::GetAirStrikeDefenseDamage(const CvUnit* pAttacker, bool bIncludeRand
 }
 
 //	--------------------------------------------------------------------------------
-CvUnit* CvUnit::GetBestInterceptor(const CvPlot& interceptPlot, const CvUnit* pkDefender /* = NULL */, bool bLandInterceptorsOnly /*false*/, bool bVisibleInterceptorsOnly /*false*/, int* piNumPossibleInterceptors) const
-{
-	VALIDATE_OBJECT
-	CvUnit* pBestUnit = 0;
-	int iBestValue = 0;
-	int iBestDistance = INT_MAX;
-
-	// Loop through all players' Units (that we're at war with) to see if they can intercept
-	const std::vector<PlayerTypes>& vEnemies = GET_PLAYER(getOwner()).GetPlayersAtWarWith();
-
-	for(size_t iI = 0; iI < vEnemies.size(); iI++)
-	{
-		CvPlayerAI& kLoopPlayer = GET_PLAYER(vEnemies[iI]);
-		TeamTypes eLoopTeam = kLoopPlayer.getTeam();
-
-		//stealth unit? no intercept
-		if(isInvisible(eLoopTeam, false, false))
-			continue;
-
-		int iLoop = 0;
-		for(CvUnit* pLoopUnit = kLoopPlayer.firstUnit(&iLoop); pLoopUnit != NULL; pLoopUnit = kLoopPlayer.nextUnit(&iLoop))
-		{
-			// Must be able to intercept
-			if(pLoopUnit != pkDefender && !pLoopUnit->isDelayedDeath() && pLoopUnit->canAirDefend() && !pLoopUnit->isInCombat() && !pLoopUnit->isEmbarked())
-			{
-				// Must not have already intercepted this turn
-				if(!pLoopUnit->isOutOfInterceptions())
-				{
-					// Must either be a non-air Unit, or an air Unit that hasn't moved this turn
-					if((pLoopUnit->getDomainType() != DOMAIN_AIR) || !(pLoopUnit->hasMoved()))
-					{
-						// Must either be a non-air Unit or an air Unit on intercept
-						if((pLoopUnit->getDomainType() != DOMAIN_AIR) || (pLoopUnit->GetActivityType() == ACTIVITY_INTERCEPT))
-						{
-							// Check input booleans
-							if (!bLandInterceptorsOnly || pLoopUnit->getDomainType() == DOMAIN_LAND)
-							{
-								if (!bVisibleInterceptorsOnly || pLoopUnit->plot()->isVisible(getTeam()))
-								{
-									// Test range
-									int iDistance = plotDistance(pLoopUnit->getX(), pLoopUnit->getY(), interceptPlot.getX(), interceptPlot.getY());
-									if( iDistance <= pLoopUnit->getUnitInfo().GetAirInterceptRange())
-									{
-										int iValue = pLoopUnit->currInterceptionProbability();
-
-										if (iValue>0 && piNumPossibleInterceptors)
-											(*piNumPossibleInterceptors)++;
-
-										if( iValue>iBestValue || (iValue==iBestValue && iDistance<iBestDistance) )
-										{
-											iBestDistance = iDistance;
-											iBestValue = iValue;
-											pBestUnit = pLoopUnit;
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return pBestUnit;
-}
-
-//	--------------------------------------------------------------------------------
-int CvUnit::GetInterceptorCount(const CvPlot& interceptPlot, CvUnit* pkDefender /* = NULL */, bool bLandInterceptorsOnly /*false*/, bool bVisibleInterceptorsOnly /*false*/) const
-{
-	int iCount = 0;
-	GetBestInterceptor(interceptPlot,pkDefender,bLandInterceptorsOnly,bVisibleInterceptorsOnly,&iCount);
-	return iCount;
-}
-
-//	--------------------------------------------------------------------------------
 /// Amount of damage done by this unit when intercepting pAttacker
 int CvUnit::GetInterceptionDamage(const CvUnit* pAttacker, bool bIncludeRand, const CvPlot* pTargetPlot, const CvPlot* pFromPlot) const
 {
@@ -17079,7 +17445,7 @@ int CvUnit::GetInterceptionDamage(const CvUnit* pAttacker, bool bIncludeRand, co
 	int iInterceptorRoll = 0;
 	if(bIncludeRand)
 	{
-		iInterceptorRoll = /*300*/ GC.getGame().getJonRandNum(GC.getINTERCEPTION_SAME_STRENGTH_POSSIBLE_EXTRA_DAMAGE(), "Interception Combat Damage");
+		iInterceptorRoll = /*300*/ GC.getGame().getSmallFakeRandNum(GC.getINTERCEPTION_SAME_STRENGTH_POSSIBLE_EXTRA_DAMAGE() / 100, *plot()) * 100;
 		iInterceptorRoll *= iInterceptorDamageRatio;
 #if defined(MOD_UNITS_MAX_HP)
 		iInterceptorRoll /= GetMaxHitPoints();
@@ -17178,7 +17544,7 @@ int CvUnit::GetParadropInterceptionDamage(const CvUnit* pAttacker, bool bInclude
 	int iInterceptorRoll = 0;
 	if(bIncludeRand)
 	{
-		iInterceptorRoll = /*300*/ GC.getGame().getJonRandNum(GC.getINTERCEPTION_SAME_STRENGTH_POSSIBLE_EXTRA_DAMAGE(), "Interception Combat Damage");
+		iInterceptorRoll = /*300*/ GC.getGame().getSmallFakeRandNum(GC.getINTERCEPTION_SAME_STRENGTH_POSSIBLE_EXTRA_DAMAGE(), *plot()) * 100;
 		iInterceptorRoll *= iInterceptorDamageRatio;
 		iInterceptorRoll /= GC.getMAX_HIT_POINTS();
 	}
@@ -17248,47 +17614,18 @@ bool CvUnit::isWaiting() const
 
 	ActivityTypes eActivityType = GetActivityType();
 
-	return ((eActivityType == ACTIVITY_HOLD)||
+	return ((eActivityType == ACTIVITY_HOLD)	||
 			(eActivityType == ACTIVITY_SLEEP)   ||
 			(eActivityType == ACTIVITY_HEAL)    ||
 			(eActivityType == ACTIVITY_SENTRY)  ||
 			(eActivityType == ACTIVITY_INTERCEPT));
 }
 
-
-//	--------------------------------------------------------------------------------
-bool CvUnit::isFortifyable(bool bCanWaitForNextTurn) const
-{
-	VALIDATE_OBJECT
-	// Can't fortify if you've already used any moves this turn
-	if(!bCanWaitForNextTurn)
-	{
-		if(hasMoved())
-		{
-			return false;
-		}
-	}
-
-	if(!IsEverFortifyable())
-	{
-		return false;
-	}
-
-	return true;
-}
-
 //	--------------------------------------------------------------------------------
 /// Can this Unit EVER fortify? (may be redundant with some other stuff)
 bool CvUnit::IsEverFortifyable() const
 {
-	VALIDATE_OBJECT
-
-	if(!IsCombatUnit() || noDefensiveBonus() || ((getDomainType() != DOMAIN_LAND) && (getDomainType() != DOMAIN_IMMOBILE)))
-	{
-		return false;
-	}
-
-	return true;
+	return (IsCombatUnit() && !noDefensiveBonus() && ((getDomainType() == DOMAIN_LAND) || (getDomainType() == DOMAIN_IMMOBILE)));
 }
 
 //	--------------------------------------------------------------------------------
@@ -17296,16 +17633,14 @@ int CvUnit::fortifyModifier() const
 {
 	VALIDATE_OBJECT
 	int iValue = 0;
-	int iTurnsFortified = getFortifyTurns();
-
 	if(isRangedSupportFire())
 	{
 		return iValue;
 	}
 
-	if(iTurnsFortified > 0)
+	if( IsFortified() )
 	{
-		iValue = iTurnsFortified * GC.getFORTIFY_MODIFIER_PER_TURN();
+		iValue = GC.getFORTIFY_MODIFIER_PER_TURN();
 	
 		// Apply modifiers
 		int iMod = GET_PLAYER(getOwner()).getUnitFortificationModifier();
@@ -17350,6 +17685,12 @@ int CvUnit::experienceNeeded() const
 		iExperienceNeeded = (int) ceil(fTemp); // Round up
 	}
 
+	if (MOD_BALANCE_CORE_SCALING_XP)
+	{
+		iExperienceNeeded *= GC.getGame().getGameSpeedInfo().getTrainPercent();
+		iExperienceNeeded /= 100;
+	}
+
 	return iExperienceNeeded;
 }
 
@@ -17381,6 +17722,10 @@ int CvUnit::maxXPValue() const
 	if(isBarbarian())
 	{
 		iMaxValue = std::min(iMaxValue, GC.getBARBARIAN_MAX_XP_VALUE());
+	}
+	if (GET_PLAYER(getOwner()).isMinorCiv() && GC.getMINOR_MAX_XP_VALUE() != -1)
+	{
+		iMaxValue = std::min(iMaxValue, GC.getMINOR_MAX_XP_VALUE());
 	}
 
 	return iMaxValue;
@@ -17601,7 +17946,7 @@ void CvUnit::SetCombatBonusImprovement(ImprovementTypes eImprovement)
 }
 #endif
 #if defined(MOD_BALANCE_CORE)
-int CvUnit::GetNearbyUnitClassBonus() const
+int CvUnit::getNearbyUnitClassBonus() const
 {
 	return m_iNearbyUnitClassBonus;
 }
@@ -17611,7 +17956,7 @@ void CvUnit::SetNearbyUnitClassBonus(int iCombatBonus)
 	m_iNearbyUnitClassBonus = iCombatBonus;
 }
 
-int CvUnit::GetNearbyUnitClassBonusRange() const
+int CvUnit::getNearbyUnitClassBonusRange() const
 {
 	return m_iNearbyUnitClassBonusRange;
 }
@@ -17621,14 +17966,346 @@ void CvUnit::SetNearbyUnitClassBonusRange(int iBonusRange)
 	m_iNearbyUnitClassBonusRange = iBonusRange;
 }
 
-UnitClassTypes CvUnit::GetCombatBonusFromNearbyUnitClass() const
+UnitClassTypes CvUnit::getCombatBonusFromNearbyUnitClass() const
 {
-	return m_iCombatBonusFromNearbyUnitClass;
+	return (UnitClassTypes)m_iCombatBonusFromNearbyUnitClass;
 }
 
 void CvUnit::SetCombatBonusFromNearbyUnitClass(UnitClassTypes eUnitClass)
 {
 	m_iCombatBonusFromNearbyUnitClass = eUnitClass;
+}
+void CvUnit::ChangeNearbyPromotion(int iValue)
+{
+	VALIDATE_OBJECT
+	m_bNearbyPromotion += iValue;
+}
+int CvUnit::GetNearbyPromotion() const
+{
+	VALIDATE_OBJECT
+	return	m_bNearbyPromotion;
+}
+bool CvUnit::isNearbyPromotion() const
+{
+	VALIDATE_OBJECT
+	return GetNearbyPromotion() > 0;
+}
+int CvUnit::GetNearbyUnitPromotionsRange() const
+{
+	VALIDATE_OBJECT
+	return m_iNearbyUnitPromotionRange;
+}
+void CvUnit::ChangeNearbyUnitPromotionRange(int iBonusRange)
+{
+	VALIDATE_OBJECT
+	m_iNearbyUnitPromotionRange += iBonusRange;
+}
+void CvUnit::ChangeNearbyCityCombatMod(int iValue)
+{
+	VALIDATE_OBJECT
+	m_inearbyCityCombatMod += iValue;
+}
+int CvUnit::getNearbyCityCombatMod() const
+{
+	VALIDATE_OBJECT
+	return	m_inearbyCityCombatMod;
+}
+void CvUnit::ChangeNearbyFriendlyCityCombatMod(int iValue)
+{
+	VALIDATE_OBJECT
+	m_inearbyFriendlyCityCombatMod += iValue;
+}
+int CvUnit::getNearbyFriendlyCityCombatMod() const
+{
+	VALIDATE_OBJECT
+	return	m_inearbyFriendlyCityCombatMod;
+}
+void CvUnit::ChangeNearbyEnemyCityCombatMod(int iValue)
+{
+	VALIDATE_OBJECT
+	m_inearbyEnemyCityCombatMod += iValue;
+}
+int CvUnit::getNearbyEnemyCityCombatMod() const
+{
+	VALIDATE_OBJECT
+	return m_inearbyEnemyCityCombatMod;
+}
+void CvUnit::ChangeIsFriendlyLands(int iValue)
+{
+	VALIDATE_OBJECT
+	m_bIsFriendlyLands += iValue;
+}
+int CvUnit::GetIsFriendlyLands() const
+{
+	VALIDATE_OBJECT
+	return	m_bIsFriendlyLands;
+}
+bool CvUnit::isFriendlyLands() const
+{
+	VALIDATE_OBJECT
+	return GetIsFriendlyLands() > 0;
+}
+int CvUnit::getPillageBonusStrengthPercent() const
+{
+	VALIDATE_OBJECT
+	return m_iPillageBonusStrengthPercent;
+}
+void CvUnit::ChangePillageBonusStrengthPercent(int iBonus)
+{
+	VALIDATE_OBJECT
+	m_iPillageBonusStrengthPercent += iBonus;
+}
+int CvUnit::getStackedGreatGeneralExperience() const
+{
+	VALIDATE_OBJECT
+	return m_iStackedGreatGeneralExperience;
+}
+void CvUnit::ChangeStackedGreatGeneralExperience(int iExperience)
+{
+	VALIDATE_OBJECT
+	m_iStackedGreatGeneralExperience += iExperience;
+}
+void CvUnit::ChangeIsHighSeaRaider(int iValue)
+{
+	VALIDATE_OBJECT
+	m_bIsHighSeaRaider += iValue;
+}
+int CvUnit::GetIsHighSeaRaider() const
+{
+	VALIDATE_OBJECT
+	return	m_bIsHighSeaRaider;
+}
+bool CvUnit::isHighSeaRaider() const
+{
+	VALIDATE_OBJECT
+	return GetIsHighSeaRaider() > 0;
+}
+int CvUnit::getWonderProductionModifier() const
+{
+	VALIDATE_OBJECT
+	return m_iWonderProductionModifier;
+}
+void CvUnit::ChangeWonderProductionModifier(int iValue)
+{
+	VALIDATE_OBJECT
+	m_iWonderProductionModifier += iValue;
+}
+int CvUnit::getMilitaryProductionModifier() const
+{
+	VALIDATE_OBJECT
+	return m_iUnitProductionModifier;
+}
+void CvUnit::ChangeMilitaryProductionModifier(int iValue)
+{
+	VALIDATE_OBJECT
+	m_iUnitProductionModifier += iValue;
+}
+int CvUnit::getNearbyEnemyDamage() const
+{
+	VALIDATE_OBJECT
+	return m_iNearbyEnemyDamage;
+}
+void CvUnit::ChangeNearbyEnemyDamage(int iValue)
+{
+	VALIDATE_OBJECT
+	m_iNearbyEnemyDamage += iValue;
+}
+int CvUnit::GetGGGAXPPercent() const
+{
+	VALIDATE_OBJECT
+	return m_iGGGAXPPercent;
+}
+void CvUnit::ChangeGGGAXPPercent(int iValue)
+{
+	VALIDATE_OBJECT
+	m_iGGGAXPPercent += iValue;
+}
+int CvUnit::getGiveCombatMod() const
+{
+	VALIDATE_OBJECT
+	return m_iGiveCombatMod;
+}
+void CvUnit::ChangeGiveCombatMod(int iValue)
+{
+	VALIDATE_OBJECT
+	m_iGiveCombatMod += iValue;
+}
+int CvUnit::getGiveHPIfEnemyKilled() const
+{
+	VALIDATE_OBJECT
+	return m_iGiveHPIfEnemyKilled;
+}
+void CvUnit::ChangeGiveHPIfEnemyKilled(int iValue)
+{
+	VALIDATE_OBJECT
+	m_iGiveHPIfEnemyKilled += iValue;
+}
+int CvUnit::getGiveExperiencePercent() const
+{
+	VALIDATE_OBJECT
+	return m_iGiveExperiencePercent;
+}
+void CvUnit::ChangeGiveExperiencePercent(int iValue)
+{
+	VALIDATE_OBJECT
+	m_iGiveExperiencePercent += iValue;
+}
+int CvUnit::getGiveOutsideFriendlyLandsModifier() const
+{
+	VALIDATE_OBJECT
+	return m_igiveOutsideFriendlyLandsModifier;
+}
+void CvUnit::ChangeGiveOutsideFriendlyLandsModifier(int iValue)
+{
+	VALIDATE_OBJECT
+	m_igiveOutsideFriendlyLandsModifier += iValue;
+}
+const bool CvUnit::IsGiveDomainBonus(DomainTypes eDomain) const
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eDomain < NUM_DOMAIN_TYPES, "Index out of bounds");
+	CvAssertMsg(eDomain > -1, "Index out of bounds");
+	return m_pabGiveDomainBonus[eDomain];
+}
+void CvUnit::ChangeGiveDomainBonus(DomainTypes eDomain, bool bValue)
+{
+	VALIDATE_OBJECT
+	m_pabGiveDomainBonus.setAt(eDomain, bValue);
+}
+int CvUnit::getGiveExtraAttacks() const
+{
+	VALIDATE_OBJECT
+	return m_igiveExtraAttacks;
+}
+void CvUnit::ChangeGiveExtraAttacks(int iValue)
+{
+	VALIDATE_OBJECT
+	m_igiveExtraAttacks += iValue;
+}
+int CvUnit::getGiveDefenseMod() const
+{
+	VALIDATE_OBJECT
+	return m_igiveDefenseMod;
+}
+void CvUnit::ChangeGiveDefenseMod(int iValue)
+{
+	VALIDATE_OBJECT
+	m_igiveDefenseMod += iValue;
+}
+void CvUnit::ChangeIsGiveInvisibility(int iValue)
+{
+	VALIDATE_OBJECT
+	m_bgiveInvisibility += iValue;
+}
+int CvUnit::GetIsGiveInvisibility() const
+{
+	VALIDATE_OBJECT
+	return	m_bgiveInvisibility;
+}
+bool CvUnit::isGiveInvisibility() const
+{
+	VALIDATE_OBJECT
+	return GetIsGiveInvisibility() > 0;
+}
+void CvUnit::ChangeIsConvertUnit(int iValue)
+{
+	VALIDATE_OBJECT
+	m_bconvertUnit += iValue;
+}
+int CvUnit::getIsConvertUnit() const
+{
+	VALIDATE_OBJECT
+	return	m_bconvertUnit;
+}
+bool CvUnit::isConvertUnit() const
+{
+	VALIDATE_OBJECT
+	return getIsConvertUnit() > 0;
+}
+const DomainTypes CvUnit::getConvertDomain() const
+{
+	VALIDATE_OBJECT
+	return (DomainTypes)(int)m_eConvertDomain;
+}
+void CvUnit::ChangeConvertDomain(DomainTypes eDomain)
+{
+	VALIDATE_OBJECT
+	m_eConvertDomain = eDomain;
+}
+const UnitTypes CvUnit::getConvertDomainUnitType() const
+{
+	VALIDATE_OBJECT
+	return m_eConvertDomainUnit;
+}
+void CvUnit::ChangeConvertDomainUnit(UnitTypes eUnit)
+{
+	VALIDATE_OBJECT
+	m_eConvertDomainUnit = eUnit;
+}
+void CvUnit::ChangeIsConvertEnemyUnitToBarbarian(int iValue)
+{
+	VALIDATE_OBJECT
+	m_bconvertEnemyUnitToBarbarian += iValue;
+}
+int CvUnit::getIsConvertEnemyUnitToBarbarian() const
+{
+	VALIDATE_OBJECT
+	return m_bconvertEnemyUnitToBarbarian;
+}
+bool CvUnit::isConvertEnemyUnitToBarbarian() const
+{
+	VALIDATE_OBJECT
+	return getIsConvertEnemyUnitToBarbarian() > 0;
+}
+void CvUnit::ChangeIsConvertOnFullHP(int iValue)
+{
+	VALIDATE_OBJECT
+	m_bconvertOnFullHP += iValue;
+}
+int CvUnit::getIsConvertOnFullHP() const
+{
+	VALIDATE_OBJECT
+	return m_bconvertOnFullHP;
+}
+bool CvUnit::isConvertOnFullHP() const
+{
+	VALIDATE_OBJECT
+	return getIsConvertOnFullHP() > 0;
+}
+void CvUnit::ChangeIsConvertOnDamage(int iValue)
+{
+	VALIDATE_OBJECT
+	m_bconvertOnDamage += iValue;
+}
+int CvUnit::getIsConvertOnDamage() const
+{
+	VALIDATE_OBJECT
+	return	m_bconvertOnDamage;
+}
+bool CvUnit::isConvertOnDamage() const
+{
+	VALIDATE_OBJECT
+	return getIsConvertOnDamage() > 0;
+}
+int CvUnit::getDamageThreshold() const
+{
+	VALIDATE_OBJECT
+	return m_idamageThreshold;
+}
+void CvUnit::ChangeDamageThreshold(int iValue)
+{
+	VALIDATE_OBJECT
+	m_idamageThreshold += iValue;
+}
+const UnitTypes CvUnit::getConvertDamageOrFullHPUnit() const
+{
+	VALIDATE_OBJECT
+	return m_econvertDamageOrFullHPUnit;
+}
+void CvUnit::ChangeConvertDamageOrFullHPUnit(UnitTypes eUnit)
+{
+	VALIDATE_OBJECT
+	m_econvertDamageOrFullHPUnit = eUnit;
 }
 #endif
 #if defined(MOD_PROMOTIONS_CROSS_MOUNTAINS)
@@ -17737,13 +18414,13 @@ int CvUnit::GetNumTilesRevealedThisTurn()
 void CvUnit::SetSpottedEnemy(bool bValue)
 {
 	VALIDATE_OBJECT
-		m_bSpottedEnemy = bValue;
+	m_bSpottedEnemy = bValue;
 }
 //	--------------------------------------------------------------------------------
 bool CvUnit::IsSpottedEnemy()
 {
 	VALIDATE_OBJECT
-		return m_bSpottedEnemy;
+	return m_bSpottedEnemy;
 }
 
 //	--------------------------------------------------------------------------------
@@ -18079,7 +18756,7 @@ int CvUnit::getHealOnPillageCount() const
 int CvUnit::getHPHealedIfDefeatEnemy() const
 {
 	VALIDATE_OBJECT
-	return m_iHPHealedIfDefeatEnemy;
+	return m_iHPHealedIfDefeatEnemy + GetGiveHPIfEnemyKilledToUnit();
 }
 
 //	--------------------------------------------------------------------------------
@@ -18241,7 +18918,11 @@ bool CvUnit::isInvisible(TeamTypes eTeam, bool bDebug, bool bCheckCargo) const
 			}
 		}
 	}
-
+	if (IsHiddenByNearbyUnit() && eTeam != NO_TEAM && !plot()->isInvisibleVisibleUnit(eTeam))
+	{
+		return true;
+	}
+	
 	if(m_eInvisibleType == NO_INVISIBLE)
 	{
 		return false;
@@ -18499,7 +19180,7 @@ void CvUnit::changeAttackModifier(int iValue)
 int CvUnit::getDefenseModifier() const
 {
 	VALIDATE_OBJECT
-	return m_iDefenseModifier;
+	return m_iDefenseModifier + GetGiveDefenseModToUnit();
 }
 
 //	--------------------------------------------------------------------------------
@@ -18704,27 +19385,60 @@ int CvUnit::domainModifier(DomainTypes eDomain) const
 }
 
 //	--------------------------------------------------------------------------------
-int CvUnit::getyieldModifier(YieldTypes eYield) const
+int CvUnit::GetYieldModifier(YieldTypes eYield) const
 {
 	VALIDATE_OBJECT
 		CvAssertMsg(eYield >= 0, "eYield is expected to be non-negative (invalid Index)");
 	CvAssertMsg(eYield < NUM_YIELD_TYPES, "eYield is expected to be within maximum bounds (invalid Index)");
-	return m_yieldModifier[eYield];
+	return m_YieldModifier[eYield];
 }
 //	--------------------------------------------------------------------------------
-void CvUnit::setyieldmodifier(YieldTypes eYield, int iValue)
+void CvUnit::SetYieldModifier(YieldTypes eYield, int iValue)
 {
 	VALIDATE_OBJECT
 		CvAssertMsg(eYield >= 0, "eYield is expected to be non-negative (invalid Index)");
 	CvAssertMsg(eYield < NUM_YIELD_TYPES, "eYield is expected to be within maximum bounds (invalid Index)");
-	m_yieldModifier[eYield] = (m_yieldModifier[eYield] + iValue);
+	m_YieldModifier[eYield] = (m_YieldModifier[eYield] + iValue);
 }
+
+int CvUnit::GetYieldChange(YieldTypes eYield) const
+{
+	VALIDATE_OBJECT
+		CvAssertMsg(eYield >= 0, "eYield is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eYield < NUM_YIELD_TYPES, "eYield is expected to be within maximum bounds (invalid Index)");
+	return m_YieldChange[eYield];
+}
+//	--------------------------------------------------------------------------------
+void CvUnit::SetYieldChange(YieldTypes eYield, int iValue)
+{
+	VALIDATE_OBJECT
+		CvAssertMsg(eYield >= 0, "eYield is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eYield < NUM_YIELD_TYPES, "eYield is expected to be within maximum bounds (invalid Index)");
+	m_YieldChange[eYield] = (m_YieldChange[eYield] + iValue);
+}
+// Similar to above code but is only for combat units and scales per the units combat strength : yield is placed on the plot itself
+int CvUnit::GetGarrisonYieldChange(YieldTypes eYield) const
+{
+	VALIDATE_OBJECT
+		CvAssertMsg(eYield >= 0, "eYield is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eYield < NUM_YIELD_TYPES, "eYield is expected to be within maximum bounds (invalid Index)");
+	return m_iGarrisonYieldChange[eYield];
+}
+//	--------------------------------------------------------------------------------
+void CvUnit::SetGarrisonYieldChange(YieldTypes eYield, int iValue)
+{
+	VALIDATE_OBJECT
+		CvAssertMsg(eYield >= 0, "eYield is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eYield < NUM_YIELD_TYPES, "eYield is expected to be within maximum bounds (invalid Index)");
+	m_iGarrisonYieldChange[eYield] = (m_iGarrisonYieldChange[eYield] + iValue);
+}
+
 //	--------------------------------------------------------------------------------
 #if defined(MOD_CARGO_SHIPS)
 SpecialUnitTypes CvUnit::specialUnitCargoLoad() const
 {
 	VALIDATE_OBJECT
-		return((SpecialUnitTypes)(m_pUnitInfo->GetSpecialUnitCargoLoad()));
+	return((SpecialUnitTypes)(m_pUnitInfo->GetSpecialUnitCargoLoad()));
 }
 #endif
 
@@ -19067,11 +19781,8 @@ void CvUnit::setXY(int iX, int iY, bool bGroup, bool bUpdate, bool bShow, bool b
 		bShow = false;
 	}
 
-	int iMapLayer = m_iMapLayer;
-
-	CvPlot* pNewPlot = GC.getMap().plot(iX, iY);
-
 	//sanity check
+	CvPlot* pNewPlot = GC.getMap().plot(iX, iY);
 	if (pNewPlot)
 	{
 		if ( !pNewPlot->needsEmbarkation(this) && isEmbarked() && !isCargo() )
@@ -19277,33 +19988,53 @@ if (!bDoEvade)
 	if(pOldPlot != NULL)
 	{
 		pOldPlot->removeUnit(this, bUpdate);
-
-		if (iMapLayer == DEFAULT_UNIT_MAP_LAYER)
+		if (isGiveInvisibility())
 		{
-			// if leaving a city, reveal the unit
-			if(pOldPlot->isCity())
+			int iRange = GetNearbyUnitPromotionsRange();
+			int iMax = maxMoves();
+			int iLoop;
+			for (CvUnit* pLoopUnit = kPlayer.firstUnit(&iLoop); pLoopUnit != NULL; pLoopUnit = kPlayer.nextUnit(&iLoop))
 			{
-				// if pNewPlot is a valid pointer, we are leaving the city and need to visible
-				// if pNewPlot is NULL than we are "dead" (e.g. a settler) and need to blend out
-				auto_ptr<ICvUnit1> pDllUnit(new CvDllUnit(this));
-				gDLL->GameplayUnitVisibility(pDllUnit.get(), pNewPlot != NULL && !this->isInvisible(activeTeam, false));
+				if (!pLoopUnit->IsCombatUnit())
+					continue;
+
+				if (!IsGiveDomainBonus(pLoopUnit->getDomainType()))
+					continue;
+				if (plotDistance(getX(), getY(), pLoopUnit->getX(), pLoopUnit->getY()) > (iRange + iMax + 1))
+					continue;
+				if (pLoopUnit->IsHiddenByNearbyUnit(pLoopUnit->plot()))
+				{
+					pLoopUnit->plot()->updateVisibility();
+				}
+				else if (pLoopUnit->getInvisibleType() == NO_INVISIBLE)
+				{
+					auto_ptr<ICvUnit1> pDllUnit(new CvDllUnit(pLoopUnit));
+					gDLL->GameplayUnitVisibility(pDllUnit.get(), true /*bVisible*/, true);
+				}
 			}
+		}
+		// if leaving a city, reveal the unit
+		if (pOldPlot->isCity())
+		{
+			// if pNewPlot is a valid pointer, we are leaving the city and need to visible
+			// if pNewPlot is NULL than we are "dead" (e.g. a settler) and need to blend out
+			auto_ptr<ICvUnit1> pDllUnit(new CvDllUnit(this));
+			gDLL->GameplayUnitVisibility(pDllUnit.get(), pNewPlot != NULL && !this->isInvisible(activeTeam, false));
+		}
 
-			if (canChangeVisibility())
+		if (canChangeVisibility())
+		{
 #if defined(MOD_API_EXTENSIONS)
-				pOldPlot->changeAdjacentSight(eOurTeam, visibilityRange(), false, getSeeInvisibleType(), getFacingDirection(true), this);
+			pOldPlot->changeAdjacentSight(eOurTeam, visibilityRange(), false, getSeeInvisibleType(), getFacingDirection(true), this);
 #else
-				pOldPlot->changeAdjacentSight(eOurTeam, visibilityRange(), false, getSeeInvisibleType(), getFacingDirection(true));
+			pOldPlot->changeAdjacentSight(eOurTeam, visibilityRange(), false, getSeeInvisibleType(), getFacingDirection(true));
 #endif
+		}
 
+		if (m_iMapLayer == DEFAULT_UNIT_MAP_LAYER)
+		{
 			pOldPlot->area()->changeUnitsPerPlayer(getOwner(), -1);
-
-#if defined(MOD_BALANCE_CORE)
 			setLastMoveTurn(GC.getGame().getGameTurn());
-#else
-			setLastMoveTurn(GC.getGame().getTurnSlice());
-#endif
-
 			pOldCity = pOldPlot->getPlotCity();
 		}
 	}
@@ -19344,31 +20075,78 @@ if (!bDoEvade)
 		}
 
 		// if entering a city, hide the unit
-		if(pNewPlot->isCity() && iMapLayer == DEFAULT_UNIT_MAP_LAYER)
+		if(pNewPlot->isCity())
 		{
 			auto_ptr<ICvUnit1> pDllUnit(new CvDllUnit(this));
 			gDLL->GameplayUnitVisibility(pDllUnit.get(), false /*bVisible*/);
 		}
 
-		setFortifyTurns(0);
+		// safety if ever we call setXY directly without a mission
+		SetFortified(false);
 
-		if (iMapLayer == DEFAULT_UNIT_MAP_LAYER)
+		if (canChangeVisibility())
 		{
-			if (canChangeVisibility())
 #if defined(MOD_BALANCE_CORE)
-				pNewPlot->changeAdjacentSight(eOurTeam, visibilityRange(), true, getSeeInvisibleType(), getFacingDirection(true), this); // needs to be here so that the square is considered visible when we move into it...
+			pNewPlot->changeAdjacentSight(eOurTeam, visibilityRange(), true, getSeeInvisibleType(), getFacingDirection(true), this); // needs to be here so that the square is considered visible when we move into it...
 #else
-				pNewPlot->changeAdjacentSight(eOurTeam, visibilityRange(), true, getSeeInvisibleType(), getFacingDirection(true)); // needs to be here so that the square is considered visible when we move into it...
+			pNewPlot->changeAdjacentSight(eOurTeam, visibilityRange(), true, getSeeInvisibleType(), getFacingDirection(true)); // needs to be here so that the square is considered visible when we move into it...
 #endif
+		}
 
+		if (m_iMapLayer == DEFAULT_UNIT_MAP_LAYER)
+		{
 			pNewPlot->addUnit(this, bUpdate);
-
 			pNewPlot->area()->changeUnitsPerPlayer(getOwner(), 1);
 			pNewCity = pNewPlot->getPlotCity();
 		}
 		else
 		{
-			GC.getMap().plotManager().AddUnit(GetIDInfo(), iX, iY, iMapLayer);
+			GC.getMap().plotManager().AddUnit(GetIDInfo(), iX, iY, m_iMapLayer);
+		}
+		if (isGiveInvisibility())
+		{
+			int iRange = GetNearbyUnitPromotionsRange();
+			int iMax = maxMoves();
+			int iLoop;
+			for (CvUnit* pLoopUnit = kPlayer.firstUnit(&iLoop); pLoopUnit != NULL; pLoopUnit = kPlayer.nextUnit(&iLoop))
+			{
+				if (!pLoopUnit->IsCombatUnit())
+					continue;
+
+				if (!IsGiveDomainBonus(pLoopUnit->getDomainType()))
+					continue;
+
+				if (plotDistance(getX(), getY(), pLoopUnit->getX(), pLoopUnit->getY()) > (iRange + iMax +1))
+					continue;
+				if (pLoopUnit->IsHiddenByNearbyUnit(pLoopUnit->plot()))
+				{
+					pLoopUnit->plot()->updateVisibility();
+				}
+				else if(pLoopUnit->getInvisibleType() == NO_INVISIBLE)
+				{
+					auto_ptr<ICvUnit1> pDllUnit(new CvDllUnit(pLoopUnit));
+					gDLL->GameplayUnitVisibility(pDllUnit.get(), true /*bVisible*/, true);
+				}
+			}
+		}
+		if (isConvertUnit())
+		{
+			if (getConvertDomain()!= NO_DOMAIN && (pNewPlot->getDomain() == getConvertDomain()))
+			{
+				if (getConvertDomainUnitType() != NO_UNIT)
+				{
+					UnitAITypes eAIType = NO_UNITAI;
+					const CvUnitEntry* pkUnitType = GC.getUnitInfo(getConvertDomainUnitType());
+					if (pkUnitType != NULL)
+					{
+						//! Be sure the unit your initializing has as its unitinfo (GetDomainType() == IsConvertDomain(pNewPlot->getDomain())
+						eAIType = (UnitAITypes)pkUnitType->GetDefaultUnitAIType();
+						CvUnit* pNewUnit = GET_PLAYER(getOwner()).initUnit(getConvertDomainUnitType(), getX(), getY(), eAIType, NO_DIRECTION, true, true, 0, 0, NO_CONTRACT, false);
+						kill(true, NO_PLAYER, false);
+						pNewUnit->finishMoves();
+					}
+				}
+			}
 		}
 #if defined(MOD_BALANCE_CORE)
 		if(IsCombatUnit())
@@ -19399,7 +20177,11 @@ if (!bDoEvade)
 				}
 			}
 		}
-		DoNearbyUnitPromotion(this, pNewPlot);
+
+		DoNearbyUnitPromotion(pNewPlot);
+		if(getAoEDamageOnMove() != 0)
+			DoAoEDamage(getAoEDamageOnMove(), "TXT_KEY_MISC_YOU_UNIT_WAS_DAMAGED_AOE_STRIKE_ON_MOVE");
+
 #endif
 		// Moving into a City (friend or foe)
 		if(pNewCity != NULL)
@@ -19600,6 +20382,19 @@ if (!bDoEvade)
 				gDLL->GameplayUnitVisibility(pDllUnit.get(), bNewInvisibleVisible, true);
 			}
 		}
+		if (eOurTeam != activeTeam && (IsHiddenByNearbyUnit(pNewPlot)))
+		{
+			bool bOldInvisibleVisibleUnit = false;
+			if (pOldPlot)
+				bOldInvisibleVisibleUnit = pOldPlot->isInvisibleVisibleUnit(activeTeam);
+			bool bNewInvisibleVisibleUnit = pNewPlot->isInvisibleVisibleUnit(activeTeam);
+			if (bOldInvisibleVisibleUnit != bNewInvisibleVisibleUnit)
+			{
+				auto_ptr<ICvUnit1> pDllUnit(new CvDllUnit(this));
+				gDLL->GameplayUnitVisibility(pDllUnit.get(), bNewInvisibleVisibleUnit, true);
+			}
+		}
+
 
 		CvTeam& kOurTeam = GET_TEAM(eOurTeam);
 
@@ -19720,8 +20515,11 @@ if (!bDoEvade)
 			}
 		}
 #if defined(MOD_BALANCE_CORE)
-		DoLocationPromotions(false, pOldPlot, pNewPlot);
-		DoConvertEnemyUnitToBarbarian(pNewPlot);
+		if (pOldPlot != NULL)
+		{
+			DoLocationPromotions(false, pOldPlot, pNewPlot);
+			/*DoConvertEnemyUnitToBarbarian(pNewPlot);*/
+		}
 #endif
 
 		if(pOldPlot != NULL && getDomainType() == DOMAIN_SEA)
@@ -19838,7 +20636,7 @@ if (!bDoEvade)
 #endif
 	}
 
-	if(pNewPlot != NULL && iMapLayer == DEFAULT_UNIT_MAP_LAYER)
+	if(pNewPlot != NULL && m_iMapLayer == DEFAULT_UNIT_MAP_LAYER)
 	{
 		if(!bNoMove)
 		{
@@ -19890,6 +20688,11 @@ if (!bDoEvade)
 								{
 									iCulturePoints = GET_PLAYER(getOwner()).GetBarbarianCombatBonus();
 								}
+
+								// Game Speed Mod
+								iCulturePoints *= GC.getGameSpeedInfo(GC.getGame().getGameSpeedType())->getTrainPercent();
+								iCulturePoints /= 100;
+
 								GET_PLAYER(getOwner()).changeJONSCulture(iCulturePoints);
 								if(kPlayer.getCapitalCity() != NULL)
 								{
@@ -19989,42 +20792,6 @@ if (!bDoEvade)
 		PlayerTypes ePlotOwner = pNewPlot->getOwner();
 		if(ePlotOwner != NO_PLAYER)
 		{
-			// If we're in friendly territory and we can embark, give the promotion for free
-			if(pNewPlot->IsFriendlyTerritory(getOwner()))
-			{
-				if(GET_TEAM(eOurTeam).canEmbark())
-				{
-					PromotionTypes ePromotionEmbarkation = kPlayer.GetEmbarkationPromotion();
-
-					bool bGivePromotion = false;
-
-					// Civilians get it for free
-					if(getDomainType() == DOMAIN_LAND)
-					{
-						if(!IsCombatUnit())
-							bGivePromotion = true;
-					}
-
-					// Can the unit get this? (handles water units and such)
-					if(!bGivePromotion && ::IsPromotionValidForUnitCombatType(ePromotionEmbarkation, getUnitType()))
-						bGivePromotion = true;
-
-					// Some case that gives us the promotion?
-					if(bGivePromotion)
-						setHasPromotion(ePromotionEmbarkation, true);
-						
-#if defined(MOD_PROMOTIONS_DEEP_WATER_EMBARKATION)
-					if (MOD_PROMOTIONS_DEEP_WATER_EMBARKATION) {
-						// Incredibly unlikely to ever happen as it implies that hovering units come before embarkation in the tech tree!
-						PromotionTypes ePromotionDeepWaterEmbarkation = kPlayer.GetDeepWaterEmbarkationPromotion();
-						if(::IsPromotionValidForUnitCombatType(ePromotionDeepWaterEmbarkation, getUnitType())) {
-							setHasPromotion(ePromotionDeepWaterEmbarkation, true);
-						}
-					}
-#endif
-				}
-			}
-
 			// Are we in enemy territory? If so, give notification to owner
 			if(GET_TEAM(getTeam()).isAtWar(GET_PLAYER(ePlotOwner).getTeam()) && !isInvisible(GET_PLAYER(ePlotOwner).getTeam(),false,false))
 			{
@@ -20035,37 +20802,6 @@ if (!bDoEvade)
 					Localization::String strSummary = Localization::Lookup("TXT_KEY_NOTIFICATION_ENEMY_SUMMARY");
 					pNotifications->Add(NOTIFICATION_ENEMY_IN_TERRITORY, strMessage.toUTF8(), strSummary.toUTF8(), iX, iY, getUnitType(), getOwner());
 				}
-			}
-		}
-		if(isConvertUnit())
-		{
-			CvUnit* pConvertUnit = NULL;
-			for (int iI = 0; iI < GC.getNumPromotionInfos(); iI++)
-			{
-				const PromotionTypes eLoopPromotion = static_cast<PromotionTypes>(iI);
-				CvPromotionEntry* pkPromotionInfo = GC.getPromotionInfo(eLoopPromotion);
-				if(pkPromotionInfo)
-				{
-					if(pkPromotionInfo->GetConvertDomainUnit() != NO_UNIT)
-					{
-						if((pNewPlot->getDomain() == pkPromotionInfo->GetConvertDomain()) && (this->isHasPromotion(eLoopPromotion)) && (pkPromotionInfo->getRequiredUnit() == this->getUnitType()))
-						{
-							UnitAITypes eAIType = NO_UNITAI;
-							const CvUnitEntry* pkUnitType = GC.getUnitInfo(pkPromotionInfo->GetConvertDomainUnit());
-							if(pkUnitType != NULL)
-							{
-								eAIType = (UnitAITypes)pkUnitType->GetDefaultUnitAIType();
-								CvUnit* pNewUnit = GET_PLAYER(getOwner()).initUnit(pkPromotionInfo->GetConvertDomainUnit(), this->getX(), this->getY(), eAIType, NO_DIRECTION, true, true, 0, 0, NO_CONTRACT, false);
-								pConvertUnit = pNewUnit;
-							}
-						}
-					}
-				}
-			}
-			if(pConvertUnit != NULL)
-			{
-				this->kill(true, NO_PLAYER, false);
-				pConvertUnit->finishMoves();
 			}
 		}
 	}
@@ -20278,20 +21014,6 @@ void CvUnit::setLastMoveTurn(int iNewValue)
 
 
 //	--------------------------------------------------------------------------------
-int CvUnit::GetCycleOrder() const
-{
-	VALIDATE_OBJECT
-	return m_iCycleOrder;
-}
-
-
-//	--------------------------------------------------------------------------------
-void CvUnit::SetCycleOrder(int iNewValue)
-{
-	VALIDATE_OBJECT
-	m_iCycleOrder = iNewValue;
-}
-
 bool CvUnit::IsRecentlyDeployedFromOperation() const
 {
 	return m_iDeployFromOperationTurn+GC.getAI_TACTICAL_MAP_TEMP_ZONE_TURNS()>=GC.getGame().getGameTurn();
@@ -20528,7 +21250,7 @@ int CvUnit::setDamage(int iNewValue, PlayerTypes ePlayer, float fAdditionalTextD
 					}
 				}
 
-				if (!isSuicide())	// Show the HP lost, expect if it is a suicide unit (missisle, etc.)
+				if (!isSuicide())	// Show the HP lost, except if it is a suicide unit (missile, etc.)
 #if defined(SHOW_PLOT_POPUP)
 					SHOW_PLOT_POPUP(GC.getMap().plot(iX, iY), getOwner(), text.c_str(), fDelay);
 #else
@@ -20624,11 +21346,8 @@ int CvUnit::getMoves() const
 //	--------------------------------------------------------------------------------
 void CvUnit::setMoves(int iNewValue)
 {
-	VALIDATE_OBJECT
-	if(getMoves() != iNewValue)
+	if(m_iMoves != iNewValue)
 	{
-		CvPlot* pPlot = plot();
-
 		m_iMoves = iNewValue;
 
 		auto_ptr<ICvUnit1> pDllUnit(new CvDllUnit(this));
@@ -20642,6 +21361,7 @@ void CvUnit::setMoves(int iNewValue)
 		auto_ptr<ICvPlot1> pDllSelectionPlot(DLLUI->getSelectionPlot());
 		int iSelectionPlotIndex = (pDllSelectionPlot.get() != NULL)? pDllSelectionPlot->GetPlotIndex() : -1;
 
+		CvPlot* pPlot = plot();
 		if(pPlot && pPlot->GetPlotIndex() == iSelectionPlotIndex)
 		{
 			DLLUI->setDirty(PlotListButtons_DIRTY_BIT, true);
@@ -20655,8 +21375,30 @@ void CvUnit::changeMoves(int iChange)
 {
 	VALIDATE_OBJECT
 	setMoves(getMoves() + iChange);
+
+	if (iChange < 0)
+	{
+		m_bMovedThisTurn = true;
+		SetFortified(false);
+	}
 }
 
+//	--------------------------------------------------------------------------------
+void CvUnit::restoreFullMoves()
+{
+#if defined(MOD_PROMOTIONS_FLAGSHIP)
+	if (IsGreatGeneral() || (MOD_PROMOTIONS_FLAGSHIP && IsGreatAdmiral()))
+#else
+	if (IsGreatGeneral())
+#endif
+	{
+		setMoves( GetGreatGeneralStackMovement() );
+	}
+	else
+		setMoves( maxMoves() );
+
+	m_bMovedThisTurn = false;
+}
 
 //	--------------------------------------------------------------------------------
 void CvUnit::finishMoves()
@@ -20873,12 +21615,18 @@ void CvUnit::changeExperience(int iChange, int iMax, bool bFromCombat, bool bInB
 	VALIDATE_OBJECT
 	// Barbs don't get XP or Promotions
 #if defined(MOD_UNITS_XP_TIMES_100)
-		if (isBarbarian() && iChangeTimes100 > 0)
+	if (isBarbarian() && iChangeTimes100 > 0)
 #else
-		if (isBarbarian() && iChange > 0)
+	if (isBarbarian() && iChange > 0)
 #endif
 	{
 		return;
+	}
+
+	if (MOD_BALANCE_CORE_SCALING_XP && !bFromCombat)
+	{
+		iChangeTimes100 *= GC.getGame().getGameSpeedInfo().getTrainPercent();
+		iChangeTimes100 /= 100;
 	}
 
 #if defined(MOD_UNITS_XP_TIMES_100)
@@ -21092,14 +21840,14 @@ void CvUnit::changeExperience(int iChange, int iMax, bool bFromCombat, bool bInB
 		if(getExperiencePercent() != 0)
 		{
 #if defined(MOD_UNITS_XP_TIMES_100)
-			int iUnitBonusXpTimes100 = (iUnitExperienceTimes100 * std::max(0, getExperiencePercent())) / 100;
+			int iUnitBonusXpTimes100 = (iUnitExperienceTimes100 * getExperiencePercent()) / 100;
 			if (!MOD_UNITS_XP_TIMES_100) {
 				// If NOT using XP times 100, remove any fractional part
 				iUnitBonusXpTimes100 -= (iUnitBonusXpTimes100 % 100);
 			}
 			iUnitExperienceTimes100 += iUnitBonusXpTimes100;
 #else
-			iUnitExperience *= std::max(0, 100 + getExperiencePercent());
+			iUnitExperience *= 100 + getExperiencePercent();
 			iUnitExperience /= 100;
 #endif
 		}
@@ -21256,7 +22004,7 @@ void CvUnit::changeCombatFirstStrikes(int iChange)
 
 bool CvUnit::CanGarrison() const
 {
-	return GetMapLayer()==DEFAULT_UNIT_MAP_LAYER && getDomainType()==DOMAIN_LAND && IsCanDefend() && !isDelayedDeath();
+	return GetMapLayer()==DEFAULT_UNIT_MAP_LAYER && getDomainType()!=DOMAIN_AIR && IsCanDefend() && !isDelayedDeath();
 }
 
 int CvUnit::GetMapLayer() const
@@ -21287,97 +22035,39 @@ CvCity* CvUnit::GetGarrisonedCity()
 }
 
 //	--------------------------------------------------------------------------------
-int CvUnit::getFortifyTurns() const
+void CvUnit::triggerFortifyAnimation(bool bState)
 {
-	VALIDATE_OBJECT
-	return m_iFortifyTurns;
+	auto_ptr<ICvUnit1> pDllUnit(new CvDllUnit(this));
+	gDLL->GameplayUnitFortify(pDllUnit.get(), bState);
+
+	setInfoBarDirty(true);
 }
 
 //	--------------------------------------------------------------------------------
-void CvUnit::setFortifyTurns(int iNewValue)
+bool CvUnit::IsFortified() const
 {
 	VALIDATE_OBJECT
-	iNewValue = range(iNewValue, 0, GC.getMAX_FORTIFY_TURNS());
-
-	if(iNewValue != getFortifyTurns())
-	{
-		// Unit subtly slipped into Fortification state by remaining stationary for a turn
-		if(getFortifyTurns() == 0 && iNewValue > 0)
-		{
-			auto_ptr<ICvUnit1> pDllUnit(new CvDllUnit(this));
-			gDLL->GameplayUnitFortify(pDllUnit.get(), true);
-		}
-
-		m_iFortifyTurns = iNewValue;
-		setInfoBarDirty(true);
-
-		// Fortification turned off, send an event noting this
-		if(iNewValue == 0)
-		{
-			SetFortifiedThisTurn(false);
-
-			auto_ptr<ICvUnit1> pDllUnit(new CvDllUnit(this));
-			gDLL->GameplayUnitFortify(pDllUnit.get(), false);
-		}
-	}
+	return m_bFortified;
 }
 
-
 //	--------------------------------------------------------------------------------
-void CvUnit::changeFortifyTurns(int iChange)
+void CvUnit::SetFortified(bool bValue)
 {
-	VALIDATE_OBJECT
-	setFortifyTurns(getFortifyTurns() + iChange);
-}
-
-
-//	--------------------------------------------------------------------------------
-bool CvUnit::IsFortifiedThisTurn() const
-{
-	VALIDATE_OBJECT
-	return m_bFortifiedThisTurn;
-}
-
-
-//	--------------------------------------------------------------------------------
-void CvUnit::SetFortifiedThisTurn(bool bValue)
-{
-	VALIDATE_OBJECT
-	if(!IsEverFortifyable() && bValue)
-	{
+	if(!IsEverFortifyable())
 		return;
-	}
 
-	if(IsFortifiedThisTurn() != bValue)
+	if (m_bFortified != bValue)
 	{
-		m_bFortifiedThisTurn = bValue;
-
-		if(bValue)
-		{
-			int iTurnsToFortify = 1;
-			if(!isFortifyable())
-			{
-				iTurnsToFortify = 0;
-			}
-
-			// Manually set us to being fortified for the first turn (so we get the Fort bonus immediately)
-			setFortifyTurns(iTurnsToFortify);
-
-			if(iTurnsToFortify > 0)
-			{
-				auto_ptr<ICvUnit1> pDllUnit(new CvDllUnit(this));
-				gDLL->GameplayUnitFortify(pDllUnit.get(), true);
-			}
-		}
+		triggerFortifyAnimation(bValue);
+		m_bFortified = bValue;
 	}
 }
 
-void CvUnit::DoAoEDamage(int iValue)
+void CvUnit::DoAoEDamage(int iValue, const char* chText)
 {
-	CvPlot* pAdjacentPlot;
 	for (int iI = 0; iI < NUM_DIRECTION_TYPES; ++iI)
 	{
-		pAdjacentPlot = plotDirection(plot()->getX(), plot()->getY(), ((DirectionTypes)iI));
+		CvPlot* pAdjacentPlot = plotDirection(plot()->getX(), plot()->getY(), ((DirectionTypes)iI));
 
 		if (pAdjacentPlot != NULL && pAdjacentPlot->getNumUnits() != NULL)
 		{
@@ -21386,13 +22076,22 @@ void CvUnit::DoAoEDamage(int iValue)
 				CvUnit* pEnemyUnit = pAdjacentPlot->getUnitByIndex(iJ);
 				if (pEnemyUnit != NULL && pEnemyUnit->isEnemy(getTeam()))
 				{
-					CvString strAppendText = GetLocalizedText("TXT_KEY_MISC_YOU_UNIT_WAS_DAMAGED_AOE_STRIKE_FORTIFY");
-					pEnemyUnit->changeDamage(iValue, getOwner(), 0.0, &strAppendText);
+					if (chText)
+					{
+						CvString strAppendText = GetLocalizedText(chText);
+						pEnemyUnit->changeDamage(iValue, getOwner(), 0.0, &strAppendText);
+					}
+					else
+					{
+						CvString strAppendText = GetLocalizedText("TXT_KEY_MISC_YOU_UNIT_WAS_DAMAGED_SPLASH");
+						pEnemyUnit->changeDamage(iValue, getOwner(), 0.0, &strAppendText);
+					}
 				}
 			}
 		}
 	}
 }
+
 //	--------------------------------------------------------------------------------
 int CvUnit::getBlitzCount() const
 {
@@ -21607,6 +22306,20 @@ void CvUnit::changeAOEDamageOnKill(int iChange)
 }
 
 //	--------------------------------------------------------------------------------
+int CvUnit::getAoEDamageOnMove() const
+{
+	VALIDATE_OBJECT
+	return m_iAoEDamageOnMove;
+}
+//	--------------------------------------------------------------------------------
+void CvUnit::changeAoEDamageOnMove(int iChange)
+{
+	VALIDATE_OBJECT
+	m_iAoEDamageOnMove = (m_iAoEDamageOnMove + iChange);
+	CvAssert(getAoEDamageOnMove() >= 0);
+}
+
+//	--------------------------------------------------------------------------------
 int CvUnit::getSplashDamage() const
 {
 	VALIDATE_OBJECT
@@ -21746,7 +22459,6 @@ void CvUnit::changeExtraMoves(int iChange)
 	VALIDATE_OBJECT
 	m_iExtraMoves += iChange;
 }
-
 
 //	--------------------------------------------------------------------------------
 int CvUnit::getExtraNavalMoves() const
@@ -21931,6 +22643,18 @@ ContractTypes CvUnit::getContract() const
 }
 
 #endif
+
+bool CvUnit::IsNoMaintenance() const
+{
+	VALIDATE_OBJECT
+	return m_bIsNoMaintenance;
+}
+void CvUnit::SetNoMaintenance(bool bValue)
+{
+	VALIDATE_OBJECT
+	m_bIsNoMaintenance = bValue;
+}
+
 //	--------------------------------------------------------------------------------
 int CvUnit::getExtraEnemyHeal() const
 {
@@ -22491,7 +23215,7 @@ void CvUnit::changeExtraRoughDefensePercent(int iChange)
 int CvUnit::getNumAttacks() const
 {
 	VALIDATE_OBJECT
-	return m_iNumAttacks;
+	return m_iNumAttacks + GetGiveExtraAttacksToUnit();
 }
 int CvUnit::getNumAttacksMadeThisTurn() const
 {
@@ -22513,16 +23237,317 @@ void CvUnit::changeExtraAttacks(int iChange)
 
 //	--------------------------------------------------------------------------------
 // Citadel
-bool CvUnit::IsNearEnemyCitadel(int& iCitadelDamage, const CvPlot* pInPlot, PromotionTypes ePromotion) const
+bool CvUnit::IsNearEnemyCitadel(int& iCitadelDamage, const CvPlot* pInPlot) const
 {
 	VALIDATE_OBJECT
 
 	if (pInPlot == NULL)
 		pInPlot = plot();
 
-	return pInPlot->IsNearEnemyCitadel( getOwner(), &iCitadelDamage, ePromotion);
+	return pInPlot->IsNearEnemyCitadel( getOwner(), &iCitadelDamage);
 }
+#if defined(MOD_BALANCE_CORE)
+//	--------------------------------------------------------------------------------
+// Golden Age? And have a general near us that gives us additional Exp?
+int CvUnit::GetGoldenAgeGeneralExpPercent() const
+{
+	VALIDATE_OBJECT
+	int iGreatGeneralRange = /*2*/ GC.getGREAT_GENERAL_MAX_RANGE();
+	int iExperience = 0;
+	if (plot() == NULL)
+	{
+		return 0;
+	}
 
+	const std::vector<std::pair<int, int>>& possibleUnits = GET_PLAYER(getOwner()).GetAreaEffectPositiveUnits();
+	for (std::vector<std::pair<int, int>>::const_iterator it = possibleUnits.begin(); it != possibleUnits.end(); ++it)
+	{
+		//first quick check with a large, fixed distance
+		CvPlot* pUnitPlot = GC.getMap().plotByIndexUnchecked(it->second);
+		if (plotDistance(pUnitPlot->getX(), pUnitPlot->getY(), getX(), getY()) > 4)
+			continue;
+
+		CvUnit* pUnit = GET_PLAYER(getOwner()).getUnit(it->first);
+		if (pUnit && pUnit->GetGGGAXPPercent() != 0 && GET_PLAYER(pUnit->getOwner()).isGoldenAge() && pUnit != this)
+		{
+			if (plotDistance(getX(), getY(), pUnit->getX(), pUnit->getY()) <= iGreatGeneralRange)
+			{
+				if (pUnit->getDomainType() == getDomainType())
+				{
+					iExperience = pUnit->GetGGGAXPPercent();
+				}
+			}
+		}
+	}
+	return iExperience;
+}
+// NearbyUnit Promotion gives additional XP Percent to a Unit?
+int CvUnit::GetGiveExperiencePercentToUnit() const
+{
+	VALIDATE_OBJECT
+	int iRange = 0;
+	int iExperience = 0;
+	if (plot() == NULL)
+	{
+		return 0;
+	}
+
+	const std::vector<std::pair<int, int>>& possibleUnits = GET_PLAYER(getOwner()).GetAreaEffectPromotionUnits();
+	for (std::vector<std::pair<int, int>>::const_iterator it = possibleUnits.begin(); it != possibleUnits.end(); ++it)
+	{
+		//first quick check with a large, fixed distance
+		CvPlot* pUnitPlot = GC.getMap().plotByIndexUnchecked(it->second);
+		if (plotDistance(pUnitPlot->getX(), pUnitPlot->getY(), getX(), getY()) > 4)
+			continue;
+
+		CvUnit* pUnit = GET_PLAYER(getOwner()).getUnit(it->first);
+		if (pUnit && pUnit->getGiveExperiencePercent() != 0 && pUnit != this)
+		{
+			iRange = pUnit->GetNearbyUnitPromotionsRange();
+			if (plotDistance(getX(), getY(), pUnit->getX(), pUnit->getY()) <= iRange)
+			{
+				if (pUnit->IsGiveDomainBonus(getDomainType()) != NULL)
+				{
+					iExperience = pUnit->getGiveExperiencePercent();
+				}
+			}
+		}
+	}
+	return iExperience;
+}
+int CvUnit::GetGiveCombatModToUnit(const CvPlot* pAtPlot) const
+{
+	VALIDATE_OBJECT
+	int iRange = 0;
+	int iMod = 0;
+	if (pAtPlot == NULL)
+	{
+		pAtPlot = plot();
+		if (pAtPlot == NULL)
+			return 0;
+	}
+
+	const std::vector<std::pair<int, int>>& possibleUnits = GET_PLAYER(getOwner()).GetAreaEffectPromotionUnits();
+	for (std::vector<std::pair<int, int>>::const_iterator it = possibleUnits.begin(); it != possibleUnits.end(); ++it)
+	{
+		//first quick check with a large, fixed distance
+		CvPlot* pUnitPlot = GC.getMap().plotByIndexUnchecked(it->second);
+		if (plotDistance(pUnitPlot->getX(), pUnitPlot->getY(), getX(), getY()) > 4)
+			continue;
+
+		CvUnit* pUnit = GET_PLAYER(getOwner()).getUnit(it->first);
+		if (pUnit && pUnit->getGiveCombatMod() != 0 && pUnit != this)
+		{
+			iRange = pUnit->GetNearbyUnitPromotionsRange();
+			if (plotDistance(pAtPlot->getX(), pAtPlot->getY(), pUnit->getX(), pUnit->getY()) <= iRange)
+			{
+				if (pUnit->IsGiveDomainBonus(getDomainType()) != NULL)
+				{
+					iMod = pUnit->getGiveCombatMod();
+				}
+			}
+		}
+	}
+	return iMod;
+}
+int CvUnit::GetGiveDefenseModToUnit() const
+{
+	VALIDATE_OBJECT
+	int iRange = 0;
+	int iMod = 0;
+	if (plot() == NULL)
+	{
+		return 0;
+	}
+
+	const std::vector<std::pair<int, int>>& possibleUnits = GET_PLAYER(getOwner()).GetAreaEffectPromotionUnits();
+	for (std::vector<std::pair<int, int>>::const_iterator it = possibleUnits.begin(); it != possibleUnits.end(); ++it)
+	{
+		//first quick check with a large, fixed distance
+		CvPlot* pUnitPlot = GC.getMap().plotByIndexUnchecked(it->second);
+		if (plotDistance(pUnitPlot->getX(), pUnitPlot->getY(), getX(), getY()) > 4)
+			continue;
+
+		CvUnit* pUnit = GET_PLAYER(getOwner()).getUnit(it->first);
+		if (pUnit && pUnit->getGiveDefenseMod() != 0 && pUnit != this)
+		{
+			iRange = pUnit->GetNearbyUnitPromotionsRange();
+			if (plotDistance(getX(), getY(), pUnit->getX(), pUnit->getY()) <= iRange)
+			{
+				if (pUnit->IsGiveDomainBonus(getDomainType()) != NULL)
+				{
+					iMod = pUnit->getGiveDefenseMod();
+				}
+			}
+		}
+	}
+	return iMod;
+}
+int CvUnit::GetNearbyCityBonusCombatMod(const CvPlot* pAtPlot) const
+{
+	VALIDATE_OBJECT
+	//the easy way out
+	if (getNearbyCityCombatMod() == 0 && getNearbyFriendlyCityCombatMod() == 0 && getNearbyEnemyCityCombatMod() == 0)
+		return 0;
+
+	int iRange = GetNearbyUnitPromotionsRange();
+	if (pAtPlot == NULL)
+	{
+		pAtPlot = plot();
+		if (pAtPlot == NULL)
+			return 0;
+	}
+
+	CvCity* pCity = GC.getGame().GetClosestCityByPlots(pAtPlot);
+	if (!pCity || plotDistance(pAtPlot->getX(), pAtPlot->getY(), pCity->getX(), pCity->getY()) > iRange)
+		return 0;
+
+	if (getNearbyCityCombatMod() != 0)
+	{
+		return getNearbyCityCombatMod();
+	}
+	else if (getNearbyFriendlyCityCombatMod() != 0 && pCity->plot()->IsFriendlyTerritory(getOwner()))
+	{
+		return getNearbyFriendlyCityCombatMod();
+	}
+	else if (getNearbyEnemyCityCombatMod() != 0 && isEnemy(pCity->getTeam()))
+	{
+		return getNearbyEnemyCityCombatMod();
+	}
+
+	return 0;
+}
+bool CvUnit::IsHiddenByNearbyUnit(const CvPlot* pAtPlot) const
+{
+	VALIDATE_OBJECT
+	int iRange = 0;
+	if (pAtPlot == NULL)
+	{
+		pAtPlot = plot();
+		if (pAtPlot == NULL)
+			return false;
+	}
+
+	const std::vector<std::pair<int, int>>& possibleUnits = GET_PLAYER(getOwner()).GetAreaEffectPromotionUnits();
+	for (std::vector<std::pair<int, int>>::const_iterator it = possibleUnits.begin(); it != possibleUnits.end(); ++it)
+	{
+		CvUnit* pUnit = GET_PLAYER(getOwner()).getUnit(it->first);
+		if (pUnit && pUnit->isGiveInvisibility() && pUnit != this)
+		{
+			iRange = pUnit->GetNearbyUnitPromotionsRange();
+			if (plotDistance(pAtPlot->getX(), pAtPlot->getY(), pUnit->getX(), pUnit->getY()) <= iRange)
+			{
+				if (pUnit->IsGiveDomainBonus(getDomainType()) != NULL && IsCombatUnit() && pUnit->getTeam() == getTeam())
+				{
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+int CvUnit::GetGiveOutsideFriendlyLandsModifierToUnit() const
+{
+	VALIDATE_OBJECT
+	int iRange = 0;
+	int iMod = 0;
+	if (plot() == NULL)
+	{
+		return 0;
+	}
+
+	const std::vector<std::pair<int, int>>& possibleUnits = GET_PLAYER(getOwner()).GetAreaEffectPromotionUnits();
+	for (std::vector<std::pair<int, int>>::const_iterator it = possibleUnits.begin(); it != possibleUnits.end(); ++it)
+	{
+		//first quick check with a large, fixed distance
+		CvPlot* pUnitPlot = GC.getMap().plotByIndexUnchecked(it->second);
+		if (plotDistance(pUnitPlot->getX(), pUnitPlot->getY(), getX(), getY()) > 4)
+			continue;
+
+		CvUnit* pUnit = GET_PLAYER(getOwner()).getUnit(it->first);
+		if (pUnit && pUnit->getGiveOutsideFriendlyLandsModifier() != 0 && pUnit != this)
+		{
+			iRange = pUnit->GetNearbyUnitPromotionsRange();
+			if (plotDistance(getX(), getY(), pUnit->getX(), pUnit->getY()) <= iRange)
+			{
+				// Only Giving it out to a specific domain?
+				if (pUnit->IsGiveDomainBonus(getDomainType()) != NULL)
+				{
+					iMod = pUnit->getGiveOutsideFriendlyLandsModifier();
+				}
+			}
+		}
+	}
+	return iMod;
+}
+int CvUnit::GetGiveExtraAttacksToUnit() const
+{
+	VALIDATE_OBJECT
+	int iRange = 0;
+	int iExtraAttacks = 0;
+	if (plot() == NULL)
+	{
+		return 0;
+	}
+
+	const std::vector<std::pair<int, int>>& possibleUnits = GET_PLAYER(getOwner()).GetAreaEffectPromotionUnits();
+	for (std::vector<std::pair<int, int>>::const_iterator it = possibleUnits.begin(); it != possibleUnits.end(); ++it)
+	{
+		//first quick check with a large, fixed distance
+		CvPlot* pUnitPlot = GC.getMap().plotByIndexUnchecked(it->second);
+		if (plotDistance(pUnitPlot->getX(), pUnitPlot->getY(), getX(), getY()) > 4)
+			continue;
+
+		CvUnit* pUnit = GET_PLAYER(getOwner()).getUnit(it->first);
+		if (pUnit && pUnit->getGiveExtraAttacks() != 0 && pUnit != this)
+		{
+			iRange = pUnit->GetNearbyUnitPromotionsRange();
+			if (plotDistance(getX(), getY(), pUnit->getX(), pUnit->getY()) <= iRange)
+			{
+				// Only Giving it out to a specific domain?
+				if (pUnit->IsGiveDomainBonus(getDomainType()) != NULL)
+				{
+					iExtraAttacks = pUnit->getGiveExtraAttacks();
+				}
+			}
+		}
+	}
+	return iExtraAttacks;
+}
+int CvUnit::GetGiveHPIfEnemyKilledToUnit() const
+{
+	VALIDATE_OBJECT
+	int iRange = 0;
+	int iHP = 0;
+	if (plot() == NULL)
+	{
+		return 0;
+	}
+
+	const std::vector<std::pair<int, int>>& possibleUnits = GET_PLAYER(getOwner()).GetAreaEffectPromotionUnits();
+	for (std::vector<std::pair<int, int>>::const_iterator it = possibleUnits.begin(); it != possibleUnits.end(); ++it)
+	{
+		//first quick check with a large, fixed distance
+		CvPlot* pUnitPlot = GC.getMap().plotByIndexUnchecked(it->second);
+		if (plotDistance(pUnitPlot->getX(), pUnitPlot->getY(), getX(), getY()) > 4)
+			continue;
+
+		CvUnit* pUnit = GET_PLAYER(getOwner()).getUnit(it->first);
+		if (pUnit && pUnit->getGiveHPIfEnemyKilled() != 0 && pUnit != this)
+		{
+			iRange = pUnit->GetNearbyUnitPromotionsRange();
+			if (plotDistance(getX(), getY(), pUnit->getX(), pUnit->getY()) <= iRange)
+			{
+				if (pUnit->IsGiveDomainBonus(getDomainType()) != NULL && !isRanged())
+				{
+					iHP = pUnit->getGiveHPIfEnemyKilled();
+				}
+			}
+		}
+	}
+	return iHP;
+}
+#endif
 //	--------------------------------------------------------------------------------
 /// Great General close enough to give us a bonus?
 #if defined(MOD_BALANCE_CORE_MILITARY)
@@ -22530,8 +23555,6 @@ bool CvUnit::IsNearCityAttackSupport(const CvPlot* pAtPlot, const CvUnit* pIgnor
 {
 	VALIDATE_OBJECT
 
-	int iSapperRange = GC.getSAPPER_BONUS_RANGE();
-
 	if (pAtPlot == NULL)
 	{
 		pAtPlot = plot();
@@ -22539,105 +23562,99 @@ bool CvUnit::IsNearCityAttackSupport(const CvPlot* pAtPlot, const CvUnit* pIgnor
 			return false;
 	}
 
-	const std::vector<std::pair<int,int>>& possibleUnits = GET_PLAYER(getOwner()).GetAreaEffectPositiveUnits();
-	for(std::vector<std::pair<int,int>>::const_iterator it = possibleUnits.begin(); it!=possibleUnits.end(); ++it)
-	{
-		//first quick check with a large, fixed distance
-		CvPlot* pUnitPlot = GC.getMap().plotByIndexUnchecked(it->second);
-		if ( plotDistance(pUnitPlot->getX(),pUnitPlot->getY(),getX(), getY())>5 )
-			continue;
-
-		CvUnit* pUnit = GET_PLAYER(getOwner()).getUnit(it->first);
-		if (pUnit && pUnit != pIgnoreThisGeneral && pUnit->IsCityAttackSupport())
-		{
-			// Same domain
-			if(pUnit->getDomainType() == getDomainType())
-			{
-				if (plotDistance( pAtPlot->getX(),pAtPlot->getY(),pUnit->getX(),pUnit->getY() ) <= iSapperRange)
-					return true;
-			}
-		}
-
-	}
-
-	return false;
+	return (GetAreaEffectBonus(AE_SIEGETOWER, pAtPlot, NULL, pIgnoreThisGeneral) > 0);
 }
+
 //	--------------------------------------------------------------------------------
 /// Great General close enough to give us a bonus?
-#if defined(MOD_PROMOTIONS_AURA_CHANGE)
-bool CvUnit::IsNearGreatGeneral(int& iAuraEffectChange, const CvPlot* pAtPlot, const CvUnit* pIgnoreThisGeneral) const
-#else
 bool CvUnit::IsNearGreatGeneral(const CvPlot* pAtPlot, const CvUnit* pIgnoreThisGeneral) const
-#endif
 {
 	VALIDATE_OBJECT
-
-#if defined(MOD_PROMOTIONS_AURA_CHANGE)
-	bool bFound = false;
-	iAuraEffectChange = 0;
-	
-	int iGreatGeneralRange = /*2*/ GC.getGREAT_GENERAL_MAX_RANGE();
-#else
-	int iGreatGeneralRange = /*2*/ GC.getGREAT_GENERAL_RANGE();
-#endif
-
 	if (pAtPlot == NULL)
 	{
 		pAtPlot = plot();
 		if (pAtPlot == NULL)
 			return false;
 	}
+	
+	return (GetAreaEffectBonus(AE_GREAT_GENERAL, pAtPlot, NULL, pIgnoreThisGeneral) > 0);
+}
 
-	const std::vector<std::pair<int,int>>& possibleUnits = GET_PLAYER(getOwner()).GetAreaEffectPositiveUnits();
-	for(std::vector<std::pair<int,int>>::const_iterator it = possibleUnits.begin(); it!=possibleUnits.end(); ++it)
+int CvUnit::GetAreaEffectBonus(AreaEffectType eType, const CvPlot* pAtPlot, const CvCity* pTargetCity, const CvUnit* pIgnoreThisUnit) const
+{
+	VALIDATE_OBJECT
+	CvPlayerAI& kPlayer = GET_PLAYER(getOwner());
+	int iResult = 0;
+
+	if (pAtPlot == NULL)
 	{
-		//first quick check with a large, fixed distance
-		CvPlot* pUnitPlot = GC.getMap().plotByIndexUnchecked(it->second);
-		if ( plotDistance(pUnitPlot->getX(),pUnitPlot->getY(),getX(), getY())>5 )
-			continue;
-
-		CvUnit* pUnit = GET_PLAYER(getOwner()).getUnit(it->first);
-		if (pUnit && pUnit != pIgnoreThisGeneral && !pUnit->IsCityAttackSupport())
-		{
-			// Same domain
-			if(pUnit->getDomainType() == getDomainType())
-			{
-#if defined(MOD_PROMOTIONS_AURA_CHANGE)
-				if (MOD_PROMOTIONS_AURA_CHANGE)
-				{
-					if(plotDistance(getX(), getY(), pUnit->getX(), pUnit->getY()) <= (iGreatGeneralRange + pUnit->GetAuraRangeChange()))
-					{
-						// We have to check all possible units as one may be better than another
-						if (!bFound)
-						{
-							// Can't do a straight compare for the first one found, as it could have a negative modifier
-							iAuraEffectChange = pUnit->GetAuraEffectChange();
-						}
-						else
-						{
-							if (pUnit->GetAuraEffectChange() > iAuraEffectChange)
-							{
-								iAuraEffectChange = pUnit->GetAuraEffectChange();
-							}
-						}
-					
-						bFound = true;
-					}
-				} else
-#endif
-				if (plotDistance( pAtPlot->getX(),pAtPlot->getY(),pUnit->getX(),pUnit->getY() ) <= iGreatGeneralRange)
-					return true;
-			}
-		}
-
+		pAtPlot = plot();
+		if (pAtPlot == NULL)
+			return 0;
 	}
 
+	const std::vector<std::pair<int, int>>& possibleUnits = GET_PLAYER(getOwner()).GetAreaEffectPositiveUnits();
+	for (std::vector<std::pair<int, int>>::const_iterator it = possibleUnits.begin(); it != possibleUnits.end(); ++it)
+	{
+		CvPlot* pUnitPlot = GC.getMap().plotByIndexUnchecked(it->second);
+		if (plotDistance(pUnitPlot->getX(), pUnitPlot->getY(), getX(), getY())>5)
+			continue;
+
+		//exclude this unit!
+		CvUnit* pUnit = GET_PLAYER(getOwner()).getUnit(it->first);
+		if (pUnit == NULL || pUnit->getDomainType() != getDomainType() || pUnit == this || pUnit == pIgnoreThisUnit)
+			continue;
+
 #if defined(MOD_PROMOTIONS_AURA_CHANGE)
-	return bFound;
+		int iEffectRange = /*2*/ GC.getGREAT_GENERAL_MAX_RANGE() + pUnit->GetAuraRangeChange();
 #else
-	return false;
+		int iEffectRange = /*2*/ GC.getGREAT_GENERAL_RANGE();
 #endif
+
+		//distance check first
+		if (plotDistance(pUnit->getX(), pUnit->getY(), pAtPlot->getX(), pAtPlot->getY()) > iEffectRange)
+			continue;
+
+		switch (eType)
+		{
+			case AE_GREAT_GENERAL:
+			{
+				if ((pUnit->IsGreatGeneral() || pUnit->GetGreatGeneralCount() > 0) || (pUnit->IsGreatAdmiral() || pUnit->GetGreatAdmiralCount() > 0))
+					iResult = max(iResult, kPlayer.GetGreatGeneralCombatBonus() + kPlayer.GetPlayerTraits()->GetGreatGeneralExtraBonus() + pUnit->GetAuraEffectChange());
+				break;
+			}
+			case AE_SAPPER:
+			{
+				if (pUnit->IsSapper())
+				{
+					CvAssertMsg(pTargetCity, "Target city is NULL when checking sapping combat bonus");
+					if (pTargetCity != NULL && pUnit->isEnemy(pTargetCity->getTeam()))
+					{
+						int iDistance = plotDistance(pUnit->getX(), pUnit->getY(), pTargetCity->getX(), pTargetCity->getY());
+						if (iDistance < iEffectRange)
+						{
+							iResult = max(iResult, GC.getSAPPED_CITY_ATTACK_MODIFIER());
+						}
+						else if (iDistance == iEffectRange)
+						{
+							iResult = max(iResult, GC.getSAPPED_CITY_ATTACK_MODIFIER()/2);
+						}
+					}
+				}
+				break;
+			}
+			case AE_SIEGETOWER:
+			{
+				if (pUnit->IsCityAttackSupport())
+					return 1;
+				break;
+			}
+		}
+	}
+
+	return iResult;
 }
+
 #endif
 
 //	--------------------------------------------------------------------------------
@@ -22689,21 +23706,19 @@ bool CvUnit::IsStackedGreatGeneral(const CvPlot* pLoopPlot, const CvUnit* pIgnor
 //	--------------------------------------------------------------------------------
 int CvUnit::GetGreatGeneralStackMovement(const CvPlot* pLoopPlot) const
 {
-	int iRtnValue = baseMoves() * GC.getMOVE_DENOMINATOR();
+	int iRtnValue = maxMoves();
 
 	if (pLoopPlot == NULL)
 		pLoopPlot = plot();
-	const IDInfo* pUnitNode;
-	CvUnit* pLoopUnit;
 
 	// If there are Units here, loop through them
 	if(pLoopPlot->getNumUnits() > 0)
 	{
-		pUnitNode = pLoopPlot->headUnitNode();
+		const IDInfo* pUnitNode = pLoopPlot->headUnitNode();
 
 		while(pUnitNode != NULL)
 		{
-			pLoopUnit = ::getUnit(*pUnitNode);
+			CvUnit* pLoopUnit = ::getUnit(*pUnitNode);
 			pUnitNode = pLoopPlot->nextUnitNode(pUnitNode);
 
 			if(pLoopUnit)
@@ -22749,31 +23764,32 @@ int CvUnit::GetReverseGreatGeneralModifier(const CvPlot* pAtPlot) const
 		const std::vector<std::pair<int,int>>& possibleUnits = kLoopPlayer.GetAreaEffectNegativeUnits();
 		for(std::vector<std::pair<int,int>>::const_iterator it = possibleUnits.begin(); it!=possibleUnits.end(); ++it)
 		{
-			//first quick check with a large, fixed distance
 			CvPlot* pUnitPlot = GC.getMap().plotByIndexUnchecked(it->second);
-			if ( plotDistance(pUnitPlot->getX(),pUnitPlot->getY(),getX(), getY())>5 )
+			int iDistance = plotDistance(pAtPlot->getX(), pAtPlot->getY(), pUnitPlot->getX(), pUnitPlot->getY());
+
+			//first quick check with a large, fixed distance
+			if (iDistance>5 )
 				continue;
 
 			CvUnit* pUnit = kLoopPlayer.getUnit(it->first);
-			if (pUnit)
+			if (!pUnit)
+				continue;
+
+			// Unit with a combat modifier against the enemy
+			int iMod = pUnit->getNearbyEnemyCombatMod();
+			if(iMod != 0)
 			{
-				// Unit with a combat modifier against the enemy
-				int iMod = pUnit->getNearbyEnemyCombatMod();
-				if(iMod != 0)
+				// Same domain
+				if(((pUnit->getDomainType() == getDomainType()) && (pUnit->getDomainType() == DOMAIN_LAND) && !pUnit->isEmbarked()) || ((pUnit->getDomainType() == getDomainType()) && (pUnit->getDomainType() == DOMAIN_SEA)))
 				{
-					// Same domain
-					if(((pUnit->getDomainType() == getDomainType()) && (pUnit->getDomainType() == DOMAIN_LAND) && !pUnit->isEmbarked()) || ((pUnit->getDomainType() == getDomainType()) && (pUnit->getDomainType() == DOMAIN_SEA)))
+					// Within range?
+					if(iDistance <= pUnit->getNearbyEnemyCombatRange())
 					{
-						// Within range?
-						int iRange = pUnit->getNearbyEnemyCombatRange();
-						if(plotDistance(pAtPlot->getX(), pAtPlot->getY(), pUnit->getX(), pUnit->getY()) <= iRange)
+						// Don't assume the first one found is the worst!
+						// Combat modifiers are negative, as applied against the defender (and not for the attacker)
+						if (iMod < iMaxMod)
 						{
-							// Don't assume the first one found is the worst!
-							// Combat modifiers are negative, as applied against the defender (and not for the attacker)
-							if (iMod < iMaxMod)
-							{
-								iMaxMod = iMod;
-							}
+							iMaxMod = iMod;
 						}
 					}
 				}
@@ -22891,7 +23907,7 @@ int CvUnit::GetNearbyImprovementModifier()const
 #if defined(MOD_BALANCE_CORE)
 int CvUnit::GetNearbyUnitClassModifierFromUnitClass(const CvPlot* pAtPlot) const
 {
-	return GetNearbyUnitClassModifier(GetCombatBonusFromNearbyUnitClass(), GetNearbyUnitClassBonusRange(), GetNearbyUnitClassBonus(), pAtPlot);
+	return GetNearbyUnitClassModifier(getCombatBonusFromNearbyUnitClass(), getNearbyUnitClassBonusRange(), getNearbyUnitClassBonus(), pAtPlot);
 }
 
 int CvUnit::GetNearbyUnitClassModifier(UnitClassTypes eUnitClass, int iUnitClassRange, int iUnitClassModifier, const CvPlot* pAtPlot) const
@@ -22912,15 +23928,12 @@ int CvUnit::GetNearbyUnitClassModifier(UnitClassTypes eUnitClass, int iUnitClass
 			for(int iY = -iUnitClassRange; iY <= iUnitClassRange; iY++)
 			{
 				pLoopPlot = plotXYWithRangeCheck(pAtPlot->getX(), pAtPlot->getY(), iX, iY, iUnitClassRange);
-				if(pLoopPlot != NULL)
+				if (pLoopPlot != NULL && pLoopPlot->getNumUnits() != 0)
 				{
-					// Is the right Unitclass here?
-					IDInfo* pUnitNode = pLoopPlot->headUnitNode();
-					if (pUnitNode != NULL)
+					for (int iK = 0; iK < pLoopPlot->getNumUnits(); iK++)
 					{
-						CvUnit* pLoopUnit = ::getUnit(*pUnitNode);
-						pUnitNode = pLoopPlot->nextUnitNode(pUnitNode);
-						if(pLoopUnit)
+						CvUnit*	pLoopUnit = pLoopPlot->getUnitByIndex(iK);
+						if (pLoopUnit != NULL)
 						{
 							if (pLoopUnit->getUnitClassType() == eUnitClass)
 							{
@@ -22938,191 +23951,69 @@ int CvUnit::GetNearbyUnitClassModifier(UnitClassTypes eUnitClass, int iUnitClass
 	return 0;
 }
 
-void CvUnit::DoNearbyUnitPromotion(CvUnit* pUnit, const CvPlot* pPlot)
+void CvUnit::DoNearbyUnitPromotion(const CvPlot* pPlot)
 {
 	VALIDATE_OBJECT
 	if (pPlot == NULL)
 	{
-		pPlot = pUnit->plot();
+		pPlot = plot();
 	}
-	int iX = pPlot->getX(); int iY = pPlot->getY();
 	if(pPlot != NULL)
 	{
-		int iI;
-		for(iI = 0; iI < GC.getNumPromotionInfos(); iI++)
+		
+		for(int iI = 0; iI < GC.getNumPromotionInfos(); iI++)
 		{
 			const PromotionTypes eLoopPromotion = static_cast<PromotionTypes>(iI);
 			CvPromotionEntry* pkPromotionInfo = GC.getPromotionInfo(eLoopPromotion);
 			if(pkPromotionInfo != NULL)
 			{
-				if(pkPromotionInfo->IsNearbyPromotion())
+				if(pkPromotionInfo->IsFriendlyLands() && pkPromotionInfo->getRequiredUnit() == getUnitType())
 				{
-					if(!pUnit->IsWithinDistanceOfUnitPromotion(pkPromotionInfo->AddedFromNearbyPromotion(), pkPromotionInfo->GetNearbyRange(), true, false) || pUnit->HasPromotion(pkPromotionInfo->AddedFromNearbyPromotion()))
+					if(pPlot->IsFriendlyTerritory(getOwner()) || (pPlot->getOwner() != NO_PLAYER && GET_PLAYER(pPlot->getOwner()).HasSameIdeology(getOwner()) && GET_TEAM(pPlot->getTeam()).IsAllowsOpenBordersToTeam(getTeam())))
 					{
-						pUnit->setHasPromotion(eLoopPromotion, false);
-					}
-					else
-					{
-						if(::IsPromotionValidForUnitCombatType(eLoopPromotion, pUnit->getUnitType()))
+						if(::IsPromotionValidForUnitCombatType(eLoopPromotion, getUnitType()))
 						{
-							pUnit->setHasPromotion(eLoopPromotion, true);
-						}
-					}
-					if(pUnit->isHasPromotion(pkPromotionInfo->AddedFromNearbyPromotion()))
-					{	
-						int iDistance = pkPromotionInfo->GetNearbyRange();
-						CvUnit* pLoopUnit;
-						for(int iJ = 0; iJ < GC.getNumUnitCombatClassInfos(); iJ++)
-						{
-							UnitCombatTypes ethiscombatunit = NO_UNITCOMBAT;
-							const UnitCombatTypes eUnitCombatClass = static_cast<UnitCombatTypes>(iJ);
-							CvBaseInfo* pkUnitCombatClassInfo = GC.getUnitCombatClassInfo(eUnitCombatClass);
-							if(pkUnitCombatClassInfo)
-							{
-								if(pkPromotionInfo->GetUnitCombatClass(eUnitCombatClass))
-								{
-									ethiscombatunit = eUnitCombatClass;
-								}
-								if(ethiscombatunit != NO_UNITCOMBAT)
-								{
-									for (int i = -iDistance; i <= iDistance; ++i)
-									{
-										for (int j = -iDistance; j <= iDistance; ++j)
-										{
-											CvPlot* pLoopPlot = ::plotXYWithRangeCheck(iX, iY, i, j, iDistance);
-											if (pLoopPlot != NULL && pLoopPlot->getNumUnits() != 0)
-											{
-												for(int iK = 0; iK < pLoopPlot->getNumUnits(); iK++)
-												{
-													pLoopUnit = pLoopPlot->getUnitByIndex(iK);
-													if(pLoopUnit != NULL)
-													{
-														if(pLoopUnit->getUnitCombatType() == ethiscombatunit && !pLoopUnit->HasPromotion(pkPromotionInfo->AddedFromNearbyPromotion()))
-														{
-															if(GET_PLAYER(pLoopUnit->getOwner()).getTeam() == GET_PLAYER(pUnit->getOwner()).getTeam())
-															{
-																if(::IsPromotionValidForUnitCombatType(eLoopPromotion, pLoopUnit->getUnitType()))
-																{
-																	pLoopUnit->setHasPromotion(eLoopPromotion, true);
-																}
-															}
-														}
-													}
-												}
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-				}				
-				if(pkPromotionInfo->IsNearbyCityPromotion() && pkPromotionInfo->getRequiredUnit() == pUnit->getUnitType())
-				{
-					if(!pUnit->IsWithinDistanceOfCity(pkPromotionInfo->GetNearbyRange(), true, true))
-					{
-						pUnit->setHasPromotion(eLoopPromotion, false);
-					}
-					else
-					{
-						if(::IsPromotionValidForUnitCombatType(eLoopPromotion, pUnit->getUnitType()))
-						{
-							pUnit->setHasPromotion(eLoopPromotion, true);
-						}
-					}
-				}
-				if(pkPromotionInfo->IsNearbyFriendlyCityPromotion() && pkPromotionInfo->getRequiredUnit() == pUnit->getUnitType())
-				{
-					if(!pUnit->IsWithinDistanceOfCity(pkPromotionInfo->GetNearbyRange(), true, false))
-					{
-						pUnit->setHasPromotion(eLoopPromotion, false);
-					}
-					else
-					{
-						if(::IsPromotionValidForUnitCombatType(eLoopPromotion, pUnit->getUnitType()))
-						{
-							pUnit->setHasPromotion(eLoopPromotion, true);
-						}
-					}
-				}
-				if(pkPromotionInfo->IsNearbyEnemyCityPromotion() && pkPromotionInfo->getRequiredUnit() == pUnit->getUnitType())
-				{
-					if(!pUnit->IsWithinDistanceOfCity(pkPromotionInfo->GetNearbyRange(), false, true))
-					{
-						pUnit->setHasPromotion(eLoopPromotion, false);
-					}
-					else
-					{
-						if(::IsPromotionValidForUnitCombatType(eLoopPromotion, pUnit->getUnitType()))
-						{
-							pUnit->setHasPromotion(eLoopPromotion, true);
-						}
-					}
-				}
-				if(pkPromotionInfo->IsFriendlyLands() && pkPromotionInfo->getRequiredUnit() == pUnit->getUnitType())
-				{
-					if(pPlot->IsFriendlyTerritory(pUnit->getOwner()) || (pPlot->getOwner() != NO_PLAYER && GET_PLAYER(pPlot->getOwner()).HasSameIdeology(pUnit->getOwner()) && GET_TEAM(pPlot->getTeam()).IsAllowsOpenBordersToTeam(pUnit->getTeam())))
-					{
-						if(::IsPromotionValidForUnitCombatType(eLoopPromotion, pUnit->getUnitType()))
-						{
-							pUnit->setHasPromotion(eLoopPromotion, true);
+							setHasPromotion(eLoopPromotion, true);
 						}
 					}
 					else
 					{
-						pUnit->setHasPromotion(eLoopPromotion, false);
+						setHasPromotion(eLoopPromotion, false);
 					}
 				}
-				if(pkPromotionInfo->IsEnemyLands())
+			}
+		}
+		CvPlayer& pUnitPlayer = GET_PLAYER(getOwner());
+		const std::vector<PlayerTypes>& vEnemies = pUnitPlayer.GetPlayersAtWarWith();
+		for (std::vector<PlayerTypes>::const_iterator it = vEnemies.begin(); it != vEnemies.end(); ++it)
+		{
+			CvPlayer& kPlayer = GET_PLAYER(*it);
+			if (kPlayer.GetPlayerTraits()->IsWarsawPact())
+			{
+				const PromotionTypes eWarSawPactPromotion = kPlayer.GetPlayerTraits()->GetEnemyWarSawPactPromotion();
+				if ((pPlot->getTeam() != NO_TEAM && pPlot->getTeam() == GET_TEAM(kPlayer.getTeam()).GetID())
+					|| (pPlot->getOwner() != NO_PLAYER && GET_PLAYER(pPlot->getOwner()).isMinorCiv() && GET_PLAYER(pPlot->getOwner()).GetMinorCivAI()->GetFriendshipLevelWithMajor(kPlayer.GetID()) >= 1)
+					|| (pPlot->getOwner() != NO_PLAYER && GET_PLAYER(pPlot->getOwner()).HasSameIdeology(kPlayer.GetID()) && GET_TEAM(pPlot->getTeam()).IsAllowsOpenBordersToTeam(GET_TEAM(kPlayer.getTeam()).GetID())))
 				{
-					for(int iJ = 0; iJ < MAX_PLAYERS; iJ++)
-					{
-						CvPlayerAI& kPlayer = GET_PLAYER((PlayerTypes)iJ);
-						if(kPlayer.GetPlayerTraits()->IsWarsawPact())
-						{
-							if(GET_TEAM(pUnit->getTeam()).isAtWar(GET_TEAM(kPlayer.getTeam()).GetID()))
-							{
-								if((pPlot->getTeam() != NO_TEAM && pPlot->getTeam() == GET_TEAM(kPlayer.getTeam()).GetID()) || (pPlot->getOwner() != NO_PLAYER && GET_PLAYER(pPlot->getOwner()).isMinorCiv() && GET_PLAYER(pPlot->getOwner()).GetMinorCivAI()->GetFriendshipLevelWithMajor(kPlayer.GetID()) >= 1) || (pPlot->getOwner() != NO_PLAYER && GET_PLAYER(pPlot->getOwner()).HasSameIdeology(kPlayer.GetID()) && GET_TEAM(pPlot->getTeam()).IsAllowsOpenBordersToTeam(GET_TEAM(kPlayer.getTeam()).GetID())))
-								{
-									pUnit->setHasPromotion(eLoopPromotion, true);
-								}
-								else
-								{
-									pUnit->setHasPromotion(eLoopPromotion, false);
-								}
-							}
-							else
-							{
-								if(pUnit->HasPromotion(eLoopPromotion))
-								{
-									pUnit->setHasPromotion(eLoopPromotion, false);
-								}
-							}
-						}
-					}
+					if(eWarSawPactPromotion != NO_PROMOTION && !isHasPromotion(eWarSawPactPromotion))
+						setHasPromotion(eWarSawPactPromotion, true);
 				}
-				if(pkPromotionInfo->GetAdjacentSameType() != NO_PROMOTION)
+				else
 				{
-					if(pUnit->HasPromotion(pkPromotionInfo->GetAdjacentSameType()) && pUnit->IsAdjacentToUnitPromotion(pkPromotionInfo->GetAdjacentSameType(), true, false))
-					{
-						pUnit->setHasPromotion(eLoopPromotion, true);
-					}
-					else
-					{
-						pUnit->setHasPromotion(eLoopPromotion, false);
-					}
+					if (eWarSawPactPromotion != NO_PROMOTION && isHasPromotion(eWarSawPactPromotion))
+						setHasPromotion(kPlayer.GetPlayerTraits()->GetEnemyWarSawPactPromotion(), false);
 				}
-				if(pkPromotionInfo->GetPillageBonusStrengthPercent() > 0 && pUnit->HasPromotion(eLoopPromotion))
-				{
-					if(pPlot->IsImprovementPillaged())
-					{
-						pUnit->SetBaseCombatStrength(pUnit->getUnitInfo().GetCombat() + ((pkPromotionInfo->GetPillageBonusStrengthPercent() * pUnit->getUnitInfo().GetCombat()) / 100));
-					}
-					else
-					{
-						pUnit->SetBaseCombatStrength(pUnit->getUnitInfo().GetCombat());
-					}
-				}
+			}
+		}
+		if (getPillageBonusStrengthPercent() != 0)
+		{
+			if (pPlot->IsImprovementPillaged())
+			{
+				SetBaseCombatStrength(getUnitInfo().GetCombat() + ((getPillageBonusStrengthPercent() * getUnitInfo().GetCombat()) / 100));
+			}
+			else
+			{
+				SetBaseCombatStrength(getUnitInfo().GetCombat());
 			}
 		}
 	}
@@ -23136,29 +24027,19 @@ void CvUnit::DoImprovementExperience(const CvPlot* pPlot)
 	if(pPlot != NULL)
 	{
 		int iExperience = 0;
-		ImprovementTypes eImprovement = pPlot->getImprovementType();
-		if(eImprovement != NO_IMPROVEMENT)
+		if (pPlot->IsUnitPlotExperience() && pPlot->getOwner() == getOwner() && !pPlot->IsImprovementPillaged())
 		{
-			if(pPlot->getOwner() == getOwner() && !pPlot->IsImprovementPillaged())
+			if (pPlot->GetUnitPlotExperience() > 0)
 			{
-				CvImprovementEntry* pkImprovementInfo = GC.getImprovementInfo(eImprovement);
-				{
-					if(pkImprovementInfo->IsExperience())
-					{
-						if(pkImprovementInfo->GetUnitPlotExperience() > 0)
-						{
-							iExperience += GC.getImprovementInfo(eImprovement)->GetUnitPlotExperience();
-						}
-						if(pkImprovementInfo->GetGAUnitPlotExperience() > 0 && GET_PLAYER(getOwner()).isGoldenAge())
-						{
-							iExperience += GC.getImprovementInfo(eImprovement)->GetGAUnitPlotExperience();
-						}
-						if(IsCombatUnit() && IsOnImprovement(eImprovement))
-						{
-							changeExperienceTimes100(iExperience * 100);
-						}
-					}
-				}
+				iExperience += pPlot->GetUnitPlotExperience();
+			}
+			if (pPlot->GetUnitPlotGAExperience() > 0 && GET_PLAYER(pPlot->getOwner()).isGoldenAge())
+			{
+				iExperience += pPlot->GetUnitPlotGAExperience();
+			}
+			if (IsCombatUnit() && pPlot == plot())
+			{
+				changeExperienceTimes100(iExperience * 100);
 			}
 		}
 	}
@@ -23172,26 +24053,10 @@ void CvUnit::DoStackedGreatGeneralExperience(const CvPlot* pPlot)
 	}
 	if(pPlot != NULL)
 	{
-		int iExperience = 0;
-		if(IsStackedGreatGeneral(pPlot))
+		int iExperience = getStackedGreatGeneralExperience();
+		if(IsStackedGreatGeneral(pPlot) && iExperience > 0)
 		{
-			int iI;
-			for(iI = 0; iI < GC.getNumPromotionInfos(); iI++)
-			{
-				const PromotionTypes eLoopPromotion = static_cast<PromotionTypes>(iI);
-				CvPromotionEntry* pkPromotionInfo = GC.getPromotionInfo(eLoopPromotion);
-				if(pkPromotionInfo != NULL)
-				{
-					if(pkPromotionInfo->GetStackedGreatGeneralExperience() > 0)
-					{
-						iExperience += pkPromotionInfo->GetStackedGreatGeneralExperience();
-						if(IsCombatUnit() && HasPromotion(eLoopPromotion))
-						{
-							changeExperienceTimes100(iExperience * 100);
-						}
-					}
-				}
-			}
+			changeExperienceTimes100(iExperience * 100);
 		}
 	}
 }
@@ -23204,68 +24069,44 @@ void CvUnit::DoConvertOnDamageThreshold(const CvPlot* pPlot)
 	}
 	if(pPlot != NULL)
 	{
-		if(this->isConvertOnDamage())
+		if (isConvertOnDamage())
 		{
-			CvUnit* pConvertUnit = NULL;
-			int iDamage = this->getUnitInfo().GetDamageThreshold();
-			if(this->getDamage() > iDamage)
+			int iDamage = getDamageThreshold();
+			if(getDamage() > iDamage)
 			{
-				for(int iI = 0; iI < GC.getNumUnitInfos(); iI++)
+				// let's not do the conversion unless we are in our native domain
+				if(getConvertDamageOrFullHPUnit() != NO_UNIT && pPlot->getDomain() == getDomainType())
 				{
-					const UnitTypes eLoopUnit = static_cast<UnitTypes>(iI);
-					CvUnitEntry* pkUnitInfo = GC.getUnitInfo(eLoopUnit);
-					if(pkUnitInfo)
+					UnitAITypes eAIType = NO_UNITAI;
+					const CvUnitEntry* pkUnitType = GC.getUnitInfo(getConvertDamageOrFullHPUnit());
+					if(pkUnitType != NULL)
 					{
-						if(pkUnitInfo->GetConvertUnit() != NO_UNIT && pkUnitInfo->IsConvertOnDamage() && eLoopUnit == this->getUnitType())
-						{
-							UnitAITypes eAIType = NO_UNITAI;
-							const CvUnitEntry* pkUnitType = GC.getUnitInfo(pkUnitInfo->GetConvertUnit());
-							if(pkUnitType != NULL)
-							{
-								eAIType = (UnitAITypes)pkUnitType->GetDefaultUnitAIType();
-								CvUnit* pNewUnit = GET_PLAYER(getOwner()).initUnit(pkUnitInfo->GetConvertUnit(), this->getX(), this->getY(), eAIType);
-								pConvertUnit = pNewUnit;
-							}
-						}
+						eAIType = (UnitAITypes)pkUnitType->GetDefaultUnitAIType();
+						CvUnit* pNewUnit = GET_PLAYER(getOwner()).initUnit(getConvertDamageOrFullHPUnit(), getX(), getY(), eAIType);
+						pNewUnit->convert(this, true);
+						pNewUnit->finishMoves();
+						pNewUnit->restoreFullMoves();
 					}
-				}
-				if(pConvertUnit != NULL)
-				{
-					pConvertUnit->convert(this, false);
-					pConvertUnit->finishMoves();
-					pConvertUnit->setMoves(pConvertUnit->maxMoves());
 				}
 			}
 		}
-		if(this->isConvertOnFullHP())
+		else if (isConvertOnFullHP())
 		{
-			CvUnit* pConvertUnit = NULL;
-			if(this->getDamage() == 0)
+			if (getDamage() == 0)
 			{
-				for(int iI = 0; iI < GC.getNumUnitInfos(); iI++)
+				// let's not do the conversion unless we are in our native domain
+				if (getConvertDamageOrFullHPUnit() != NO_UNIT && pPlot->getDomain() == getDomainType())
 				{
-					const UnitTypes eLoopUnit = static_cast<UnitTypes>(iI);
-					CvUnitEntry* pkUnitInfo = GC.getUnitInfo(eLoopUnit);
-					if(pkUnitInfo)
+					UnitAITypes eAIType = NO_UNITAI;
+					const CvUnitEntry* pkUnitType = GC.getUnitInfo(getConvertDamageOrFullHPUnit());
+					if (pkUnitType != NULL)
 					{
-						if(pkUnitInfo->GetConvertUnit() != NO_UNIT && pkUnitInfo->IsConvertOnFullHP() && eLoopUnit == this->getUnitType())
-						{
-							UnitAITypes eAIType = NO_UNITAI;
-							const CvUnitEntry* pkUnitType = GC.getUnitInfo(pkUnitInfo->GetConvertUnit());
-							if(pkUnitType != NULL)
-							{
-								eAIType = (UnitAITypes)pkUnitType->GetDefaultUnitAIType();
-								CvUnit* pNewUnit = GET_PLAYER(getOwner()).initUnit(pkUnitInfo->GetConvertUnit(), this->getX(), this->getY(), eAIType);
-								pConvertUnit = pNewUnit;
-							}
-						}
+						eAIType = (UnitAITypes)pkUnitType->GetDefaultUnitAIType();
+						CvUnit* pNewUnit = GET_PLAYER(getOwner()).initUnit(getConvertDamageOrFullHPUnit(), getX(), getY(), eAIType);
+						pNewUnit->convert(this, true);
+						pNewUnit->finishMoves();
+						pNewUnit->restoreFullMoves();
 					}
-				}
-				if(pConvertUnit != NULL)
-				{
-					pConvertUnit->convert(this, false);
-					pConvertUnit->finishMoves();
-					pConvertUnit->setMoves(pConvertUnit->maxMoves());
 				}
 			}
 		}
@@ -23290,9 +24131,9 @@ void CvUnit::DoConvertEnemyUnitToBarbarian(const CvPlot* pPlot)
 				if(isConvertEnemyUnitToBarbarian())
 				{
 					CvUnit* pConvertUnit = NULL;
-					int iDamageTheshold = this->getUnitInfo().GetDamageThreshold();
+					int iDamageTheshold = getDamageThreshold();
 					CvUnit* pAdjacentUnit = pAdjacentPlot->getBestDefender(NO_PLAYER);
-					if(pAdjacentUnit != NULL && pAdjacentUnit->IsCombatUnit() && !pAdjacentUnit->isBarbarian())
+					if(pAdjacentUnit != NULL && pAdjacentUnit->IsCombatUnit() && !pAdjacentUnit->isBarbarian() && !pAdjacentPlot->isEnemyCity(*this))
 					{
 						int iExistingDamage = pAdjacentUnit->getDamage();
 						if(GET_PLAYER(getOwner()).IsAtWarWith(pAdjacentUnit->getOwner()))
@@ -23306,7 +24147,7 @@ void CvUnit::DoConvertEnemyUnitToBarbarian(const CvPlot* pPlot)
 								pConvertUnit->setDamage(iExistingDamage, BARBARIAN_PLAYER);
 								pConvertUnit->finishMoves();
 
-								CvNotifications* pNotifications = GET_PLAYER(this->getOwner()).GetNotifications();
+								CvNotifications* pNotifications = GET_PLAYER(getOwner()).GetNotifications();
 								if(pNotifications)
 								{
 									CvString strBuffer = GetLocalizedText("TXT_KEY_NOTIFICATION_CHAOS_CONVERSION");
@@ -23316,9 +24157,9 @@ void CvUnit::DoConvertEnemyUnitToBarbarian(const CvPlot* pPlot)
 							}
 						}
 					}
-				}
+				}/*
 				// Is this unit running into a unit that might convert it into a barbarian??
-				else if(IsCombatUnit() && !isBarbarian())
+				if(IsCombatUnit() && !isBarbarian() && !pPlot->isFriendlyCity(*this, true))
 				{
 					CvUnit* pConvertUnit = NULL;
 					int iExistingDamage = getDamage();
@@ -23329,14 +24170,14 @@ void CvUnit::DoConvertEnemyUnitToBarbarian(const CvPlot* pPlot)
 							const CvUnit* const adjUnit = pAdjacentPlot->getUnitByIndex(iNearbyUnitLoop);
 							if(adjUnit != NULL && adjUnit->isConvertEnemyUnitToBarbarian())
 							{
-								int iDamageTheshold = adjUnit->getUnitInfo().GetDamageThreshold();
+								int iDamageTheshold = adjUnit->getDamageThreshold();
 								if(GET_PLAYER(getOwner()).IsAtWarWith(adjUnit->getOwner()))
 								{
 									if(iExistingDamage > iDamageTheshold)
 									{
 
 										CvPlayer* pBarbPlayer = &GET_PLAYER(BARBARIAN_PLAYER);
-										pConvertUnit = pBarbPlayer->initUnit(this->getUnitType(), this->getX(), this->getY(), this->AI_getUnitAIType(), NO_DIRECTION, true /*bNoMove*/, false);
+										pConvertUnit = pBarbPlayer->initUnit(getUnitType(), getX(), getY(), AI_getUnitAIType(), NO_DIRECTION, true /*bNoMove, false);
 										pConvertUnit->convert(this, false);
 										pConvertUnit->setupGraphical();
 										pConvertUnit->setDamage(iExistingDamage, BARBARIAN_PLAYER);
@@ -23347,14 +24188,14 @@ void CvUnit::DoConvertEnemyUnitToBarbarian(const CvPlot* pPlot)
 										{
 											CvString strBuffer = GetLocalizedText("TXT_KEY_NOTIFICATION_CHAOS_CONVERSION");
 											CvString strSummary = GetLocalizedText("TXT_KEY_NOTIFICATION_SUMMARY_CHAOS_CONVERSION");
-											pNotifications->Add(NOTIFICATION_GENERIC, strBuffer, strSummary, this->getX(), this->getY(), -1);
+											pNotifications->Add(NOTIFICATION_GENERIC, strBuffer, strSummary, getX(), getY(), -1);
 										}
 									}
 								}
 							}
 						}
 					}
-				}
+				}*/
 			}
 		}
 	}
@@ -23366,110 +24207,111 @@ void CvUnit::DoConvertReligiousUnitsToMilitary(const CvPlot* pPlot)
 	{
 		pPlot = plot();
 	}
-	if(pPlot != NULL)
+	if (!pPlot)
+		return;
+
+	if (!isReligiousUnit())
+		return;
+
+	if (pPlot->getOwner() == NO_PLAYER)
+		return;
+
+	if(GET_PLAYER(pPlot->getOwner()).GetPlayerTraits()->GetChanceToConvertReligiousUnits() > 0)
 	{
-		CvUnit* pConvertUnit = NULL;
-		if(m_pUnitInfo->IsFoundReligion() || m_pUnitInfo->IsSpreadReligion() || m_pUnitInfo->IsRemoveHeresy())
+		CvPlayer& kPlayer = GET_PLAYER(pPlot->getOwner());
+		int iChanceToConvertReligiousUnit = kPlayer.GetPlayerTraits()->GetChanceToConvertReligiousUnits() > 0;
+		if (getTeam() != GET_TEAM(kPlayer.getTeam()).GetID())
 		{
-			for(int iI = 0; iI < MAX_PLAYERS; iI++)
+			CvUnit* pConvertUnit = NULL;
+			if (GC.getGame().getSmallFakeRandNum(10, *pPlot) * 10 <= iChanceToConvertReligiousUnit)
 			{
-				CvPlayerAI& kPlayer = GET_PLAYER((PlayerTypes)iI);
-				if(kPlayer.GetPlayerTraits()->GetChanceToConvertReligiousUnits() > 0)
+				UnitTypes eBestLandUnit = NO_UNIT;
+				int iStrengthBestLandCombat = 0;
+				for(int iJ = 0; iJ < GC.getNumUnitClassInfos(); iJ++)
 				{
-					if(pPlot->getTeam() == GET_TEAM(kPlayer.getTeam()).GetID() && getTeam() != GET_TEAM(kPlayer.getTeam()).GetID())
+					const UnitClassTypes eUnitClass = static_cast<UnitClassTypes>(iJ);
+					CvUnitClassInfo* pkUnitClassInfo = GC.getUnitClassInfo(eUnitClass);
+					if(pkUnitClassInfo)
 					{
-						if(GC.getGame().getJonRandNum(100, "Chance for conversion") <= kPlayer.GetPlayerTraits()->GetChanceToConvertReligiousUnits())
+						const UnitTypes eUnit = (UnitTypes) kPlayer.getCivilizationInfo().getCivilizationUnits(eUnitClass);
+						CvUnitEntry* pUnitEntry = GC.getUnitInfo(eUnit);
+						if(pUnitEntry)
 						{
-							UnitTypes eBestLandUnit = NO_UNIT;
-							int iStrengthBestLandCombat = 0;
-							for(int iJ = 0; iJ < GC.getNumUnitClassInfos(); iJ++)
+							if(!kPlayer.canTrain(eUnit))
 							{
-								const UnitClassTypes eUnitClass = static_cast<UnitClassTypes>(iJ);
-								CvUnitClassInfo* pkUnitClassInfo = GC.getUnitClassInfo(eUnitClass);
-								if(pkUnitClassInfo)
+								continue;
+							}
+							if(pUnitEntry->GetRangedCombat() > 0)
+							{
+								continue;
+							}
+							if(pUnitEntry->GetDomainType() == DOMAIN_LAND)
+							{
+								bool bBad = false;
+								ResourceTypes eResource;
+								for(int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
 								{
-									const UnitTypes eUnit = (UnitTypes) kPlayer.getCivilizationInfo().getCivilizationUnits(eUnitClass);
-									CvUnitEntry* pUnitEntry = GC.getUnitInfo(eUnit);
-									if(pUnitEntry)
+									eResource = (ResourceTypes) iResourceLoop;
+									int iNumResource = pUnitEntry->GetResourceQuantityRequirement(eResource);
+									if (iNumResource > 0)
 									{
-										if(!kPlayer.canTrain(eUnit))
+										if(kPlayer.getNumResourceAvailable(eResource, true) < iNumResource)
 										{
-											continue;
-										}
-										if(pUnitEntry->GetRangedCombat() > 0)
-										{
-											continue;
-										}
-										if(pUnitEntry->GetDomainType() == DOMAIN_LAND)
-										{
-											bool bBad = false;
-											ResourceTypes eResource;
-											for(int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
-											{
-												eResource = (ResourceTypes) iResourceLoop;
-												int iNumResource = pUnitEntry->GetResourceQuantityRequirement(eResource);
-												if (iNumResource > 0)
-												{
-													if(kPlayer.getNumResourceAvailable(eResource, true) < iNumResource)
-													{
-														bBad = true;
-														break;
-													}
-												}
-											}
-											if(bBad)
-											{
-												continue;
-											}
-											int iCombatLandStrength = (std::max(1, pUnitEntry->GetCombat()));
-											if(iCombatLandStrength > iStrengthBestLandCombat)
-											{
-												iStrengthBestLandCombat = iCombatLandStrength;
-												eBestLandUnit = eUnit;
-											}
+											bBad = true;
+											break;
 										}
 									}
 								}
-							}
-							if(eBestLandUnit != NO_UNIT)
-							{
-								CvUnitEntry* pkbUnitEntry = GC.getUnitInfo(eBestLandUnit);
-								if(pkbUnitEntry)
+								if(bBad)
 								{
-									UnitAITypes eUnitAI = pkbUnitEntry->GetDefaultUnitAIType();
-									pConvertUnit = kPlayer.initUnit(eBestLandUnit, this->getX(), this->getY(), eUnitAI, NO_DIRECTION, true);
-									pConvertUnit->convert(this, false);
-									CvNotifications* pNotifications = kPlayer.GetNotifications();
-									if (pNotifications)
-									{
-										Localization::String strText = Localization::Lookup("TXT_KEY_NOTIFICATION_HUSSITE_CONVERSION");
-										strText << pConvertUnit->getNameKey() << kPlayer.getNameKey();
-										Localization::String strSummary = Localization::Lookup("TXT_KEY_NOTIFICATION_SUMMARY_HUSSITE_CONVERSION");
-										strSummary << kPlayer.getNameKey();
-										pNotifications->Add(NOTIFICATION_GENERIC, strText.toUTF8(), strSummary.toUTF8(), pConvertUnit->getX(), pConvertUnit->getY(), -1);
-									}
+									continue;
+								}
+								int iCombatLandStrength = (std::max(1, pUnitEntry->GetCombat()));
+								if(iCombatLandStrength > iStrengthBestLandCombat)
+								{
+									iStrengthBestLandCombat = iCombatLandStrength;
+									eBestLandUnit = eUnit;
 								}
 							}
-							else
-							{
-								UnitTypes eWarrior = (UnitTypes)GC.getInfoTypeForString("UNIT_WARRIOR");
-								CvUnitEntry* pkbUnitEntry = GC.getUnitInfo(eWarrior);
-								if(pkbUnitEntry)
-								{
-									UnitAITypes eUnitAI = pkbUnitEntry->GetDefaultUnitAIType();
-									pConvertUnit = kPlayer.initUnit(eWarrior, this->getX(), this->getY(), eUnitAI, NO_DIRECTION, true);
-									pConvertUnit->convert(this, false);
-									CvNotifications* pNotifications = kPlayer.GetNotifications();
-									if (pNotifications)
-									{
-										Localization::String strText = Localization::Lookup("TXT_KEY_NOTIFICATION_HUSSITE_CONVERSION");
-										strText << pConvertUnit->getNameKey() << kPlayer.getNameKey();
-										Localization::String strSummary = Localization::Lookup("TXT_KEY_NOTIFICATION_SUMMARY_HUSSITE_CONVERSION");
-										strSummary << kPlayer.getNameKey();
-										pNotifications->Add(NOTIFICATION_GENERIC, strText.toUTF8(), strSummary.toUTF8(), pConvertUnit->getX(), pConvertUnit->getY(), -1);
-									}
-								}
-							}
+						}
+					}
+				}
+				if(eBestLandUnit != NO_UNIT)
+				{
+					CvUnitEntry* pkbUnitEntry = GC.getUnitInfo(eBestLandUnit);
+					if(pkbUnitEntry)
+					{
+						UnitAITypes eUnitAI = pkbUnitEntry->GetDefaultUnitAIType();
+						pConvertUnit = kPlayer.initUnit(eBestLandUnit, this->getX(), this->getY(), eUnitAI, NO_DIRECTION, true);
+						pConvertUnit->convert(this, false);
+						CvNotifications* pNotifications = kPlayer.GetNotifications();
+						if (pNotifications)
+						{
+							Localization::String strText = Localization::Lookup("TXT_KEY_NOTIFICATION_HUSSITE_CONVERSION");
+							strText << pConvertUnit->getNameKey() << kPlayer.getNameKey();
+							Localization::String strSummary = Localization::Lookup("TXT_KEY_NOTIFICATION_SUMMARY_HUSSITE_CONVERSION");
+							strSummary << kPlayer.getNameKey();
+							pNotifications->Add(NOTIFICATION_GENERIC, strText.toUTF8(), strSummary.toUTF8(), pConvertUnit->getX(), pConvertUnit->getY(), -1);
+						}
+					}
+				}
+				else
+				{
+					UnitTypes eWarrior = (UnitTypes)GC.getInfoTypeForString("UNIT_WARRIOR");
+					CvUnitEntry* pkbUnitEntry = GC.getUnitInfo(eWarrior);
+					if(pkbUnitEntry)
+					{
+						UnitAITypes eUnitAI = pkbUnitEntry->GetDefaultUnitAIType();
+						pConvertUnit = kPlayer.initUnit(eWarrior, this->getX(), this->getY(), eUnitAI, NO_DIRECTION, true);
+						pConvertUnit->convert(this, false);
+						CvNotifications* pNotifications = kPlayer.GetNotifications();
+						if (pNotifications)
+						{
+							Localization::String strText = Localization::Lookup("TXT_KEY_NOTIFICATION_HUSSITE_CONVERSION");
+							strText << pConvertUnit->getNameKey() << kPlayer.getNameKey();
+							Localization::String strSummary = Localization::Lookup("TXT_KEY_NOTIFICATION_SUMMARY_HUSSITE_CONVERSION");
+							strSummary << kPlayer.getNameKey();
+							pNotifications->Add(NOTIFICATION_GENERIC, strText.toUTF8(), strSummary.toUTF8(), pConvertUnit->getX(), pConvertUnit->getY(), -1);
 						}
 					}
 				}
@@ -23568,6 +24410,34 @@ void CvUnit::ChangeAuraEffectChange(int iChange)
 {
 	VALIDATE_OBJECT
 	m_iAuraEffectChange += iChange;
+}
+
+
+//	--------------------------------------------------------------------------------
+int CvUnit::GetNumRepairCharges() const
+{
+	VALIDATE_OBJECT
+		return m_iNumRepairCharges;
+}
+
+//	--------------------------------------------------------------------------------
+void CvUnit::ChangeNumRepairCharges(int iChange)
+{
+	VALIDATE_OBJECT
+		m_iNumRepairCharges += iChange;
+}
+
+int CvUnit::GetMilitaryCapChange() const
+{
+	VALIDATE_OBJECT
+		return m_iMilitaryCapChange;
+}
+
+//	--------------------------------------------------------------------------------
+void CvUnit::ChangeMilitaryCapChange(int iChange)
+{
+	VALIDATE_OBJECT
+		m_iMilitaryCapChange += iChange;
 }
 #endif
 
@@ -23713,183 +24583,7 @@ void CvUnit::ChangeSapperCount(int iChange)
 	m_iSapperCount += iChange;
 }
 
-//	--------------------------------------------------------------------------------
-/// Is a particular city being sapped by us?
-bool CvUnit::IsSappingCity(const CvCity* pTargetCity) const
-{
-	CvAssertMsg(pTargetCity, "Target city is NULL when checking sapping combat bonus");
-	if (!pTargetCity)
-	{
-		return false;
-	}
-
-	if (IsSapper())
-	{
-		if (IsEnemyCityAdjacent(pTargetCity))
-		{
-			return true;
-		}
-	}
-	return false;
-}
 #if defined(MOD_BALANCE_CORE)
-//	--------------------------------------------------------------------------------
-/// Is a particular city being sapped by us?
-bool CvUnit::IsHalfSappingCity(const CvCity* pTargetCity) const
-{
-	CvAssertMsg(pTargetCity, "Target city is NULL when checking sapping combat bonus");
-	if (!pTargetCity)
-	{
-		return false;
-	}
-
-	if (IsSapper())
-	{
-		int iSapperRange = 2;
-
-		CvPlot* pLoopPlot;
-
-		// Look around this Unit to see if there's a Sapper nearby
-		for(int iX = -iSapperRange; iX <= iSapperRange; iX++)
-		{
-			for(int iY = -iSapperRange; iY <= iSapperRange; iY++)
-			{
-				pLoopPlot = plotXYWithRangeCheck(getX(), getY(), iX, iY, iSapperRange);
-
-				if(pLoopPlot != NULL && pLoopPlot->isEnemyCity(*this))
-				{
-					return true;
-				}
-			}
-		}
-	}
-	return false;
-}
-#endif
-//	--------------------------------------------------------------------------------
-/// Are we near a friendly unit that is sapping this city?
-bool CvUnit::IsNearSapper(const CvCity* pTargetCity) const
-{
-	VALIDATE_OBJECT
-
-	CvAssertMsg(pTargetCity, "Target city is NULL when checking sapping combat bonus");
-	if (!pTargetCity)
-	{
-		return false;
-	}
-
-	int iSapperRange = GC.getSAPPER_BONUS_RANGE();
-
-	CvPlot* pLoopPlot;
-	IDInfo* pUnitNode;
-	CvUnit* pLoopUnit;
-
-	// Look around this Unit to see if there's a Sapper nearby
-	for(int iX = -iSapperRange; iX <= iSapperRange; iX++)
-	{
-		for(int iY = -iSapperRange; iY <= iSapperRange; iY++)
-		{
-			pLoopPlot = plotXYWithRangeCheck(getX(), getY(), iX, iY, iSapperRange);
-
-			if(pLoopPlot != NULL)
-			{
-				// Units in our plot do not count
-#if !defined(MOD_BALANCE_CORE)
-				if (pLoopPlot->getX() == getX() && pLoopPlot->getY() == getY())
-					continue;
-#endif
-
-				// If there are Units here, loop through them
-				if(pLoopPlot->getNumUnits() > 0)
-				{
-					pUnitNode = pLoopPlot->headUnitNode();
-
-					while(pUnitNode != NULL)
-					{
-						pLoopUnit = ::getUnit(*pUnitNode);
-						pUnitNode = pLoopPlot->nextUnitNode(pUnitNode);
-
-						// Owned by us
-						if(pLoopUnit && pLoopUnit->getOwner() == getOwner())
-						{
-							// Sapper unit
-							if(pLoopUnit->IsSappingCity(pTargetCity))
-							{
-								// Must be same domain
-								if(pLoopUnit->getDomainType() == getDomainType())
-								{
-									return true;
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return false;
-}
-#if defined(MOD_BALANCE_CORE)
-//	--------------------------------------------------------------------------------
-/// Are we near a friendly unit that is sapping this city?
-bool CvUnit::IsHalfNearSapper(const CvCity* pTargetCity) const
-{
-	VALIDATE_OBJECT
-
-	CvAssertMsg(pTargetCity, "Target city is NULL when checking sapping combat bonus");
-	if (!pTargetCity)
-	{
-		return false;
-	}
-
-	int iSapperRange = GC.getSAPPER_BONUS_RANGE();
-
-	CvPlot* pLoopPlot;
-	IDInfo* pUnitNode;
-	CvUnit* pLoopUnit;
-
-	// Look around this Unit to see if there's a Sapper nearby
-	for(int iX = -iSapperRange; iX <= iSapperRange; iX++)
-	{
-		for(int iY = -iSapperRange; iY <= iSapperRange; iY++)
-		{
-			pLoopPlot = plotXYWithRangeCheck(getX(), getY(), iX, iY, iSapperRange);
-
-			if(pLoopPlot != NULL)
-			{
-				// If there are Units here, loop through them
-				if(pLoopPlot->getNumUnits() > 0)
-				{
-					pUnitNode = pLoopPlot->headUnitNode();
-
-					while(pUnitNode != NULL)
-					{
-						pLoopUnit = ::getUnit(*pUnitNode);
-						pUnitNode = pLoopPlot->nextUnitNode(pUnitNode);
-
-						// Owned by us
-						if(pLoopUnit && pLoopUnit->getOwner() == getOwner())
-						{
-							// Sapper unit
-							if(pLoopUnit->IsHalfSappingCity(pTargetCity))
-							{
-								// Must be same domain
-								if(pLoopUnit->getDomainType() == getDomainType())
-								{
-									return true;
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return false;
-}
-//	--------------------------------------------------------------------------------
 bool CvUnit::IsStrongerDamaged() const
 {
 	return m_iStrongerDamaged> 0;
@@ -23925,7 +24619,17 @@ void CvUnit::ChangeReligiousPressureModifier(int iChange)
 	m_iReligiousPressureModifier += iChange;
 }
 
+//	--------------------------------------------------------------------------------
+int CvUnit::GetAdjacentCityDefenseMod() const
+{
+	return m_iAdjacentCityDefenseMod;
+}
 
+//	--------------------------------------------------------------------------------
+void CvUnit::ChangeAdjacentCityDefenseMod(int iChange)
+{
+	m_iAdjacentCityDefenseMod += iChange;
+}
 #endif
 
 //	--------------------------------------------------------------------------------
@@ -23962,6 +24666,18 @@ int CvUnit::GetDamageAoEFortified() const
 void CvUnit::ChangeDamageAoEFortified(int iChange)
 {
 	m_iDamageAoEFortified += iChange;
+}
+
+//	--------------------------------------------------------------------------------
+int CvUnit::GetWorkRateMod() const
+{
+	return m_iWorkRateMod;
+}
+
+//	--------------------------------------------------------------------------------
+void CvUnit::ChangeWorkRateMod(int iChange)
+{
+	m_iWorkRateMod += iChange;
 }
 
 //	--------------------------------------------------------------------------------
@@ -24015,7 +24731,7 @@ void CvUnit::changeFriendlyLandsAttackModifier(int iChange)
 int CvUnit::getOutsideFriendlyLandsModifier() const
 {
 	VALIDATE_OBJECT
-	return m_iOutsideFriendlyLandsModifier;
+	return m_iOutsideFriendlyLandsModifier + GetGiveOutsideFriendlyLandsModifierToUnit();
 }
 
 //	--------------------------------------------------------------------------------
@@ -24070,7 +24786,7 @@ void CvUnit::changeUpgradeDiscount(int iChange)
 int CvUnit::getExperiencePercent() const
 {
 	VALIDATE_OBJECT
-	return m_iExperiencePercent;
+	return m_iExperiencePercent + GetGoldenAgeGeneralExpPercent() + GetGiveExperiencePercentToUnit();
 }
 
 //	--------------------------------------------------------------------------------
@@ -24168,7 +24884,7 @@ bool CvUnit::isOutOfAttacks() const
 		return false;
 	}
 
-	return m_iAttacksMade >= m_iNumAttacks;
+	return getNumAttacksMadeThisTurn() >= getNumAttacks();
 }
 
 
@@ -24200,6 +24916,20 @@ void CvUnit::ChangeNumInterceptions(int iChange)
 	VALIDATE_OBJECT
 	if(iChange != 0)
 		m_iNumInterceptions += iChange;
+}
+
+//	--------------------------------------------------------------------------------
+int CvUnit::GetExtraAirInterceptRange() const // JJ: NEW
+{
+	VALIDATE_OBJECT
+	return m_iExtraAirInterceptRange;
+}
+
+//	--------------------------------------------------------------------------------
+void CvUnit::ChangeExtraAirInterceptRange(int iChange) // JJ: NEW
+{
+	VALIDATE_OBJECT
+	m_iExtraAirInterceptRange += iChange;
 }
 
 //	--------------------------------------------------------------------------------
@@ -25493,6 +26223,63 @@ void CvUnit::changeUnitClassDefenseMod(UnitClassTypes eUnitClass, int iChange)
 }
 #if defined(MOD_BALANCE_CORE)
 //	--------------------------------------------------------------------------------
+int CvUnit::getCombatModPerAdjacentUnitCombatModifier(UnitCombatTypes eIndex) const
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex < GC.getNumUnitCombatClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	return m_iCombatModPerAdjacentUnitCombatModifier[eIndex];
+}
+
+
+//	--------------------------------------------------------------------------------
+void CvUnit::changeCombatModPerAdjacentUnitCombatModifier(UnitCombatTypes eIndex, int iChange)
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex < GC.getNumUnitCombatClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	m_iCombatModPerAdjacentUnitCombatModifier.setAt(eIndex, m_iCombatModPerAdjacentUnitCombatModifier[eIndex] + iChange);
+}
+
+//	--------------------------------------------------------------------------------
+int CvUnit::getCombatModPerAdjacentUnitCombatAttackMod(UnitCombatTypes eIndex) const
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex < GC.getNumUnitCombatClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	return m_iCombatModPerAdjacentUnitCombatAttackMod[eIndex];
+}
+
+
+//	--------------------------------------------------------------------------------
+void CvUnit::changeCombatModPerAdjacentUnitCombatAttackMod(UnitCombatTypes eIndex, int iChange)
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex < GC.getNumUnitCombatClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	m_iCombatModPerAdjacentUnitCombatAttackMod.setAt(eIndex, m_iCombatModPerAdjacentUnitCombatAttackMod[eIndex] + iChange);
+}
+
+//	--------------------------------------------------------------------------------
+int CvUnit::getCombatModPerAdjacentUnitCombatDefenseMod(UnitCombatTypes eIndex) const
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex < GC.getNumUnitCombatClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	return m_iCombatModPerAdjacentUnitCombatDefenseMod[eIndex];
+}
+
+
+//	--------------------------------------------------------------------------------
+void CvUnit::changeCombatModPerAdjacentUnitCombatDefenseMod(UnitCombatTypes eIndex, int iChange)
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex < GC.getNumUnitCombatClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	m_iCombatModPerAdjacentUnitCombatDefenseMod.setAt(eIndex, m_iCombatModPerAdjacentUnitCombatDefenseMod[eIndex] + iChange);
+}
+
+//	--------------------------------------------------------------------------------
 int CvUnit::getYieldFromScouting(YieldTypes eIndex) const
 {
 	VALIDATE_OBJECT
@@ -25863,6 +26650,9 @@ bool CvUnit::isPromotionValid(PromotionTypes ePromotion) const
 	// Hovering units (e.g. Helis) cannot embark
 	if(IsHoveringUnit() && promotionInfo->IsAllowsEmbarkation())
 		return false;
+
+	if (isConvertUnit() && promotionInfo->IsAllowsEmbarkation())
+		return false;
 		
 #if defined(MOD_PROMOTIONS_DEEP_WATER_EMBARKATION)
 	// Only hovering units can deep water embark
@@ -25930,7 +26720,7 @@ void CvUnit::setHasPromotion(PromotionTypes eIndex, bool bNewValue)
 #if defined(MOD_BUGFIX_MINOR)
 		// Firaxis only use the CanMoveAllTerrain promotion in the Smokey Skies scenario,
 		// which doesn't have the situation where the player discovers Optics ...
-		if (bNewValue && canMoveAllTerrain()) {
+		if (bNewValue && (canMoveAllTerrain() || isConvertUnit())) {
 			if (thisPromotion.IsAllowsEmbarkation() || thisPromotion.IsEmbarkedAllWater()) {
 				return;
 #if defined(MOD_PROMOTIONS_DEEP_WATER_EMBARKATION)
@@ -25987,6 +26777,38 @@ void CvUnit::setHasPromotion(PromotionTypes eIndex, bool bNewValue)
 			SetNearbyUnitClassBonusRange(thisPromotion.GetNearbyUnitClassBonusRange());
 			SetCombatBonusFromNearbyUnitClass(thisPromotion.GetCombatBonusFromNearbyUnitClass());
 		}
+		if (thisPromotion.IsNearbyPromotion())
+		{
+			ChangeNearbyPromotion(thisPromotion.IsNearbyPromotion() ? iChange : 0);
+			ChangeNearbyUnitPromotionRange(thisPromotion.GetNearbyRange() * iChange);
+		}
+		ChangeNearbyCityCombatMod((thisPromotion.GetNearbyCityCombatMod()) * iChange);
+		ChangeNearbyFriendlyCityCombatMod((thisPromotion.GetNearbyFriendlyCityCombatMod()) * iChange);
+		ChangeNearbyEnemyCityCombatMod((thisPromotion.GetNearbyEnemyCityCombatMod()) * iChange);
+		ChangeIsFriendlyLands((thisPromotion.IsFriendlyLands()) ? iChange : 0);
+		ChangePillageBonusStrengthPercent(thisPromotion.GetPillageBonusStrengthPercent() * iChange);
+		ChangeStackedGreatGeneralExperience(thisPromotion.GetStackedGreatGeneralExperience() * iChange);
+		ChangeIsHighSeaRaider((thisPromotion.IsHighSeaRaider()) ? iChange : 0);
+		ChangeWonderProductionModifier(thisPromotion.GetWonderProductionModifier() * iChange);
+		ChangeMilitaryProductionModifier(thisPromotion.GetMilitaryProductionModifier() * iChange);
+		ChangeNearbyEnemyDamage(thisPromotion.GetNearbyEnemyDamage() * iChange);
+		ChangeGGGAXPPercent(thisPromotion.GetGeneralGoldenAgeExpPercent() * iChange);
+		ChangeGiveCombatMod(thisPromotion.GetGiveCombatMod() * iChange);
+		ChangeGiveHPIfEnemyKilled(thisPromotion.GetGiveHPIfEnemyKilled() * iChange);
+		ChangeGiveExperiencePercent(thisPromotion.GetGiveExperiencePercent() * iChange);
+		ChangeGiveOutsideFriendlyLandsModifier(thisPromotion.GetGiveOutsideFriendlyLandsModifier() * iChange);
+		ChangeGiveExtraAttacks(thisPromotion.GetGiveExtraAttacks() * iChange);
+		ChangeGiveDefenseMod(thisPromotion.GetGiveDefenseMod() * iChange);
+		ChangeIsGiveInvisibility((thisPromotion.IsGiveInvisibility()) ? iChange : 0);
+		ChangeIsConvertUnit((thisPromotion.IsConvertUnit()) ? iChange : 0);
+		ChangeIsConvertEnemyUnitToBarbarian((thisPromotion.IsConvertEnemyUnitToBarbarian()) ? iChange : 0);
+		ChangeIsConvertOnFullHP((thisPromotion.IsConvertOnFullHP()) ? iChange : 0);
+		ChangeIsConvertOnDamage((thisPromotion.IsConvertOnDamage()) ? iChange : 0);
+		ChangeDamageThreshold(thisPromotion.GetDamageThreshold() * iChange);
+		if (getConvertDamageOrFullHPUnit() == NO_UNIT && thisPromotion.GetConvertDamageOrFullHPUnit() != NO_UNIT)
+		{
+			ChangeConvertDamageOrFullHPUnit((UnitTypes)thisPromotion.GetConvertDamageOrFullHPUnit());
+		}
 #endif
 #if defined(MOD_PROMOTIONS_CROSS_MOUNTAINS)
 		if (MOD_PROMOTIONS_CROSS_MOUNTAINS) {
@@ -26034,6 +26856,7 @@ void CvUnit::setHasPromotion(PromotionTypes eIndex, bool bNewValue)
 		ChangeCaptureDefeatedEnemyCount((thisPromotion.IsCaptureDefeatedEnemy()) ? iChange: 0);
 #if defined(MOD_BALANCE_CORE)
 		changeAOEDamageOnKill(thisPromotion.GetAOEDamageOnKill() *  iChange);
+		changeAoEDamageOnMove(thisPromotion.GetAoEDamageOnMove() *  iChange);
 		changeSplashDamage(thisPromotion.GetSplashDamage() *  iChange);
 		changeMultiAttackBonus(thisPromotion.GetMultiAttackBonus() *  iChange);
 		changeLandAirDefenseValue(thisPromotion.GetLandAirDefenseValue() *  iChange);
@@ -26047,6 +26870,7 @@ void CvUnit::setHasPromotion(PromotionTypes eIndex, bool bNewValue)
 		ChangeChangeDamageValue((thisPromotion.ChangeDamageValue()) * iChange);
 		ChangeMoraleBreakChance((thisPromotion.GetMoraleBreakChance()) * iChange);
 		ChangeDamageAoEFortified((thisPromotion.GetDamageAoEFortified()) * iChange);
+		ChangeWorkRateMod((thisPromotion.GetWorkRateMod()) * iChange);
 		ChangeDamageReductionCityAssault((thisPromotion.GetDamageReductionCityAssault()) * iChange);
 		if(thisPromotion.PromotionDuration() != 0)
 		{
@@ -26074,9 +26898,10 @@ void CvUnit::setHasPromotion(PromotionTypes eIndex, bool bNewValue)
 				SetNegatorPromotion(-1);
 			}
 		}
-		ChangeIsStrongerDamaged((thisPromotion.IsStrongerDamaged()) ? iChange : 0);
-		ChangeGoodyHutYieldBonus((thisPromotion.GetGoodyHutYieldBonus()) * iChange);
-		ChangeReligiousPressureModifier((thisPromotion.GetReligiousPressureModifier()) * iChange);
+		ChangeIsStrongerDamaged(thisPromotion.IsStrongerDamaged() ? iChange : 0);
+		ChangeGoodyHutYieldBonus(thisPromotion.GetGoodyHutYieldBonus() * iChange);
+		ChangeReligiousPressureModifier(thisPromotion.GetReligiousPressureModifier() * iChange);
+		ChangeAdjacentCityDefenseMod(thisPromotion.GetAdjacentCityDefenseMod() * iChange);
 #endif
 		ChangeCanHeavyChargeCount((thisPromotion.IsCanHeavyCharge()) ? iChange : 0);
 
@@ -26145,11 +26970,17 @@ void CvUnit::setHasPromotion(PromotionTypes eIndex, bool bNewValue)
 		changeExtraAttacks(thisPromotion.GetExtraAttacks() * iChange);
 		ChangeNumInterceptions(thisPromotion.GetNumInterceptionChange() * iChange);
 
+#if defined(MOD_BALANCE_CORE) // JJ: New
+		ChangeExtraAirInterceptRange(thisPromotion.GetAirInterceptRangeChange() * iChange);
+#endif
+
 		ChangeGreatGeneralCount(thisPromotion.IsGreatGeneral() ? iChange: 0);
 		ChangeGreatAdmiralCount(thisPromotion.IsGreatAdmiral() ? iChange: 0);
 #if defined(MOD_PROMOTIONS_AURA_CHANGE)
 		ChangeAuraRangeChange(thisPromotion.GetAuraRangeChange() * iChange);
 		ChangeAuraEffectChange(thisPromotion.GetAuraEffectChange() * iChange);
+		ChangeNumRepairCharges(thisPromotion.GetNumRepairCharges() * iChange);
+		ChangeMilitaryCapChange(thisPromotion.GetMilitaryCapChange() * iChange);
 #endif
 		changeGreatGeneralModifier(thisPromotion.GetGreatGeneralModifier() * iChange);
 		ChangeGreatGeneralReceivesMovementCount(thisPromotion.IsGreatGeneralReceivesMovement() ? iChange: 0);
@@ -26226,6 +27057,11 @@ void CvUnit::setHasPromotion(PromotionTypes eIndex, bool bNewValue)
 		for(iI = 0; iI < GC.getNumUnitCombatClassInfos(); iI++)
 		{
 			changeExtraUnitCombatModifier(((UnitCombatTypes)iI), (thisPromotion.GetUnitCombatModifierPercent(iI) * iChange));
+#if defined(MOD_BALANCE_CORE)
+			changeCombatModPerAdjacentUnitCombatModifier(((UnitCombatTypes)iI), (thisPromotion.GetCombatModPerAdjacentUnitCombatModifierPercent(iI) * iChange));
+			changeCombatModPerAdjacentUnitCombatAttackMod(((UnitCombatTypes)iI), (thisPromotion.GetCombatModPerAdjacentUnitCombatAttackModifier(iI) * iChange));
+			changeCombatModPerAdjacentUnitCombatDefenseMod(((UnitCombatTypes)iI), (thisPromotion.GetCombatModPerAdjacentUnitCombatDefenseModifier(iI) * iChange));
+#endif
 		}
 
 		for(iI = 0; iI < GC.getNumUnitClassInfos(); iI++)
@@ -26245,11 +27081,32 @@ void CvUnit::setHasPromotion(PromotionTypes eIndex, bool bNewValue)
 		for(iI = 0; iI < NUM_DOMAIN_TYPES; iI++)
 		{
 			changeExtraDomainModifier(((DomainTypes)iI), (thisPromotion.GetDomainModifierPercent(iI) * iChange));
+			const DomainTypes eDomain = static_cast<DomainTypes>(iI);
+			if (eDomain != NULL)
+			{
+				if (thisPromotion.GetGiveDomain() == eDomain)
+				{
+					ChangeGiveDomainBonus(thisPromotion.GetGiveDomain(), iChange);
+				}
+			}
+		}
+		if (getConvertDomain() == NO_DOMAIN && thisPromotion.GetConvertDomain() != NO_DOMAIN)
+		{
+			ChangeConvertDomain((DomainTypes)thisPromotion.GetConvertDomain());
+		}
+		if (getConvertDomainUnitType() == NO_UNIT && thisPromotion.GetConvertDomainUnit() != NO_UNIT)
+		{
+			ChangeConvertDomainUnit((UnitTypes)thisPromotion.GetConvertDomainUnit());
+		}
+		for (iI = 0; iI < NUM_YIELD_TYPES; iI++)
+		{
+			SetYieldModifier(((YieldTypes)iI), (thisPromotion.GetYieldModifier(iI) * iChange));
 		}
 
 		for (iI = 0; iI < NUM_YIELD_TYPES; iI++)
 		{
-			setyieldmodifier(((YieldTypes)iI), (thisPromotion.GetYieldModifier(iI) * iChange));
+			SetYieldChange(((YieldTypes)iI), (thisPromotion.GetYieldChange(iI) * iChange));
+			SetGarrisonYieldChange(((YieldTypes)iI), (thisPromotion.GetGarrisonYield(iI) * iChange));
 		}
 
 		if(IsSelected())
@@ -26408,7 +27265,7 @@ CvUnit * CvUnit::GetPotentialUnitToSwapWith(CvPlot & swapPlot) const
 								if (AreUnitsOfSameType(*pLoopUnit))
 								{
 									CvPlot* here = plot();
-									if (here && pLoopUnit->canEnterTerrain(*here, CvUnit::MOVEFLAG_DESTINATION) && pLoopUnit->ReadyToMove())
+									if (here && pLoopUnit->canEnterTerrain(*here, CvUnit::MOVEFLAG_DESTINATION) && pLoopUnit->ReadyToSwap())
 									{
 										// Can the unit I am swapping with get to me this turn?
 										SPathFinderUserData data(pLoopUnit, CvUnit::MOVEFLAG_IGNORE_DANGER | CvUnit::MOVEFLAG_IGNORE_STACKING, 1);
@@ -26474,7 +27331,9 @@ void CvUnit::read(FDataStream& kStream)
 	kStream >> m_missionAIUnit.iID;
 	kStream >> m_extraDomainModifiers;
 #if defined(MOD_UNITS_MAX_HP)
-	kStream >> m_yieldModifier;
+	kStream >> m_YieldModifier;
+	kStream >> m_YieldChange;
+	kStream >> m_iGarrisonYieldChange;
 	MOD_SERIALIZE_READ(78, kStream, m_iMaxHitPointsBase, m_pUnitInfo->GetMaxHitPoints());
 #endif
 
@@ -26554,7 +27413,9 @@ void CvUnit::write(FDataStream& kStream) const
 	kStream << m_missionAIUnit.eOwner;
 	kStream << m_missionAIUnit.iID;
 	kStream << m_extraDomainModifiers;
-	kStream << m_yieldModifier;
+	kStream << m_YieldModifier;
+	kStream << m_YieldChange;
+	kStream << m_iGarrisonYieldChange;
 #if defined(MOD_UNITS_MAX_HP)
 	MOD_SERIALIZE_WRITE(kStream, m_iMaxHitPointsBase);
 #endif
@@ -26764,7 +27625,7 @@ bool CvUnit::canRangeStrikeAt(int iX, int iY, bool bNeedWar, bool bNoncombatAllo
 	{
 		if(bNeedWar)
 		{
-			const CvUnit* pDefender = airStrikeTarget(*pTargetPlot, bNoncombatAllowed);
+			const CvUnit* pDefender = rangeStrikeTarget(*pTargetPlot, bNoncombatAllowed);
 			if(NULL == pDefender)
 			{
 				return false;
@@ -26866,6 +27727,14 @@ bool CvUnit::canRangeStrikeAt(int iX, int iY, bool bNeedWar, bool bNoncombatAllo
 					return false;
 				}
 			}
+		}
+
+		// Missiles need a unit to attack, cannot hit cities without a unit inside
+		if (AI_getUnitAIType() == UNITAI_MISSILE_AIR)
+		{
+			const CvUnit* pDefender = rangeStrikeTarget(*pTargetPlot, bNoncombatAllowed);
+			if (!pDefender)
+				return false;
 		}
 	}
 
@@ -27083,9 +27952,9 @@ CvString CvUnit::getTacticalZoneInfo() const
 	CvTacticalDominanceZone* pZone = GET_PLAYER(m_eOwner).GetTacticalAI()->GetTacticalAnalysisMap()->GetZoneByPlot(plot());
 	if (pZone)
 	{
-		const char* dominance[] = { "no units", "friendly", "enemy", "even" };
+		const char* dominance[] = { "no units", "friendly", "hostile", "contested" };
 		AITacticalPosture posture = GET_PLAYER(getOwner()).GetTacticalAI()->FindPosture(pZone);
-		return CvString::format("tactical zone %d, dominance %s, %s", pZone->GetDominanceZoneID(), dominance[pZone->GetOverallDominanceFlag()], 
+		return CvString::format("zone %d, %s, %s", pZone->GetZoneID(), dominance[pZone->GetOverallDominanceFlag()], 
 			posture!=AI_TACTICAL_POSTURE_NONE ? postureNames[posture] : "no posture");
 	}
 
@@ -27210,7 +28079,7 @@ bool CvUnit::IsDoingPartialMove() const
 		return false;
 	}
 
-	CvPlot* pEndTurnPlot = m_kLastPath.GetTurnDestinationPlot(1);
+	CvPlot* pEndTurnPlot = m_kLastPath.GetTurnDestinationPlot(0);
 	CvPlot* pEndPathPlot = m_kLastPath.GetFinalPlot();
 
 	if(plot() == pEndTurnPlot && plot() != pEndPathPlot && (pkMissionNode->iData1 == pEndPathPlot->getX() && pkMissionNode->iData2 == pEndPathPlot->getY()))
@@ -27234,11 +28103,7 @@ ActivityTypes CvUnit::GetActivityType() const
 
 
 //	--------------------------------------------------------------------------------
-#if defined(MOD_BUGFIX_UNITS_AWAKE_IN_DANGER)
-void CvUnit::SetActivityType(ActivityTypes eNewValue, bool bClearFortify)
-#else
 void CvUnit::SetActivityType(ActivityTypes eNewValue)
-#endif
 {
 	VALIDATE_OBJECT
 	CvPlot* pPlot;
@@ -27252,16 +28117,6 @@ void CvUnit::SetActivityType(ActivityTypes eNewValue)
 		pPlot = plot();
 
 		m_eActivityType = eNewValue;
-
-		// If we're waking up a Unit then remove it's fortification bonus
-#if defined(MOD_BUGFIX_UNITS_AWAKE_IN_DANGER)
-		if(eNewValue == ACTIVITY_AWAKE && bClearFortify)
-#else
-		if(eNewValue == ACTIVITY_AWAKE)
-#endif
-		{
-			setFortifyTurns(0);
-		}
 
 		auto_ptr<ICvPlot1> pDllSelectionPlot(DLLUI->getSelectionPlot());
 		int iSelectionPlotIndex = (pDllSelectionPlot.get() != NULL)? pDllSelectionPlot->GetPlotIndex() : -1;
@@ -27352,7 +28207,7 @@ bool CvUnit::ReadyToMove() const
 		return false;
 	}
 
-	if(GetLengthMissionQueue() != 0)
+	if (GetLengthMissionQueue() > 0)
 	{
 		return false;
 	}
@@ -27375,6 +28230,38 @@ bool CvUnit::ReadyToMove() const
 	return true;
 }
 
+//	--------------------------------------------------------------------------------
+bool CvUnit::ReadyToSwap() const
+{
+	VALIDATE_OBJECT
+	if (!canMove())
+	{
+		return false;
+	}
+
+	//allow a single move mission
+	if (GetLengthMissionQueue() > 1)
+	{
+		return false;
+	}
+
+	if (GetLengthMissionQueue() == 1 && GetHeadMissionData()->eMissionType != CvTypes::getMISSION_MOVE_TO())
+	{
+		return false;
+	}
+
+	if (GetAutomateType() != NO_AUTOMATE)
+	{
+		return false;
+	}
+
+	if (IsBusy())
+	{
+		return false;
+	}
+
+	return true;
+}
 
 //	--------------------------------------------------------------------------------
 bool CvUnit::ReadyToAuto() const
@@ -27631,15 +28518,19 @@ int CvUnit::ComputePath(const CvPlot* pToPlot, int iFlags, int iMaxTurns, bool b
 	SPath newPath = GC.GetPathFinder().GetPath(getX(), getY(), pToPlot->getX(), pToPlot->getY(), data);
 
 	//now copy the new path
-	//but skip the first node, it's the current unit plot
-	//important: this means that an empty m_kLastPath is valid!
 	if (bCacheResult)
 	{
 		ClearPathCache();
-		CvPathNode nextNode;
-		for (size_t i = 1; i < newPath.vPlots.size(); i++)
+
+		for (size_t i = 0; i < newPath.vPlots.size(); i++)
 		{
-			nextNode = newPath.vPlots[i];
+			CvPathNode nextNode( newPath.vPlots[i] );
+
+			//skip the first node (if it's not a stop node), it's the current unit plot
+			//important: this means that an empty m_kLastPath is valid!
+			if (i == 0 && nextNode.m_iMoves > 0)
+				continue;
+
 			m_kLastPath.push_back(nextNode);
 		}
 
@@ -27680,31 +28571,30 @@ bool CvUnit::VerifyCachedPath(const CvPlot* pDestPlot, int iFlags, int iMaxTurns
 	if (m_kLastPath.empty() || !HaveCachedPathTo(pDestPlot,iFlags))
 		return ComputePath(pDestPlot, iFlags, iMaxTurns, true) >= 0;
 
-	// Was the next plot invisible at the time of generation? See if it is visible now.
-	CvPlot* pkNextPlot = m_kLastPath.GetFirstPlot();
-	if ( m_kLastPath.front().GetFlag(CvPathNode::PLOT_INVISIBLE) && pkNextPlot->isVisible(getTeam()))
+#if defined(MOD_GLOBAL_BREAK_CIVILIAN_1UPT)
+	bool bCheckCivilianStacking = !MOD_GLOBAL_BREAK_CIVILIAN_1UPT;
+#else
+	bool bCheckCivilianStacking = true;
+#endif
+
+	if (IsCombatUnit() || bCheckCivilianStacking || !isHuman())
 	{
-		int iModifiedFlags = iFlags;
+		// Was the next plot invisible at the time of generation? See if it is visible now.
+		CvPlot* pkNextPlot = m_kLastPath.GetFirstPlot();
+		if (m_kLastPath.front().GetFlag(CvPathNode::PLOT_INVISIBLE) && pkNextPlot->isVisible(getTeam()))
+		{
+			//did we just reveal a unit? if so, abort movement
+			bHaveValidPath = !(pkNextPlot->isVisibleOtherUnit(getOwner()));
 
-		//do we need to stay there?
-		if (m_kLastPath.front().m_iMoves == 0)
-			iModifiedFlags |= CvUnit::MOVEFLAG_DESTINATION;
-
-		//normally we would allow an attack at the destination
-		//since it was invisible we didn't even know that there's a unit there
-		//but we do allow attacks on cities
-		if (pkNextPlot==pDestPlot && pDestPlot->isEnemyCity(*this))
-			iModifiedFlags |= CvUnit::MOVEFLAG_ATTACK;
+			//for AI don't abort if we will move on
+			if (!isHuman())
+				bHaveValidPath |= (m_kLastPath.front().m_iMoves>0 && m_kLastPath.size()>1);
+		}
 		else
-			iModifiedFlags &= ~CvUnit::MOVEFLAG_ATTACK;
-
-		bHaveValidPath = canMoveInto(*pkNextPlot,iModifiedFlags);
-
-		//AI chugs along, human gets a chance to reconsider
-		//don't recompute for the destination plot because it's pointless and because it could succeed 
-		//(the pathfinder dynamically sets the attack flag for the destination)
-		if (!bHaveValidPath && pkNextPlot!=pDestPlot && !GET_PLAYER(m_eOwner).isHuman())
-			bHaveValidPath = ComputePath(pDestPlot, iFlags, iMaxTurns, true) >= 0;
+		{
+			// The path is still good, just use the next node
+			bHaveValidPath = IsCachedPathValid();
+		}
 	}
 	else
 	{
@@ -27913,26 +28803,20 @@ bool CvUnit::UnitMove(CvPlot* pPlot, bool bCombat, CvUnit* pCombatUnit, bool bEn
 int CvUnit::UnitPathTo(int iX, int iY, int iFlags, int iPrevETA, bool bBuildingRoute)
 {
 	VALIDATE_OBJECT
-	CvPlot* pPathPlot = NULL;
-
-	LOG_UNIT_MOVES_MESSAGE_OSTR( std::string("UnitPathTo() : player ") << GET_PLAYER(getOwner()).getName() << std::string(" ") << getName() << std::string(" id=") << GetID() << std::string(" moving to ") << iX << std::string(", ") << iY);
-
-	if (at(iX, iY))
-		return MOVE_RESULT_CANCEL;
-
 	CvAssert(!IsBusy());
 	CvAssert(getOwner() != NO_PLAYER);
+	CvAssertMsg(canMove(), "canAllMove is expected to be true");
+	LOG_UNIT_MOVES_MESSAGE_OSTR(std::string("UnitPathTo() : player ") << GET_PLAYER(getOwner()).getName() << std::string(" ") << getName() << std::string(" id=") << GetID() << std::string(" moving to ") << iX << std::string(", ") << iY);
 
+	CvPlot* pPathPlot = NULL;
 	CvMap& kMap = GC.getMap();
 	CvPlot* pDestPlot = kMap.plot(iX, iY);
 	if (!pDestPlot)
 		return MOVE_RESULT_CANCEL;
 
-	CvAssertMsg(canMove(), "canAllMove is expected to be true");
-
 	if(getDomainType() == DOMAIN_AIR)
 	{
-		if(!canMoveInto(*pDestPlot))
+		if(!canMoveInto(*pDestPlot) || at(iX,iY))
 			return MOVE_RESULT_CANCEL;
 
 		pPathPlot = pDestPlot;
@@ -27973,27 +28857,24 @@ int CvUnit::UnitPathTo(int iX, int iY, int iFlags, int iPrevETA, bool bBuildingR
 		{
 			pPathPlot = m_kLastPath.GetFirstPlot();
 
-			//if the pathfinder inserted a stop node because the next plot is occupied
-			//we see that the expected moves are greater than what we have right now
-			//in that case don't execute the move
-			if (pPathPlot && m_kLastPath.front().m_iMoves>getMoves())
+			//wait until next turn if the pathfinder inserted a stop node because the next plot is occupied
+			if (pPathPlot && m_kLastPath.front().m_iTurns>0)
 			{
 				finishMoves();
-				return MOVE_RESULT_CANCEL;
-			}
-
-			//the given target may be different from the actual target
-			if ((iFlags & MOVEFLAG_APPROX_TARGET_RING1) || (iFlags & MOVEFLAG_APPROX_TARGET_RING2))
-			{
-				pDestPlot = m_kLastPath.GetFinalPlot();
-				//check if we are there yet
-				if (pDestPlot && pDestPlot->getX()==getX() && pDestPlot->getY()==getY())
-					return MOVE_RESULT_CANCEL;
+				return MOVE_RESULT_NEXT_TURN;
 			}
 
 			//can happen if we don't really move. (ie we try to move to a plot we are already in or the approximate target is just one plot away)
-			if (pPathPlot==NULL)
+			if (pPathPlot == NULL)
 				pPathPlot = pDestPlot;
+
+			//the given target may be different from the actual target
+			if ((iFlags & MOVEFLAG_APPROX_TARGET_RING1) || (iFlags & MOVEFLAG_APPROX_TARGET_RING2))
+				pDestPlot = m_kLastPath.GetFinalPlot();
+
+			//check if we are there yet
+			if (pDestPlot && pDestPlot->getX() == getX() && pDestPlot->getY() == getY())
+				return MOVE_RESULT_CANCEL;
 		}
 	}
 
@@ -28010,7 +28891,7 @@ int CvUnit::UnitPathTo(int iX, int iY, int iFlags, int iPrevETA, bool bBuildingR
 			bRejectMove = true;
 		}
 		// if we should end our turn there this turn, but can't move into that tile
-		else if(kDestNode.m_iTurns == 1 && !canMoveInto(*pDestPlot,iFlags|MOVEFLAG_DESTINATION))  
+		else if(kDestNode.m_iTurns == 0 && !canMoveInto(*pDestPlot,iFlags|MOVEFLAG_DESTINATION))  
 		{
 			// this is a bit tricky
 			// we want to see if this move would be a capture move
@@ -28041,8 +28922,12 @@ int CvUnit::UnitPathTo(int iX, int iY, int iFlags, int iPrevETA, bool bBuildingR
 		}
 	}
 
-	//todo: consider movement flags here. especially turn destination, not only path destination
+	int iOldDanger = -1;
 	bool bEndMove = (pPathPlot == pDestPlot);
+	if (!bEndMove && (iFlags & CvUnit::MOVEFLAG_AI_ABORT_IN_DANGER))
+		iOldDanger = GetDanger(pPathPlot);
+
+	//todo: consider movement flags here. especially turn destination, not only path destination
 	bool bMoved = UnitMove(pPathPlot, IsCombatUnit(), NULL, bEndMove);
 
 	int iETA = 1;
@@ -28052,6 +28937,18 @@ int CvUnit::UnitPathTo(int iX, int iY, int iFlags, int iPrevETA, bool bBuildingR
 
 		if (bMoved)
 		{
+			//it's possible that the move made additional enemies visible
+			//for some units we want to abort if the danger is significant and we have a chance to evade it
+			if (canMove() && iOldDanger >= 0)
+			{
+				int iNewDanger = GetDanger();
+				if (iNewDanger > GetCurrHitPoints()/2 && iNewDanger > iOldDanger)
+				{
+					ClearPathCache();
+					return MOVE_RESULT_CANCEL;
+				}
+			}
+
 			//this plot has now been consumed
 			m_kLastPath.pop_front();
 
@@ -28060,13 +28957,14 @@ int CvUnit::UnitPathTo(int iX, int iY, int iFlags, int iPrevETA, bool bBuildingR
 			m_uiLastPathLength = m_kLastPath.size();
 
 			//have we used up all plots for this turn?
-			if (!m_kLastPath.empty() && m_kLastPath.front().m_iTurns>1)
+			if (!m_kLastPath.empty() && m_kLastPath.front().m_iTurns>0)
 			{
 				//we will need to recalculate next turn anyway, but deleting the path would abort the mission
 				for (size_t i=0; i<m_kLastPath.size(); i++)
 					m_kLastPath[i].m_iTurns--;
 
 				//means we're done for this turn
+				finishMoves();
 				return MOVE_RESULT_NEXT_TURN;
 			}
 		}
@@ -28213,7 +29111,7 @@ bool CvUnit::CanDoInterfaceMode(InterfaceModeTypes eInterfaceMode, bool bTestVis
 		break;
 
 	case INTERFACEMODE_NUKE:
-		if(canNuke(plot()))
+		if(canNuke())
 		{
 			return true;
 		}
@@ -28325,27 +29223,22 @@ const char* CvUnit::GetMissionInfo()
 	if (IsCombatUnit())
 	{
 		if ( (m_eTacticalMove==NO_TACTICAL_MOVE) && (m_eHomelandMove==AI_HOMELAND_MOVE_NONE) )
-			m_strMissionInfoString = "no tactical move / no homeland move";
+			m_strMissionInfoString = "no move assigned";
 		else
 		{
 			if (m_eHomelandMove==AI_HOMELAND_MOVE_NONE)
 			{
 				CvTacticalMoveXMLEntry* pkMoveInfo = GC.getTacticalMoveInfo(m_eTacticalMove);
 				if (pkMoveInfo)
-				{
 					m_strMissionInfoString = (isBarbarian() ? barbarianMoveNames[m_eTacticalMove] : pkMoveInfo->GetType());
-					CvString strTemp0 = CvString::format(" (since %d)", GC.getGame().getGameTurn() - m_iTactMoveSetTurn);
-					m_strMissionInfoString += strTemp0;
-				}
 			}
 
 			if (m_eTacticalMove==NO_TACTICAL_MOVE)
-			{
 				m_strMissionInfoString = homelandMoveNames[m_eHomelandMove];
-				CvString strTemp0 = CvString::format(" (since %d)", GC.getGame().getGameTurn() - m_iHomelandMoveSetTurn);
-				m_strMissionInfoString += strTemp0;
-			}
 		}
+
+		m_strMissionInfoString += " : ";
+		m_strMissionInfoString += getTacticalZoneInfo();
 	}
 	else
 	{
@@ -28435,6 +29328,7 @@ void CvUnit::PushMission(MissionTypes eMission, int iData1, int iData2, int iFla
 
 	//any mission resets the cache
  	ClearReachablePlots();
+	m_lastStrengthModifiers.clear();
 
 	if (eMission==CvTypes::getMISSION_MOVE_TO() || eMission==CvTypes::getMISSION_EMBARK() || eMission==CvTypes::getMISSION_DISEMBARK())
 	{
@@ -28592,7 +29486,7 @@ int CvUnit::GetLengthMissionQueue()	const
 
 //	---------------------------------------------------------------------------
 /// Retrieve the data for the first mission in the queue (const correct version)
-const MissionData* CvUnit::GetHeadMissionData()
+const MissionData* CvUnit::GetHeadMissionData() const
 {
 	VALIDATE_OBJECT
 	if(m_missionQueue.getLength())
@@ -28601,7 +29495,7 @@ const MissionData* CvUnit::GetHeadMissionData()
 }
 
 //	---------------------------------------------------------------------------
-const MissionData* CvUnit::GetMissionData(int iIndex)
+const MissionData* CvUnit::GetMissionData(int iIndex) const
 {
 	VALIDATE_OBJECT
 	if(iIndex >= 0 && iIndex < m_missionQueue.getLength())
@@ -28650,7 +29544,7 @@ CvPlot* CvUnit::GetMissionAIPlot() const
 
 //	--------------------------------------------------------------------------------
 /// What is the AI type of the mission?
-MissionAITypes CvUnit::GetMissionAIType()
+MissionAITypes CvUnit::GetMissionAIType() const
 {
 	VALIDATE_OBJECT
 	return m_eMissionAIType;
@@ -28850,7 +29744,7 @@ bool CvUnit::IsEnemyInMovementRange(bool bOnlyFortified, bool bOnlyCities)
 				if(bOnlyFortified)
 				{
 					CvUnit* pEnemyUnit = pPlot->getVisibleEnemyDefender(getOwner());
-					if(pEnemyUnit && pEnemyUnit->IsFortifiedThisTurn())
+					if(pEnemyUnit && pEnemyUnit->IsFortified())
 					{
 						return true;
 					}
@@ -28874,12 +29768,12 @@ bool CvUnit::IsEnemyInMovementRange(bool bOnlyFortified, bool bOnlyCities)
 }
 
 // PATH-FINDING ROUTINES
-bool CvUnit::IsCachedPathValid()
+bool CvUnit::IsCachedPathValid() const
 {
 	return m_uiLastPathLength != 0xFFFFFFFF;
 }
 
-bool CvUnit::HaveCachedPathTo(const CvPlot* pToPlot, int iFlags)
+bool CvUnit::HaveCachedPathTo(const CvPlot* pToPlot, int iFlags) const
 {
 	return (
 		m_uiLastPathCacheOrigin == plot()->GetPlotIndex() &&
@@ -28891,7 +29785,7 @@ bool CvUnit::HaveCachedPathTo(const CvPlot* pToPlot, int iFlags)
 }
 
 //	--------------------------------------------------------------------------------
-/// Use pathfinder to create a path
+/// Use pathfinder to create a path (protected, allows caching)
 bool CvUnit::GeneratePath(const CvPlot* pToPlot, int iFlags, int iMaxTurns, int* piPathTurns, bool bCacheResult)
 {
 	if(pToPlot == NULL)
@@ -28935,14 +29829,6 @@ bool CvUnit::GeneratePath(const CvPlot* pToPlot, int iFlags, int iMaxTurns, int*
 }
 
 //	--------------------------------------------------------------------------------
-/// Returns the last path generated by the unit
-const CvPathNodeArray& CvUnit::GetPathNodeArray() const
-{
-	VALIDATE_OBJECT
-	return m_kLastPath;
-}
-
-//	--------------------------------------------------------------------------------
 /// Clear the pathing cache.  Please use with caution.
 void CvUnit::ClearPathCache()
 {
@@ -28966,7 +29852,29 @@ void CvUnit::ClearReachablePlots()
 /// Where do we end this next move?
 CvPlot* CvUnit::GetPathEndFirstTurnPlot() const
 {
-	return m_kLastPath.GetTurnDestinationPlot(1);
+	if (IsCachedPathValid())
+		return m_kLastPath.GetTurnDestinationPlot(0);
+
+	return NULL;
+}
+
+CvPlot* CvUnit::GetPathFirstPlot() const
+{
+	if (IsCachedPathValid())
+		return m_kLastPath.GetFirstPlot();
+
+	return NULL;
+}
+
+CvPlot* CvUnit::GetPathLastPlot() const
+{
+	if (!IsCachedPathValid())
+		return NULL;
+
+	if (m_kLastPath.empty()) //with approximate pathfinding this is a valid case
+		return plot();
+	else
+		return m_kLastPath.GetFinalPlot();
 }
 
 // PRIVATE METHODS
@@ -28996,20 +29904,14 @@ bool CvUnit::canAdvance(const CvPlot& plot, int iThreshold) const
 }
 
 //	--------------------------------------------------------------------------------
-CvUnit* CvUnit::airStrikeTarget(CvPlot& targetPlot, bool bNoncombatAllowed) const
+CvUnit* CvUnit::rangeStrikeTarget(const CvPlot& targetPlot, bool bNoncombatAllowed) const
 {
 	VALIDATE_OBJECT
-	CvUnit* pDefender;
+	// All defaults, except test for war, and allow noncombat units
+	CvUnit* pDefender = targetPlot.getBestDefender(NO_PLAYER, getOwner(), this, true, false, false, bNoncombatAllowed);
 
-	pDefender = targetPlot.getBestDefender(NO_PLAYER, getOwner(), this, true, false, false, bNoncombatAllowed);	// All defaults, except test for war, and allow noncombat units
-
-	if(pDefender)
-	{
-		if(!pDefender->IsDead())
-		{
-			return pDefender;
-		}
-	}
+	if(pDefender && !pDefender->IsDead())
+		return pDefender;
 
 	return NULL;
 }
@@ -29025,7 +29927,7 @@ void CvUnit::DoPlagueTransfer(CvUnit& defender)
 
 	int iPlagueChance = getPlagueChance();
 
-	int iRoll = GC.getGame().getJonRandNum(100, "Plague Transfer from Melee attempt");
+	int iRoll = GC.getGame().getSmallFakeRandNum(10, *plot()) * 10;
 
 	if(iRoll > iPlagueChance)
 	{
@@ -29137,7 +30039,7 @@ bool CvUnit::CanFallBackFromMelee(CvUnit& attacker, bool bCheckChances)
 		}
 		iWithdrawChance += (GC.getWITHDRAW_MOD_BLOCKED_TILE() * iBlockedHexes);
 
-		int iRoll = GC.getGame().getJonRandNum(100, "Withdraw from Melee attempt");
+		int iRoll = GC.getGame().getSmallFakeRandNum(10, *plot()) * 10;
 		return iRoll < iWithdrawChance;
 	}
 	else
@@ -29152,7 +30054,7 @@ bool CvUnit::DoFallBackFromMelee(CvUnit& attacker)
 	CvPlot* pAttackerFromPlot = attacker.plot();
 	DirectionTypes eAttackDirection = directionXY(pAttackerFromPlot, plot());
 
-	int iRightOrLeftBias = (GC.getGame().getJonRandNum(100, "right or left bias") < 50) ? 1 : -1;
+	int iRightOrLeftBias = (GC.getGame().getSmallFakeRandNum(10, *plot()) < 5) ? 1 : -1;
 	int iBiases[5] = {0,-1,1,-2,2};
 	int x = plot()->getX();
 	int y = plot()->getY();
@@ -29212,7 +30114,7 @@ bool CvUnit::DoFallBackFromRanged(CvUnit& attacker)
 	CvPlot* pAttackerFromPlot = attacker.plot();
 	DirectionTypes eAttackDirection = directionXY(pAttackerFromPlot, plot());
 
-	int iRightOrLeftBias = (GC.getGame().getJonRandNum(100, "right or left bias") < 50) ? 1 : -1;
+	int iRightOrLeftBias = (GC.getGame().getSmallFakeRandNum(10, *plot()) < 5) ? 1 : -1;
 	int iBiases[5] = {0,-1,1,-2,2};
 	int x = plot()->getX();
 	int y = plot()->getY();
@@ -29559,7 +30461,7 @@ int CvUnit::AI_promotionValue(PromotionTypes ePromotion)
 	}
 	else
 	{
-		iValue += iTemp * (10 + iFlavorRecon * 2);
+		iValue += iTemp * (50 + iFlavorRecon * 5);
 	}
 
 	iTemp = pkPromotionInfo->GetCityAttackPercent();
@@ -30153,7 +31055,7 @@ int CvUnit::AI_promotionValue(PromotionTypes ePromotion)
 	if(iValue > 0)
 	{
 #if defined(MOD_CORE_REDUCE_RANDOMNESS)
-		iValue += GC.getGame().getSmallFakeRandNum(100, iValue);
+		iValue += GC.getGame().getSmallFakeRandNum(10, iValue) * 10;
 #else
 		iValue += GC.getGame().getJonRandNum(15, "AI Promote");
 #endif
@@ -30268,7 +31170,7 @@ bool CvUnit::dispatchingNetMessage()
 //	Return true if the unit should change/update the map visibility.
 bool CvUnit::canChangeVisibility() const
 {
-	return m_iMapLayer == DEFAULT_UNIT_MAP_LAYER;
+	return m_iMapLayer == DEFAULT_UNIT_MAP_LAYER || m_iMapLayer == TRADE_UNIT_MAP_LAYER;
 }
 
 //	--------------------------------------------------------------------------------
@@ -30465,12 +31367,23 @@ bool CvUnit::IsWithinDistanceOfTerrain(TerrainTypes iTerrainType, int iDistance)
 
 //	--------------------------------------------------------------------------------
 /// Can a unit reach this destination in "X" turns of movement? (pass in 0 if need to make it in 1 turn with movement left)
-bool CvUnit::CanReachInXTurns(const CvPlot* pTarget, int iTurns, bool bIgnoreUnits, int* piTurns /* = NULL */)
+bool CvUnit::CanReachInXTurns(const CvPlot* pTarget, int iTurns, bool bIgnoreUnits, bool bAllowEmbark, int* piTurns /* = NULL */)
 {
 	if (!pTarget)
 		return false;
 
-	int iTurnsCalculated = TurnsToReachTarget(pTarget, bIgnoreUnits, false, iTurns);
+	int iFlags = 0;
+	if (!bAllowEmbark)
+		iFlags |= CvUnit::MOVEFLAG_NO_EMBARK;
+
+	if (bIgnoreUnits)
+	{
+		iFlags |= CvUnit::MOVEFLAG_IGNORE_STACKING;
+		iFlags |= CvUnit::MOVEFLAG_IGNORE_ZOC;
+		iFlags |= CvUnit::MOVEFLAG_IGNORE_DANGER;
+	}
+
+	int iTurnsCalculated = TurnsToReachTarget(pTarget, iFlags, iTurns);
 	if (piTurns)
 		*piTurns = iTurnsCalculated;
 
@@ -30551,8 +31464,8 @@ int CvUnit::TurnsToReachTarget(const CvPlot* pTarget, int iFlags, int iTargetTur
 	if(pTarget == plot())
 		return 0;
 
-	//normal handling: use the path cache of the unit, so we can possibly re-use the path later
-	if (!GeneratePath(pTarget, iFlags, iTargetTurns, &rtnValue) )
+	//don't cache the result here
+	if (!GeneratePath(pTarget, iFlags, iTargetTurns, &rtnValue, false) )
 		return INT_MAX;
 
 	return rtnValue;
@@ -30573,11 +31486,6 @@ FDataStream& operator>>(FDataStream& loadFrom, CvUnit& writeTo)
 }
 //	--------------------------------------------------------------------------------
 #if defined(MOD_BALANCE_CORE)
-bool CvUnit::isConvertUnit() const
-{
-	VALIDATE_OBJECT
-	return getUnitInfo().IsConvertUnit();
-}
 bool CvUnit::isCultureFromExperienceDisbandUpgrade() const
 {
 	VALIDATE_OBJECT
@@ -30593,20 +31501,10 @@ bool CvUnit::isUnitEraUpgrade() const
 	VALIDATE_OBJECT
 	return getUnitInfo().IsUnitEraUpgrade();
 }
-bool CvUnit::isConvertOnDamage() const
+bool CvUnit::isReligiousUnit() const
 {
 	VALIDATE_OBJECT
-	return getUnitInfo().IsConvertOnDamage();
-}
-bool CvUnit::isConvertOnFullHP() const
-{
-	VALIDATE_OBJECT
-	return getUnitInfo().IsConvertOnFullHP();
-}
-bool CvUnit::isConvertEnemyUnitToBarbarian() const
-{
-	VALIDATE_OBJECT
-	return getUnitInfo().IsConvertEnemyUnitToBarbarian();
+	return (m_pUnitInfo->IsFoundReligion() || m_pUnitInfo->IsSpreadReligion() || m_pUnitInfo->IsRemoveHeresy());
 }
 bool CvUnit::isWLKTKDOnBirth() const
 {
@@ -30628,7 +31526,7 @@ bool CvUnit::isExtraAttackHealthOnKill() const
 	VALIDATE_OBJECT
 	return getUnitInfo().IsExtraAttackHealthOnKill();
 }
-bool CvUnit::isHighSeaRaider() const
+bool CvUnit::isHighSeaRaiderUnit() const
 {
 	VALIDATE_OBJECT
 	return getUnitInfo().IsHighSeaRaider();

@@ -188,11 +188,11 @@ WHERE Tag = 'TXT_KEY_CIV5_IMPROVEMENTS_CITADEL_TEXT';
 
 -- CS Stuff
 UPDATE Language_en_US
-SET Text = 'You received tribute very recently'
+SET Text = 'Someone demanded tribute very recently'
 WHERE Tag = 'TXT_KEY_POP_CSTATE_BULLY_FACTOR_BULLIED_VERY_RECENTLY';
 
 UPDATE Language_en_US
-SET Text = 'You received tribute recently'
+SET Text = 'Someone demanded tribute recently'
 WHERE Tag = 'TXT_KEY_POP_CSTATE_BULLY_FACTOR_BULLIED_RECENTLY';
 
 INSERT INTO Language_en_US
@@ -300,7 +300,7 @@ SET Text = 'Disrupting Plans'
 WHERE Tag = 'TXT_KEY_SPY_STATE_ESTABLISHED_SURVEILLANCE_PROGRESS_BAR';
 
 UPDATE Language_en_US
-SET Text = '[COLOR_NEGATIVE_TEXT]Your spies were caught operating in their lands.[ENDCOLOR]'
+SET Text = '[COLOR_NEGATIVE_TEXT]You were caught stealing from them.[ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_DIPLO_CAUGHT_STEALING';
 
 -- Changed Diplo Text for Trade
@@ -531,3 +531,40 @@ INSERT INTO Language_en_US
 			(Tag,										Text)
 SELECT		'TXT_KEY_SCIENCE_BOOST_CONQUEST_ASSYRIA',	'Your soldiers found [ICON_RESEARCH] Science during the conquest of {1_Name}!'
 WHERE EXISTS (SELECT * FROM CustomModOptions WHERE Name='ALTERNATE_ASSYRIA_TRAIT' AND Value= 1 );
+
+-- All Growth Modifier Tooltips with Icons
+UPDATE Language_en_US
+SET Text = '[NEWLINE][ICON_BULLET][ICON_CONNECTED] Empire Modifier: {1_Num}%'
+WHERE Tag = 'TXT_KEY_FOODMOD_PLAYER';
+
+UPDATE Language_en_US
+SET Text = '[NEWLINE][ICON_BULLET][ICON_RELIGION_PANTHEON] Religious Beliefs Modifier: {1_Num}%'
+WHERE Tag = 'TXT_KEY_FOODMOD_RELIGION';
+
+UPDATE Language_en_US
+SET Text = '[NEWLINE][ICON_BULLET][ICON_HAPPINESS_1] We Love the King Day Modifier: {1_Num}%'
+WHERE Tag = 'TXT_KEY_FOODMOD_WLTKD';
+
+-- Revolt TT fix.
+UPDATE Language_en_US
+SET Text = 'Because the empire has at least 20 [ICON_HAPPINESS_4] Unhappiness (or because our public opinion is not Content), a city will revolt in {1_Turns} turns. Based on current Unhappiness levels and Cultural/Ideological pressure, the city most likely to revolt is {2_CityName} and it will join {3_CivName}. Try to get your empire''s Happiness level out of this range as soon as possible!'
+WHERE Tag = 'TXT_KEY_NOTIFICATION_POSSIBLE_CITY_REVOLT';
+
+-- Rebels!
+UPDATE Language_en_US
+SET Text = 'Because the empire has at least 20 [ICON_HAPPINESS_4] Unhappiness, the city of {1_CityName} has revolted and joined {2_CivName}!'
+WHERE Tag = 'TXT_KEY_NOTIFICATION_CITY_REVOLT' AND EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_CIVS' AND Value= 1 );
+
+
+UPDATE Language_en_US
+SET Text = 'Very well. Not that it will help either of us in the long run...we will all die soon enough.'
+WHERE Tag = 'TXT_KEY_LEADER_NEBUCHADNEZZAR_TRADE_YES_HAPPY';
+
+UPDATE Language_en_US
+SET Text = 'It honors my people, helping those in need.'
+WHERE Tag = 'TXT_KEY_LEADER_POCATELLO_TRIBUTE_YES_NEUTRAL';
+
+
+UPDATE Language_en_US
+SET Text = '[COLOR_WARNING_TEXT]{1_Number} Interceptors![ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_EUPANEL_VISIBLE_AA_UNITS';

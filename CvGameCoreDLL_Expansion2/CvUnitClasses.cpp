@@ -46,6 +46,8 @@ CvUnitEntry::CvUnitEntry(void) :
 	m_iHurryMultiplier(0),
 	m_bRushBuilding(false),
 	m_iBaseGold(0),
+	m_iScaleFromNumGWs(0),
+	m_iScaleFromNumThemes(0),
 	m_iNumGoldPerEra(0),
 #if defined(MOD_DIPLOMACY_CITYSTATES)
 	m_iNumInfPerEra(0),
@@ -54,15 +56,9 @@ CvUnitEntry::CvUnitEntry(void) :
 	m_iNumFreeLux(0),
 	m_iBeliefUnlock(NO_BELIEF),
 	m_bCultureFromExperienceOnDisband(false),
-	m_bIsConvertUnit(false),
 	m_bFreeUpgrade(false),
 	m_bUnitEraUpgrade(false),
-	m_bIsConvertOnDamage(false),
-	m_eConvertUnit(NO_UNIT),
-	m_iDamageThreshold(0),
-	m_bIsConvertOnFullHP(0),
 	m_bWarOnly(0),
-	m_bConvertEnemyUnitToBarbarian(false),
 	m_bWLTKD(false),
 	m_bGoldenAge(false),
 	m_bCultureBoost(0),
@@ -170,6 +166,7 @@ CvUnitEntry::CvUnitEntry(void) :
 	m_pbBuildings(NULL),
 	m_pbBuildingClassRequireds(NULL),
 #if defined(MOD_BALANCE_CORE)
+	m_piScalingFromOwnedImprovements(NULL),
 	m_pbBuildOnFound(NULL),
 	m_pbBuildingClassPurchaseRequireds(NULL),
 	m_iResourceType(NO_RESOURCE),
@@ -179,9 +176,11 @@ CvUnitEntry::CvUnitEntry(void) :
 	m_bIsMounted(false),
 	m_iCooldown(0),
 	m_iGlobalFaithCooldown(0),
+	m_iLocalFaithCooldown(0),
 #endif
 	m_piPrereqAndTechs(NULL),
 	m_piResourceQuantityRequirements(NULL),
+	m_piResourceQuantityExpended(NULL),
 	m_piProductionTraits(NULL),
 	m_piFlavorValue(NULL),
 	m_piUnitGroupRequired(NULL),
@@ -218,11 +217,13 @@ CvUnitEntry::~CvUnitEntry(void)
 	SAFE_DELETE_ARRAY(m_pbBuildings);
 	SAFE_DELETE_ARRAY(m_pbBuildingClassRequireds);
 #if defined(MOD_BALANCE_CORE)
+	SAFE_DELETE_ARRAY(m_piScalingFromOwnedImprovements);
 	SAFE_DELETE_ARRAY(m_pbBuildOnFound);
 	SAFE_DELETE_ARRAY(m_pbBuildingClassPurchaseRequireds);
 #endif
 	SAFE_DELETE_ARRAY(m_piPrereqAndTechs);
 	SAFE_DELETE_ARRAY(m_piResourceQuantityRequirements);
+	SAFE_DELETE_ARRAY(m_piResourceQuantityExpended);
 	SAFE_DELETE_ARRAY(m_piProductionTraits);
 	SAFE_DELETE_ARRAY(m_piFlavorValue);
 	SAFE_DELETE_ARRAY(m_piUnitGroupRequired);
@@ -286,6 +287,8 @@ bool CvUnitEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility& k
 	m_iHurryMultiplier = kResults.GetInt("HurryMultiplier");
 	m_bRushBuilding= kResults.GetInt("RushBuilding");
 	m_iBaseGold = kResults.GetInt("BaseGold");
+	m_iScaleFromNumGWs = kResults.GetInt("ScaleFromNumGWs");
+	m_iScaleFromNumThemes = kResults.GetInt("ScaleFromNumThemes");
 	m_iNumGoldPerEra = kResults.GetInt("NumGoldPerEra");
 #if defined(MOD_DIPLOMACY_CITYSTATES)
 	m_iNumInfPerEra = kResults.GetInt("NumInfPerEra");
@@ -413,21 +416,15 @@ bool CvUnitEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility& k
 
 	m_iCooldown = kResults.GetInt("PurchaseCooldown");
 	m_iGlobalFaithCooldown = kResults.GetInt("GlobalFaithPurchaseCooldown");
+	m_iLocalFaithCooldown = kResults.GetInt("LocalFaithPurchaseCooldown");
 
 	m_bIsMounted = kResults.GetBool("IsMounted");
 
 	szTextVal = kResults.GetText("BeliefRequired");
 	m_iBeliefUnlock = GC.getInfoTypeForString(szTextVal, true);
 	m_bCultureFromExperienceOnDisband = kResults.GetBool("CulExpOnDisbandUpgrade");
-	m_bIsConvertUnit = kResults.GetBool("IsConvertUnit");
 	m_bUnitEraUpgrade = kResults.GetBool("UnitEraUpgrade");
-	m_bIsConvertOnDamage = kResults.GetBool("ConvertOnDamage");
-	m_iDamageThreshold = kResults.GetInt("DamageThreshold");
-	szTextVal = kResults.GetText("ConvertUnit");
-	m_eConvertUnit = (UnitTypes)GC.getInfoTypeForString(szTextVal, true);
-	m_bIsConvertOnFullHP = kResults.GetBool("ConvertOnFullHP");
 	m_bWarOnly = kResults.GetBool("WarOnly");
-	m_bConvertEnemyUnitToBarbarian = kResults.GetBool("ConvertEnemyUnitToBarbarian");
 	m_bWLTKD = kResults.GetBool("WLTKDFromBirth");
 	m_bGoldenAge = kResults.GetBool("GoldenAgeFromBirth");
 	m_bCultureBoost = kResults.GetBool("CultureBoost");
@@ -487,6 +484,7 @@ bool CvUnitEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility& k
 	kUtility.PopulateArrayByValue(m_piProductionTraits, "Traits", "Unit_ProductionTraits", "TraitType", "UnitType", szUnitType, "Trait");
 
 	kUtility.PopulateArrayByValue(m_piResourceQuantityRequirements, "Resources", "Unit_ResourceQuantityRequirements", "ResourceType", "UnitType", szUnitType, "Cost");
+	kUtility.PopulateArrayByValue(m_piResourceQuantityExpended, "Resources", "Unit_ResourceQuantityExpended", "ResourceType", "UnitType", szUnitType, "Amount");
 	kUtility.PopulateArrayByValue(m_piProductionModifierBuildings, "Buildings", "Unit_ProductionModifierBuildings", "BuildingType", "UnitType", szUnitType, "ProductionModifier");
 	kUtility.PopulateArrayByValue(m_piYieldFromKills, "Yields", "Unit_YieldFromKills", "YieldType", "UnitType", szUnitType, "Yield");
 #if defined(MOD_API_UNIFIED_YIELDS)
@@ -504,6 +502,7 @@ bool CvUnitEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility& k
 	kUtility.PopulateArrayByExistence(m_pbBuildings, "Buildings", "Unit_Buildings", "BuildingType", "UnitType", szUnitType);
 	kUtility.PopulateArrayByExistence(m_pbBuildingClassRequireds, "BuildingClasses", "Unit_BuildingClassRequireds", "BuildingClassType", "UnitType", szUnitType);
 #if defined(MOD_BALANCE_CORE)
+	kUtility.PopulateArrayByValue(m_piScalingFromOwnedImprovements, "Improvements", "Unit_ScalingFromOwnedImprovements", "ImprovementType", "UnitType", szUnitType, "Amount");
 	kUtility.PopulateArrayByExistence(m_pbBuildOnFound, "BuildingClasses", "Unit_BuildOnFound", "BuildingClassType", "UnitType", szUnitType);
 	kUtility.PopulateArrayByExistence(m_pbBuildingClassPurchaseRequireds, "BuildingClasses", "Unit_BuildingClassPurchaseRequireds", "BuildingClassType", "UnitType", szUnitType);
 	kUtility.PopulateArrayByValue(m_piEraCombatStrength, "Eras", "Unit_EraCombatStrength", "EraType", "UnitType", szUnitType, "CombatStrength");
@@ -864,6 +863,17 @@ bool CvUnitEntry::IsRushBuilding() const
 int CvUnitEntry::GetBaseGold() const
 {
 	return m_iBaseGold;
+}
+
+/// Era boost to gold (for great people)
+int CvUnitEntry::GetScaleFromNumGWs() const
+{
+	return m_iScaleFromNumGWs;
+}
+/// Era boost to gold (for great people)
+int CvUnitEntry::GetScaleFromNumThemes() const
+{
+	return m_iScaleFromNumThemes;
 }
 
 /// Era boost to gold (for great people)
@@ -1363,37 +1373,13 @@ bool CvUnitEntry::IsCultureFromExperienceDisbandUpgrade() const
 {
 	return m_bCultureFromExperienceOnDisband;
 }
-bool CvUnitEntry::IsConvertUnit() const
-{
-	return m_bIsConvertUnit;
-}
-bool CvUnitEntry::IsConvertOnDamage() const
-{
-	return m_bIsConvertOnDamage;
-}
 bool CvUnitEntry::IsUnitEraUpgrade() const
 {
 	return m_bUnitEraUpgrade;
 }
-int CvUnitEntry::GetDamageThreshold() const
-{
-	return m_iDamageThreshold;
-}
-UnitTypes CvUnitEntry::GetConvertUnit() const
-{
-	return m_eConvertUnit;
-}
-bool CvUnitEntry::IsConvertOnFullHP() const
-{
-	return m_bIsConvertOnFullHP;
-}
 bool CvUnitEntry::IsWarOnly() const
 {
 	return m_bWarOnly;
-}
-bool CvUnitEntry::IsConvertEnemyUnitToBarbarian() const
-{
-	return m_bConvertEnemyUnitToBarbarian;
 }
 bool CvUnitEntry::IsWLTKDFromBirth() const
 {
@@ -1439,6 +1425,14 @@ int CvUnitEntry::GetResourceQuantityRequirement(int i) const
 	CvAssertMsg(i < GC.getNumResourceInfos(), "Index out of bounds");
 	CvAssertMsg(i > -1, "Index out of bounds");
 	return m_piResourceQuantityRequirements ? m_piResourceQuantityRequirements[i] : -1;
+}
+
+/// Resources consumed to construct
+int CvUnitEntry::GetResourceQuantityExpended(int i) const
+{
+	CvAssertMsg(i < GC.getNumResourceInfos(), "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	return m_piResourceQuantityExpended ? m_piResourceQuantityExpended[i] : -1;
 }
 
 /// Production boost for having a specific building in city
@@ -1544,6 +1538,14 @@ bool CvUnitEntry::GetBuildingClassRequireds(int i) const
 	CvAssertMsg(i < GC.getNumBuildingClassInfos(), "Index out of bounds");
 	CvAssertMsg(i > -1, "Index out of bounds");
 	return m_pbBuildingClassRequireds ? m_pbBuildingClassRequireds[i] : false;
+}
+
+
+int CvUnitEntry::GetScalingFromOwnedImprovements(int i) const
+{
+	CvAssertMsg(i < GC.getNumImprovementInfos(), "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	return m_piScalingFromOwnedImprovements ? m_piScalingFromOwnedImprovements[i] : -1;
 }
 
 #if defined(MOD_BALANCE_CORE)
@@ -1665,6 +1667,16 @@ GreatWorkType CvUnitEntry::GetGreatWorks(int i) const
 	CvAssertMsg(i > -1, "Index out of bounds");
 	return (m_paeGreatWorks) ? m_paeGreatWorks[i] : NO_GREAT_WORK;
 }
+
+bool CvUnitEntry::IsGreatWorkUnit() const
+{
+	for (int i = 0; i < GetNumUnitNames(); i++)
+	{
+		if (GetGreatWorks(i) != NO_GREAT_WORK)
+			return true;
+	}
+	return false;
+}
 #if defined(MOD_BALANCE_CORE)
 /// Unique era for individual units.
 EraTypes CvUnitEntry::GetGreatPersonEra(int i) const
@@ -1706,6 +1718,11 @@ int CvUnitEntry::GetCooldown() const
 int CvUnitEntry::GetGlobalFaithCooldown() const
 {
 	return m_iGlobalFaithCooldown;
+}
+/// Local faith purchase cooldown for this unit.
+int CvUnitEntry::GetLocalFaithCooldown() const
+{
+	return m_iLocalFaithCooldown;
 }
 #endif
 /// What flag icon to use

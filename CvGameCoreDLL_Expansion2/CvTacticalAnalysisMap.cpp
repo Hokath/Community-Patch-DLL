@@ -22,7 +22,7 @@
 CvTacticalAnalysisCell::CvTacticalAnalysisCell(void):
 	m_iDeploymentScore(0),
 	m_eTargetType(AI_TACTICAL_TARGET_NONE),
-	m_iDominanceZoneID(-1),
+	m_iZoneID(-1),
 	m_iTargetDistance(INT_MAX),
 	m_bHasLOSToTarget(false)
 {
@@ -35,7 +35,7 @@ void CvTacticalAnalysisCell::Clear()
 	ClearFlags();
 	m_iDeploymentScore = 0;
 	m_eTargetType = AI_TACTICAL_TARGET_NONE;
-	m_iDominanceZoneID = -1;
+	m_iZoneID = -1;
 	m_iTargetDistance = INT_MAX;
 	m_bHasLOSToTarget = false;
 }
@@ -65,7 +65,7 @@ bool CvTacticalAnalysisCell::CanUseForOperationGatheringCheckWater(bool bWater)
 /// Constructor
 CvTacticalDominanceZone::CvTacticalDominanceZone(void)
 {
-	m_iDominanceZoneID = -1;
+	m_iZoneID = -1;
 	m_eTerritoryType = TACTICAL_TERRITORY_NONE;
 	m_eOverallDominanceFlag = TACTICAL_DOMINANCE_NO_UNITS_VISIBLE;
 	m_eOwner = NO_PLAYER;
@@ -267,46 +267,6 @@ void CvTacticalDominanceZone::SetRangeClosestEnemyUnit(int iRange)
 	m_iRangeClosestEnemyUnit = iRange;
 }
 
-/// Mix ownership of zone and who is dominant to get a unique classification for the zone
-TacticalMoveZoneType CvTacticalDominanceZone::GetZoneType() const
-{
-	if(m_eTerritoryType == TACTICAL_TERRITORY_FRIENDLY)
-	{
-		if(m_eOverallDominanceFlag == TACTICAL_DOMINANCE_FRIENDLY)
-		{
-			return AI_TACTICAL_MOVE_ZONE_FRIENDLY_WINNING;
-		}
-		else if(m_eOverallDominanceFlag == TACTICAL_DOMINANCE_EVEN)
-		{
-			return AI_TACTICAL_MOVE_ZONE_FRIENDLY_EVEN;
-		}
-		else
-		{
-			return AI_TACTICAL_MOVE_ZONE_FRIENDLY_LOSING;
-		}
-	}
-
-	else if(m_eTerritoryType == TACTICAL_TERRITORY_ENEMY)
-	{
-		if(m_eOverallDominanceFlag == TACTICAL_DOMINANCE_FRIENDLY)
-		{
-			return AI_TACTICAL_MOVE_ZONE_ENEMY_WINNING;
-		}
-		else if(m_eOverallDominanceFlag == TACTICAL_DOMINANCE_EVEN)
-		{
-			return AI_TACTICAL_MOVE_ZONE_ENEMY_EVEN;
-		}
-		else
-		{
-			return AI_TACTICAL_MOVE_ZONE_ENEMY_LOSING;
-		}
-	}
-
-	else
-	{
-		return AI_TACTICAL_MOVE_ZONE_UNOWNED;
-	}
-}
 //=====================================
 // CvTacticalAnalysisMap
 //=====================================
@@ -332,8 +292,8 @@ void CvTacticalAnalysisMap::Init(PlayerTypes ePlayer)
 	AI_PERF("AI-perf-tact.csv", "CvTacticalAnalysisMap::Init()" );
 
 	m_ePlayer = ePlayer;
-	m_pCells.clear();
-	m_pCells.resize( GC.getMap().numPlots() );
+	m_vCells.clear();
+	m_vCells.resize( GC.getMap().numPlots() );
 	m_DominanceZones.clear();
 	m_iDominancePercentage = GC.getAI_TACTICAL_MAP_DOMINANCE_PERCENTAGE();
 
@@ -343,9 +303,31 @@ void CvTacticalAnalysisMap::Init(PlayerTypes ePlayer)
 
 }
 
+int CvTacticalDominanceZone::GetBorderScore() const
+{
+	int iCount = 0;
+	for (size_t i = 0; i < m_vNeighboringZones.size(); i++)
+	{
+		CvTacticalDominanceZone* pNeighbor = GET_PLAYER(m_eOwner).GetTacticalAI()->GetTacticalAnalysisMap()->GetZoneByID(m_vNeighboringZones[i]);
+		if (!pNeighbor)
+			continue;
+		
+		if (pNeighbor->GetTerritoryType() == TACTICAL_TERRITORY_ENEMY)
+			iCount+=3;
+
+		if (pNeighbor->GetTerritoryType() == TACTICAL_TERRITORY_NEUTRAL)
+			iCount+=2;
+
+		if (pNeighbor->GetTerritoryType() == TACTICAL_TERRITORY_NO_OWNER)
+			iCount+=1;
+	}
+	
+	return iCount;
+}
+
 void CvTacticalDominanceZone::AddNeighboringZone(int iZoneID)
 { 
-	if (iZoneID==m_iDominanceZoneID || iZoneID==-1)
+	if (iZoneID==m_iZoneID || iZoneID==-1)
 		return;
 
 	std::vector<int>::iterator it = std::find(m_vNeighboringZones.begin(),m_vNeighboringZones.end(),iZoneID);
@@ -360,7 +342,7 @@ void CvTacticalAnalysisMap::EstablishZoneNeighborhood()
 	int iW = GC.getMap().getGridWidth();
 	int iH = GC.getMap().getGridHeight();
 
-	for(unsigned int iI = 0; iI < m_DominanceZones.size(); iI++)
+	for(size_t iI = 0; iI < m_DominanceZones.size(); iI++)
 	{
 		m_DominanceZones[iI].ClearNeighboringZones();
 	}
@@ -409,45 +391,46 @@ void CvTacticalAnalysisMap::EstablishZoneNeighborhood()
 
 bool CvTacticalAnalysisMap::IsUpToDate()
 {
-	return (m_iTurnBuilt == GC.getGame().getGameTurn() && m_pCells.size()==GC.getMap().numPlots());
+	return (m_iTurnBuilt == GC.getGame().getGameTurn() && m_vCells.size()==GC.getMap().numPlots());
+}
+
+void CvTacticalAnalysisMap::Invalidate()
+{
+	m_iTurnBuilt = -1;
 }
 
 /// Fill the map with data for this AI player's turn
-void CvTacticalAnalysisMap::Refresh()
+void CvTacticalAnalysisMap::Refresh(bool force)
 {
-	if(!IsUpToDate())
+	if(force || !IsUpToDate())
 	{
 		//can happen in the first turn ...
-		if (m_pCells.size()!=GC.getMap().numPlots())
+		if (m_vCells.size()!=GC.getMap().numPlots())
 			Init(m_ePlayer);
 
 		m_iTurnBuilt = GC.getGame().getGameTurn();
 		m_iTacticalRange = ((GC.getAI_TACTICAL_RECRUIT_RANGE() + GC.getGame().getCurrentEra()) * 3) / 5;  // Have this increase as game goes on
 		m_iUnitStrengthMultiplier = GC.getAI_TACTICAL_MAP_UNIT_STRENGTH_MULTIPLIER() * m_iTacticalRange;
 
-		AI_PERF_FORMAT("AI-perf.csv", ("Tactical Analysis Map, Turn %d, %s", GC.getGame().getGameTurn(), m_pPlayer->getCivilizationShortDescription()) );
+		AI_PERF_FORMAT("AI-perf.csv", ("Tactical Analysis Map, Turn %d, %s", GC.getGame().getGameTurn(), GET_PLAYER(m_ePlayer).getCivilizationShortDescription()) );
 
 		m_DominanceZones.clear();
-		AddTemporaryZones();
 
 		for(int iI = 0; iI < GC.getMap().numPlots(); iI++)
 		{
-			CvAssertMsg((iI < m_iNumPlots), "Plot to be accessed exceeds allocation!");
+			// Erase this cell
+			m_vCells[iI].Clear();
 
 			CvPlot* pPlot = GC.getMap().plotByIndexUnchecked(iI);
-			if(pPlot == NULL)
-			{
-				// Erase this cell
-				m_pCells[iI].Clear();
-			}
-			else
-			{
-				if(PopulateCell(iI, pPlot))
-				{
-					AddToDominanceZones(iI, &m_pCells[iI]);
-				}
-			}
+			if (!pPlot)
+				continue;
+
+			if(PopulateCell(iI, pPlot))
+				AddToDominanceZones(iI, &m_vCells[iI]);
 		}
+
+		//do this before anything else
+		UpdateZoneIds();
 
 		//barbarians don't care about tactical dominance
 		if(m_ePlayer!=BARBARIAN_PLAYER)
@@ -457,154 +440,38 @@ void CvTacticalAnalysisMap::Refresh()
 			PrioritizeZones();
 			LogZones();
 		}
-
-		BuildEnemyUnitList();
-		MarkCellsNearEnemy();
 	}
 }
 
-// Find all our enemies (combat units)
-void CvTacticalAnalysisMap::BuildEnemyUnitList()
+//make it so that the zone ids correspond to the city ids (easier debugging)
+void CvTacticalAnalysisMap::UpdateZoneIds()
 {
-	m_EnemyUnits.clear();
-	m_EnemyCities.clear();
+	map<int, int> old2new;
 
-	TeamTypes ourTeam = GET_PLAYER(m_ePlayer).getTeam();
-	for(int iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++)
+	for (size_t i = 0; i < m_DominanceZones.size(); i++)
 	{
-		const PlayerTypes ePlayer = (PlayerTypes)iPlayer;
-		CvPlayer& kPlayer = GET_PLAYER(ePlayer);
-		const TeamTypes eTeam = kPlayer.getTeam();
-
-		// for each opposing civ
-		if(kPlayer.isAlive() && GET_TEAM(eTeam).isAtWar(ourTeam))
+		CvCity* pZoneCity = m_DominanceZones[i].GetZoneCity();
+		int iOld = m_DominanceZones[i].GetZoneID();
+		int iNew = m_DominanceZones[i].GetZoneID();
+		if (pZoneCity)
 		{
-			int iLoop;
-			CvUnit* pLoopUnit = NULL;
-			CvCity* pLoopCity;
-
-			for(pLoopCity = kPlayer.firstCity(&iLoop); pLoopCity != NULL; pLoopCity = kPlayer.nextCity(&iLoop))
-				if (pLoopCity->plot()->isRevealed(ourTeam))
-					m_EnemyCities.push_back(pLoopCity->GetIDInfo());
-
-			for(pLoopUnit = kPlayer.firstUnit(&iLoop); pLoopUnit != NULL; pLoopUnit = kPlayer.nextUnit(&iLoop))
-				if(pLoopUnit->IsCanAttack() && pLoopUnit->plot()->isVisible(ourTeam))
-					m_EnemyUnits.push_back(pLoopUnit->GetIDInfo());
-		}
-	}
-}
-
-// Indicate the plots we might want to move to that the enemy can attack
-void CvTacticalAnalysisMap::MarkCellsNearEnemy()
-{
-	PromotionTypes eDamagePromotion = NO_PROMOTION;
-	for (int iJ = 0; iJ < GC.getNumPromotionInfos(); iJ++)
-	{
-		const PromotionTypes eLoopPromotion = static_cast<PromotionTypes>(iJ);
-		CvPromotionEntry* pkPromotionInfo = GC.getPromotionInfo(eLoopPromotion);
-		if (pkPromotionInfo != NULL)
-		{
-			if (pkPromotionInfo->GetNearbyEnemyDamage() > 0)
-			{
-				eDamagePromotion = eLoopPromotion;
-				break;
-			}
-		}
-	}
-
-	for(unsigned int iUnitIndex = 0;  iUnitIndex < m_EnemyUnits.size(); iUnitIndex++)
-	{
-		CvUnit* pUnit = getUnit(m_EnemyUnits[iUnitIndex]);
-		
-		//for ranged every plot we can enter with movement left is a base for attack
-		int iMinMovesLeft = pUnit->IsCanAttackRanged() ? 1 : 0;
-
-		//be a bit conservative here, use ZOC - if one of our units is killed, this is not correct anymore
-		//therefore we later do a dilation filter on the cells
-		ReachablePlots tiles = pUnit->GetAllPlotsInReachThisTurn(false,true,false,iMinMovesLeft);
-
-		for (ReachablePlots::iterator moveTile=tiles.begin(); moveTile!=tiles.end(); ++moveTile)
-		{
-			CvPlot* pMoveTile = GC.getMap().plotByIndexUnchecked(moveTile->iPlotIndex);
-			int iPlotIndex = GC.getMap().plotNum(pMoveTile->getX(),pMoveTile->getY());
-
-			if (pUnit->IsCanAttackRanged())
-			{
-				std::set<int> rangedPlots;
-				//this generates some overlap, but preventing that is about as bad as ignoring it
-				TacticalAIHelpers::GetPlotsUnderRangedAttackFrom(pUnit,pMoveTile,rangedPlots,false,false);
-				for (std::set<int>::iterator attackTile=rangedPlots.begin(); attackTile!=rangedPlots.end(); ++attackTile)
-				{
-					m_pCells[*attackTile].SetSubjectToAttack(true);
-				}
-			}
+			if (m_DominanceZones[i].IsWater())
+				m_DominanceZones[i].SetZoneID(-pZoneCity->GetID());
 			else
-			{
-				//for melee every tile he can move into can be attacked
-				m_pCells[iPlotIndex].SetSubjectToAttack(true);
-			}
+				m_DominanceZones[i].SetZoneID(+pZoneCity->GetID());
+
+			iNew = m_DominanceZones[i].GetZoneID();
 		}
+		old2new[iOld] = iNew;
 	}
 
-	//do the dilation
-	std::vector<int> vCellsToMark;
-	for (int iPlotLoop = 0; iPlotLoop < GC.getMap().numPlots(); iPlotLoop++)
-	{
-		//nothing to do
-		if (m_pCells[iPlotLoop].IsSubjectToAttack())
-			continue;
+	for (size_t i = 0; i < m_vCells.size(); i++)
+		if (m_vCells[i].GetDominanceZone()!=-1)
+			m_vCells[i].SetDominanceZone( old2new[m_vCells[i].GetDominanceZone()] );
 
-		CvPlot* pPlot = GC.getMap().plotByIndexUnchecked(iPlotLoop);
-
-		//danger plots are calculated without ZOC
-		if (GET_PLAYER(m_ePlayer).GetPossibleAttackers(*pPlot).size()>0)
-		{
-			//check whether neighbors are subject to attack with ZOC
-			CvPlot** aPlotsToCheck = GC.getMap().getNeighborsUnchecked(pPlot);
-			for (int iI = 0; iI < NUM_DIRECTION_TYPES; iI++)
-			{
-				CvPlot* pAdjacentPlot = aPlotsToCheck[iI];
-				if (pAdjacentPlot)
-				{
-					if (m_pCells[pAdjacentPlot->GetPlotIndex()].IsSubjectToAttack())
-					{
-						vCellsToMark.push_back(iPlotLoop);
-						break;
-					}
-				}
-			}
-		}
-	}
-	//this should give a nice compromise
-	for (size_t iI = 0; iI < vCellsToMark.size(); iI++)
-		m_pCells[vCellsToMark[iI]].SetSubjectToAttack(true);
-
-	// Look at every cell on the map
-	for(int iI = 0; iI < GC.getMap().numPlots(); iI++)
-	{
-		CvPlot* pPlot = GC.getMap().plotByIndexUnchecked(iI);
-
-		//important
-		m_pCells[iI].SetVisibleToEnemy(pPlot->isVisibleToEnemy(m_ePlayer));
-
-		if(m_pCells[iI].IsRevealed() && !m_pCells[iI].IsImpassableTerrain() && !m_pCells[iI].IsImpassableTerritory())
-		{
-			// Check adjacent plots for enemy citadels
-			if (pPlot->IsNearEnemyCitadel(m_ePlayer, 0, eDamagePromotion))
-					m_pCells[iI].SetSubjectToAttack(true);
-
-			for(unsigned int iCityIndex = 0;  iCityIndex < m_EnemyCities.size(); iCityIndex++)
-			{
-				CvCity* pCity = getCity( m_EnemyCities[iCityIndex] );
-				if (pCity->canRangeStrikeAt( pPlot->getX(), pPlot->getY() ))
-					m_pCells[iI].SetSubjectToAttack(true);
-			}
-		}
-
-		//safe by definition
-		if (m_pCells[iI].IsFriendlyCity() && !pPlot->getPlotCity()->isInDangerOfFalling())
-			m_pCells[iI].SetSubjectToAttack(false);
-	}
+	m_IdLookup.clear();
+	for (size_t i = 0; i < m_DominanceZones.size(); i++)
+		m_IdLookup[m_DominanceZones[i].GetZoneID()] = i;
 }
 
 // Clear all dynamic data flags from the map
@@ -613,58 +480,36 @@ void CvTacticalAnalysisMap::ClearDynamicFlags()
 	for(int iI = 0; iI < GC.getMap().numPlots(); iI++)
 	{
 		// Erase this cell
-		m_pCells[iI].SetSafeForDeployment(false);
-		m_pCells[iI].SetDeploymentScore(0);
-		m_pCells[iI].SetTargetDistance(INT_MAX);
-		m_pCells[iI].SetHasLOS(false);
+		m_vCells[iI].SetSafeForDeployment(false);
+		m_vCells[iI].SetDeploymentScore(0);
+		m_vCells[iI].SetTargetDistance(INT_MAX);
+		m_vCells[iI].SetHasLOS(false);
 	}
 }
+
+CvTacticalAnalysisCell* CvTacticalAnalysisMap::GetCell(int iPlotIndex)
+{
+	if (!IsUpToDate())
+		Refresh();
+
+	return (iPlotIndex >= 0 && iPlotIndex<(int)m_vCells.size()) ? &m_vCells[iPlotIndex] : NULL;
+}
+
+int CvTacticalAnalysisMap::GetNumZones() 
+{ 
+	if (!IsUpToDate())
+		Refresh();
+
+	return m_DominanceZones.size(); 
+};
 
 // PRIVATE FUNCTIONS
-
-/// Add in any temporary dominance zones from tactical AI
-void CvTacticalAnalysisMap::AddTemporaryZones()
-{
-	CvTemporaryZone* pZone;
-	CvTacticalAI* pTacticalAI = GET_PLAYER(m_ePlayer).GetTacticalAI();
-
-	if(pTacticalAI)
-	{
-		pTacticalAI->DropObsoleteZones();
-
-		pZone = pTacticalAI->GetFirstTemporaryZone();
-		while(pZone)
-		{
-			// Can't be a city zone (which is just used to boost priority but not establish a new zone)
-			if(pZone->GetTargetType() != AI_TACTICAL_TARGET_CITY)
-			{
-				CvPlot* pPlot = GC.getMap().plot(pZone->GetX(), pZone->GetY());
-				if(pPlot)
-				{
-					CvTacticalDominanceZone newZone;
-					newZone.SetDominanceZoneID(m_DominanceZones.size());
-					newZone.SetTerritoryType(TACTICAL_TERRITORY_TEMP_ZONE);
-					newZone.SetOwner(NO_PLAYER);
-					newZone.SetAreaID(pPlot->getArea());
-					newZone.SetWater(pPlot->isWater());
-					newZone.Extend(pPlot);
-					newZone.SetNavalInvasion(pZone->IsNavalInvasion());
-					m_DominanceZones.push_back(newZone);
-				}
-			}
-
-			pZone = pTacticalAI->GetNextTemporaryZone();
-		}
-	}
-}
 
 /// Update data for a cell: returns whether or not to add to dominance zones
 bool CvTacticalAnalysisMap::PopulateCell(int iIndex, CvPlot* pPlot)
 {
-	CvTacticalAnalysisCell& cell = m_pCells[iIndex];
+	CvTacticalAnalysisCell& cell = m_vCells[iIndex];
 	TeamTypes ourTeam = GET_PLAYER(m_ePlayer).getTeam();
-
-	cell.Clear();
 
 	cell.SetRevealed(pPlot->isRevealed(ourTeam));
 	cell.SetVisible(pPlot->isVisible(ourTeam));
@@ -765,6 +610,10 @@ void CvTacticalAnalysisMap::AddToDominanceZones(int iIndex, CvTacticalAnalysisCe
 	{
 		eOwnerTeam = pCity->getTeam();
 		eOwnerPlayer = pCity->getOwner();
+
+		//for very small areas which can be dominated from the surrounding tiles, use the city's area id instead!
+		if (pPlot->area()->getNumTiles()<7)
+			newZone.SetAreaID(pCity->getArea());
 	}
 
 	newZone.SetOwner(eOwnerPlayer);
@@ -790,17 +639,22 @@ void CvTacticalAnalysisMap::AddToDominanceZones(int iIndex, CvTacticalAnalysisCe
 
 	// Now see if we already have a matching zone
 	CvTacticalDominanceZone* pZone = MergeWithExistingZone(&newZone);
-	if(!pZone)
+	if (!pZone)
 	{
-		// Data populated, now add to vector
-		newZone.SetDominanceZoneID(m_DominanceZones.size());
-		m_DominanceZones.push_back(newZone);
-		pZone = &m_DominanceZones[m_DominanceZones.size() - 1];
+		newZone.SetZoneID(m_DominanceZones.size());
+		pZone = AddNewDominanceZone(newZone);
 	}
 
 	// Set zone for this cell
-	pCell->SetDominanceZone(pZone->GetDominanceZoneID());
+	pCell->SetDominanceZone(pZone->GetZoneID());
 	pZone->Extend(pPlot);
+}
+
+CvTacticalDominanceZone* CvTacticalAnalysisMap::AddNewDominanceZone(CvTacticalDominanceZone& zone)
+{
+	m_IdLookup[zone.GetZoneID()] = m_DominanceZones.size();
+	m_DominanceZones.push_back(zone);
+	return &m_DominanceZones.back();
 }
 
 /// Calculate military presences in each owned dominance zone
@@ -892,7 +746,7 @@ void CvTacticalAnalysisMap::CalculateMilitaryStrengths()
 				else
 				{
 					//if there is no city, the unit must be in the zone itself
-					if ( GetCell(pLoopUnit->plot()->GetPlotIndex())->GetDominanceZone() != pZone->GetDominanceZoneID() )
+					if ( GetCell(pLoopUnit->plot()->GetPlotIndex())->GetDominanceZone() != pZone->GetZoneID() )
 						continue;
 				}
 
@@ -905,7 +759,7 @@ void CvTacticalAnalysisMap::CalculateMilitaryStrengths()
 					if(iUnitStrength == 0 && pLoopUnit->isEmbarked() && !pZone->IsWater())
 						iUnitStrength = pLoopUnit->GetBaseCombatStrength();
 
-					int iRangedStrength = pLoopUnit->GetMaxRangedCombatStrength(NULL, /*pCity*/ NULL, true, true) / 100;
+					int iRangedStrength = pLoopUnit->GetMaxRangedCombatStrength(NULL, /*pCity*/ NULL, true, true, NULL, NULL, true, true) / 100;
 
 					if(!bVisible || bReducedStrength)
 					{
@@ -918,7 +772,7 @@ void CvTacticalAnalysisMap::CalculateMilitaryStrengths()
 #if defined(MOD_BALANCE_CORE_MILITARY_LOGGING)
 						//CvString msg;
 						//msg.Format("Zone %d, Enemy %s %d with %d hp at %d,%d - distance %d, strength %d, ranged strength %d (total %d)",
-						//	pZone->GetDominanceZoneID(), pLoopUnit->getName().c_str(), pLoopUnit->GetID(), pLoopUnit->GetCurrHitPoints(),
+						//	pZone->GetZoneID(), pLoopUnit->getName().c_str(), pLoopUnit->GetID(), pLoopUnit->GetCurrHitPoints(),
 						//	pLoopUnit->getX(), pLoopUnit->getY(),	iDistance, iUnitStrength, iRangedStrength, pZone->GetOverallEnemyStrength());
 						//GET_PLAYER(m_ePlayer).GetTacticalAI()->LogTacticalMessage(msg, true /*bSkipLogDominanceZone*/);
 #endif
@@ -946,7 +800,7 @@ void CvTacticalAnalysisMap::CalculateMilitaryStrengths()
 #if defined(MOD_BALANCE_CORE_MILITARY_LOGGING)
 						//CvString msg;
 						//msg.Format("Zone %d, Friendly %s %d with %d hp at %d,%d - distance %d, strength %d, ranged strength %d (total %d)",
-						//	pZone->GetDominanceZoneID(), pLoopUnit->getName().c_str(), pLoopUnit->GetID(), pLoopUnit->GetCurrHitPoints(),
+						//	pZone->GetZoneID(), pLoopUnit->getName().c_str(), pLoopUnit->GetID(), pLoopUnit->GetCurrHitPoints(),
 						//	pLoopUnit->getX(), pLoopUnit->getY(), iDistance, iUnitStrength, iRangedStrength, pZone->GetOverallFriendlyStrength());
 						//GET_PLAYER(m_ePlayer).GetTacticalAI()->LogTacticalMessage(msg, true /*bSkipLogDominanceZone*/);
 #endif
@@ -979,8 +833,16 @@ void CvTacticalAnalysisMap::CalculateMilitaryStrengths()
 /// Establish order of zone processing for the turn
 void CvTacticalAnalysisMap::PrioritizeZones()
 {
+	int iMostValuableCity = 1;
+	for (unsigned int iI = 0; iI < m_DominanceZones.size(); iI++)
+	{
+		CvCity* pZoneCity = m_DominanceZones[iI].GetZoneCity();
+		if (pZoneCity)
+			iMostValuableCity = max(iMostValuableCity, pZoneCity->getEconomicValue(m_ePlayer));
+	}
+
 	// Loop through the dominance zones
-	for(unsigned int iI = 0; iI < m_DominanceZones.size(); iI++)
+	for (unsigned int iI = 0; iI < m_DominanceZones.size(); iI++)
 	{
 		// Find the zone and compute dominance here
 		CvTacticalDominanceZone* pZone = &m_DominanceZones[iI];
@@ -991,45 +853,46 @@ void CvTacticalAnalysisMap::PrioritizeZones()
 		int iMultiplier = 1;
 
 		// Temporary zone?
-		if(pZone->GetTerritoryType() == TACTICAL_TERRITORY_TEMP_ZONE)
+		if (pZone->GetTerritoryType() == TACTICAL_TERRITORY_TEMP_ZONE)
 		{
-			iMultiplier = 1000;
+			iMultiplier = 10;
 		}
 		else
 		{
-			CvCity* pClosestCity = pZone->GetZoneCity();
-			if(pClosestCity && pClosestCity->isAdjacentToArea(pZone->GetAreaID()))
+			CvCity* pZoneCity = pZone->GetZoneCity();
+			if (pZoneCity && pZoneCity->isAdjacentToArea(pZone->GetAreaID()))
 			{
-				iBaseValue += (1 + (int)sqrt((float)pClosestCity->getPopulation()));
+				//should we take into account distance to the border as well? probably dominance is enough
+				iBaseValue += (int)sqrt(pZoneCity->getEconomicValue(m_ePlayer)*100.f/iMostValuableCity);
 
-				if(GET_PLAYER(m_ePlayer).GetTacticalAI()->IsTemporaryZoneCity(pClosestCity))
+				if (GET_PLAYER(m_ePlayer).GetTacticalAI()->IsTemporaryZoneCity(pZoneCity))
 				{
-					iBaseValue *= 2;
+					iBaseValue *= 3;
 				}
 
-				else if (pClosestCity->isVisible( GET_PLAYER(m_ePlayer).getTeam(), false))
+				if (pZoneCity->isVisible(GET_PLAYER(m_ePlayer).getTeam(), false))
 				{
-					iBaseValue *= 4;
+					iBaseValue *= 2;
 
 					// How damaged is this visible city?
 					int iMaxDamageMultiplier = 10;
-					int iDamage = pClosestCity->getDamage();
-					if (iDamage > (pClosestCity->GetMaxHitPoints() / iMaxDamageMultiplier))
+					int iDamage = pZoneCity->getDamage();
+					if (iDamage > (pZoneCity->GetMaxHitPoints() / iMaxDamageMultiplier))
 					{
-						iBaseValue *= (int)((iDamage + 1) * 10 / pClosestCity->GetMaxHitPoints());
+						iBaseValue *= (int)((iDamage + 1) * 10 / pZoneCity->GetMaxHitPoints());
 					}
 				}
 
 #if defined(MOD_BALANCE_CORE)
-				if (GET_PLAYER(m_ePlayer).IsCityAlreadyTargeted(pClosestCity) || GET_PLAYER(m_ePlayer).GetMilitaryAI()->IsCurrentAttackTarget(pClosestCity) )
+				if (GET_PLAYER(m_ePlayer).IsCityAlreadyTargeted(pZoneCity) || GET_PLAYER(m_ePlayer).GetMilitaryAI()->IsCurrentAttackTarget(pZoneCity))
 				{
 					iBaseValue *= 2;
 				}
 
-				if (pClosestCity->GetPlayer()->isMinorCiv())
+				if (pZoneCity->GetPlayer()->isMinorCiv())
 				{
 					//At war with ally of this minor? Greatly reduce priority.
-					PlayerTypes eAlly = pClosestCity->GetPlayer()->GetMinorCivAI()->GetAlly();
+					PlayerTypes eAlly = pZoneCity->GetPlayer()->GetMinorCivAI()->GetAlly();
 					if (eAlly != NO_PLAYER && GET_TEAM(GET_PLAYER(m_ePlayer).getTeam()).isAtWar(GET_PLAYER(eAlly).getTeam()))
 					{
 						iBaseValue = 1;
@@ -1038,50 +901,50 @@ void CvTacticalAnalysisMap::PrioritizeZones()
 #endif
 			}
 
-			if(!pZone->IsWater())
+			if (!pZone->IsWater())
 			{
 				iBaseValue *= 3;
 			}
 
 			// Now compute a multiplier based on current conditions here
-			if(eDominance == TACTICAL_DOMINANCE_ENEMY)
+			if (eDominance == TACTICAL_DOMINANCE_ENEMY)
 			{
-				if(pZone->GetTerritoryType() == TACTICAL_TERRITORY_ENEMY)
+				if (pZone->GetTerritoryType() == TACTICAL_TERRITORY_ENEMY)
 				{
 					iMultiplier = 1;
 				}
-				else if(pZone->GetTerritoryType() == TACTICAL_TERRITORY_FRIENDLY)
+				else if (pZone->GetTerritoryType() == TACTICAL_TERRITORY_FRIENDLY)
 				{
 					iMultiplier = 8;
 				}
 			}
-			else if(eDominance == TACTICAL_DOMINANCE_EVEN)
+			else if (eDominance == TACTICAL_DOMINANCE_EVEN && pZone->GetTotalEnemyUnitCount()>1) //make sure there's an actual fight going on
 			{
-				if(pZone->GetTerritoryType() == TACTICAL_TERRITORY_ENEMY)
+				if (pZone->GetTerritoryType() == TACTICAL_TERRITORY_ENEMY)
 				{
 					iMultiplier = 4;
 				}
-				else if(pZone->GetTerritoryType() == TACTICAL_TERRITORY_FRIENDLY)
+				else if (pZone->GetTerritoryType() == TACTICAL_TERRITORY_FRIENDLY)
 				{
 					iMultiplier = 4;
 				}
 			}
-			else if(eDominance == TACTICAL_DOMINANCE_FRIENDLY)
+			else if (eDominance == TACTICAL_DOMINANCE_FRIENDLY)
 			{
-				if(pZone->GetTerritoryType() == TACTICAL_TERRITORY_ENEMY)
+				if (pZone->GetTerritoryType() == TACTICAL_TERRITORY_ENEMY)
 				{
 					iMultiplier = 8;
 				}
-				else if(pZone->GetTerritoryType() == TACTICAL_TERRITORY_FRIENDLY)
+				else if (pZone->GetTerritoryType() == TACTICAL_TERRITORY_FRIENDLY)
 				{
 					iMultiplier = 1;
 				}
 			}
-			if(!GET_PLAYER(m_ePlayer).isMinorCiv())
+			if (!GET_PLAYER(m_ePlayer).isMinorCiv())
 			{
-				if(GET_PLAYER(m_ePlayer).GetDiplomacyAI()->GetStateAllWars() == STATE_ALL_WARS_WINNING)
+				if (GET_PLAYER(m_ePlayer).GetDiplomacyAI()->GetStateAllWars() == STATE_ALL_WARS_WINNING)
 				{
-					if(pZone->GetTerritoryType() == TACTICAL_TERRITORY_ENEMY)
+					if (pZone->GetTerritoryType() == TACTICAL_TERRITORY_ENEMY)
 					{
 #if defined(MOD_BALANCE_CORE_MILITARY)
 						iMultiplier *= 4;
@@ -1090,9 +953,9 @@ void CvTacticalAnalysisMap::PrioritizeZones()
 #endif
 					}
 				}
-				else if(GET_PLAYER(m_ePlayer).GetDiplomacyAI()->GetStateAllWars() == STATE_ALL_WARS_LOSING)
+				else if (GET_PLAYER(m_ePlayer).GetDiplomacyAI()->GetStateAllWars() == STATE_ALL_WARS_LOSING)
 				{
-					if(pZone->GetTerritoryType() == TACTICAL_TERRITORY_FRIENDLY)
+					if (pZone->GetTerritoryType() == TACTICAL_TERRITORY_FRIENDLY)
 					{
 						iMultiplier *= 4;
 					}
@@ -1101,10 +964,14 @@ void CvTacticalAnalysisMap::PrioritizeZones()
 		}
 
 		// Save off the value for this zone
-		pZone->SetDominanceZoneValue( iBaseValue * iMultiplier);
+		pZone->SetDominanceZoneValue(iBaseValue * iMultiplier);
 	}
 
 	std::stable_sort(m_DominanceZones.begin(), m_DominanceZones.end());
+
+	m_IdLookup.clear();
+	for (size_t i = 0; i < m_DominanceZones.size(); i++)
+		m_IdLookup[m_DominanceZones[i].GetZoneID()] = i;
 }
 
 /// Log dominance zone data
@@ -1123,8 +990,8 @@ void CvTacticalAnalysisMap::LogZones()
 			if ( pZone->GetOverallFriendlyStrength()==0 &&  pZone->GetOverallEnemyStrength()==0)
 				continue;
 
-			szLogMsg.Format("Zone ID: %d, Size: %d, City: %s, Area ID: %d, Value: %d, FRIENDLY Str: %d (%d), Ranged: %d (naval %d), ENEMY Str: %d (%d), Ranged: %d (naval %d), Closest Enemy: %d",
-			                pZone->GetDominanceZoneID(), pZone->GetNumPlots(), pZone->GetZoneCity() ? pZone->GetZoneCity()->getName().c_str() : "none", pZone->GetAreaID(), pZone->GetDominanceZoneValue(),
+			szLogMsg.Format("Zone ID: %d, %s, Size: %d, City: %s, Area ID: %d, Value: %d, FRIENDLY Str: %d (%d), Ranged: %d (naval %d), ENEMY Str: %d (%d), Ranged: %d (naval %d), Closest Enemy: %d",
+			                pZone->GetZoneID(), pZone->IsWater() ? "Water" : "Land", pZone->GetNumPlots(), pZone->GetZoneCity() ? pZone->GetZoneCity()->getName().c_str() : "none", pZone->GetAreaID(), pZone->GetDominanceZoneValue(),
 			                pZone->GetOverallFriendlyStrength(), pZone->GetTotalFriendlyUnitCount(), pZone->GetFriendlyRangedStrength(), pZone->GetFriendlyNavalRangedStrength(),
 			                pZone->GetOverallEnemyStrength(), pZone->GetTotalEnemyUnitCount(), pZone->GetEnemyRangedStrength(), pZone->GetEnemyNavalRangedStrength(), pZone->GetRangeClosestEnemyUnit());
 			if(pZone->GetOverallDominanceFlag() == TACTICAL_DOMINANCE_FRIENDLY)
@@ -1202,7 +1069,7 @@ CvTacticalDominanceZone* CvTacticalAnalysisMap::MergeWithExistingZone(CvTactical
 		// Otherwise everything needs to match
 		if(pZone->GetTerritoryType() == pNewZone->GetTerritoryType() &&
 		        pZone->GetOwner() == pNewZone->GetOwner() &&
-		        pZone->GetAreaID() == pNewZone->GetAreaID() &&
+		        pZone->GetAreaID() == pNewZone->GetAreaID() && //do not check water flag
 		        pZone->GetZoneCity() == pNewZone->GetZoneCity())
 		{
 			return pZone;
@@ -1215,63 +1082,62 @@ CvTacticalDominanceZone* CvTacticalAnalysisMap::MergeWithExistingZone(CvTactical
 /// Retrieve a dominance zone
 CvTacticalDominanceZone* CvTacticalAnalysisMap::GetZoneByIndex(int iIndex)
 {
+	if (!IsUpToDate())
+		Refresh();
+
 	if(iIndex < 0 || iIndex >= (int)m_DominanceZones.size())
-		return 0;
+		return NULL;
 	return &m_DominanceZones[iIndex];
 }
 
 /// Retrieve a dominance zone by closest city
 CvTacticalDominanceZone* CvTacticalAnalysisMap::GetZoneByCity(CvCity* pCity, bool bWater)
 {
+	if (!IsUpToDate())
+		Refresh();
+
 	if (!pCity)
-		return false;
+		return NULL;
 
-	CvTacticalDominanceZone* pZone;
-	for(int iI = 0; iI < GetNumZones(); iI++)
-	{
-		pZone = GetZoneByIndex(iI);
-		if(pZone->GetZoneCity() == pCity && pZone->IsWater() == bWater)
-		{
-			return pZone;
-		}
-	}
-
-	return NULL;
+	//water zones have negative ids
+	return GetZoneByID(pCity->GetID()*(bWater ? -1 : +1));
 }
 
 #if defined(MOD_BALANCE_CORE)
 /// Retrieve a dominance zone by ID
 CvTacticalDominanceZone* CvTacticalAnalysisMap::GetZoneByID(int iID)
 {
-	CvTacticalDominanceZone* pZone;
-	for(int iI = 0; iI < GetNumZones(); iI++)
-	{
-		pZone = GetZoneByIndex(iI);
-		if(pZone->GetDominanceZoneID()==iID)
-		{
-			return pZone;
-		}
-	}
+	if (!IsUpToDate())
+		Refresh();
+
+	map<int, int>::iterator it = m_IdLookup.find(iID);
+	if (it != m_IdLookup.end())
+		return GetZoneByIndex(it->second);
 
 	return NULL;
 }
+
 CvTacticalDominanceZone * CvTacticalAnalysisMap::GetZoneByPlot(CvPlot * pPlot)
 {
-	if (pPlot)
-	{
-		int iPlotIndex = GC.getMap().plotNum(pPlot->getX(), pPlot->getY());
-		CvTacticalAnalysisCell* pCell = GetCell(iPlotIndex);
-		CvTacticalDominanceZone* pZone = pCell ? GetZoneByID(pCell->GetDominanceZone()) : NULL;
-		return pZone;
-	}
+	if (!IsUpToDate())
+		Refresh();
 
-	return NULL;
+	if (!pPlot)
+		return NULL;
+
+	int iPlotIndex = GC.getMap().plotNum(pPlot->getX(), pPlot->getY());
+	CvTacticalAnalysisCell* pCell = GetCell(iPlotIndex);
+	CvTacticalDominanceZone* pZone = pCell ? GetZoneByID(pCell->GetDominanceZone()) : NULL;
+	return pZone;
 }
 #endif
 
 // Is this plot in dangerous territory?
 bool CvTacticalAnalysisMap::IsInEnemyDominatedZone(CvPlot* pPlot)
 {
+	if (!IsUpToDate())
+		Refresh();
+
 	int iPlotIndex = GC.getMap().plotNum(pPlot->getX(), pPlot->getY());
 	CvTacticalAnalysisCell* pCell = GetCell(iPlotIndex);
 	CvTacticalDominanceZone* pZone = GetZoneByID(pCell->GetDominanceZone());
@@ -1296,7 +1162,7 @@ eTacticalDominanceFlags CvTacticalAnalysisMap::ComputeDominance(CvTacticalDomina
 	else
 	{
 		// Otherwise compute it by strength
-		if(pZone->GetOverallEnemyStrength()<=0) //make sure the denominator is valid later on
+		if (pZone->GetOverallEnemyStrength() <= 0 && pZone->GetTotalFriendlyUnitCount() > 0) //make sure the denominator is valid later on
 		{
 			pZone->SetOverallDominanceFlag(TACTICAL_DOMINANCE_FRIENDLY);
 		}
@@ -1318,7 +1184,7 @@ eTacticalDominanceFlags CvTacticalAnalysisMap::ComputeDominance(CvTacticalDomina
 				}
 			}
 
-			int iRatio = (pZone->GetOverallFriendlyStrength() * 100) / pZone->GetOverallEnemyStrength();
+			int iRatio = (pZone->GetOverallFriendlyStrength() * 100) / max(1, pZone->GetOverallEnemyStrength());
 			if (iRatio > 100 + m_iDominancePercentage)
 			{
 				pZone->SetOverallDominanceFlag(TACTICAL_DOMINANCE_FRIENDLY);
@@ -1343,7 +1209,7 @@ void CvTacticalAnalysisMap::Dump()
 	if (m_ePlayer==NO_PLAYER)
 		return;
 
-	bool bLogging = GC.getLogging() && GC.getAILogging() && (GET_PLAYER(m_ePlayer).isMajorCiv() || GET_PLAYER(m_ePlayer).isBarbarian()) && GET_PLAYER(m_ePlayer).IsAtWar();
+	bool bLogging = !GC.getGame().isNetworkMultiPlayer() && GC.getLogging() && GC.getAILogging() && (GET_PLAYER(m_ePlayer).isMajorCiv() || GET_PLAYER(m_ePlayer).isBarbarian()) && GET_PLAYER(m_ePlayer).IsAtWar();
 	if (bLogging)
 	{
 		CvString fname = CvString::format( "TacticalCells_%s_%03d.txt", GET_PLAYER(m_ePlayer).getCivilizationAdjective(), GC.getGame().getGameTurn() );
@@ -1364,11 +1230,11 @@ void CvTacticalAnalysisMap::Dump()
 				int iZoneEnemyStrength = pZone ? pZone->GetEnemyRangedStrength() + pZone->GetOverallEnemyStrength() : -1;
 				CvCity* pCity = pZone ? pZone->GetZoneCity() : NULL;
 
-				CvString dump = CvString::format( "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s\n", 
+				CvString dump = CvString::format( "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s\n", 
 					GC.getMap().plotByIndex(i)->getX(), GC.getMap().plotByIndex(i)->getY(),
 					pCell->IsVisible(), (int)GC.getMap().plotByIndex(i)->getTerrainType(), (int)GC.getMap().plotByIndex(i)->getOwner(), 
-					(int)pCell->IsEnemyTerritory(), (int)pCell->GetTargetType(), (int)pCell->IsSubjectToAttack(), 
-					pZone ? pZone->GetDominanceZoneID() : -1, pZone ? pZone->GetOverallDominanceFlag() : -1, pZone ? pZone->GetTerritoryType() : -1, 
+					(int)pCell->IsEnemyTerritory(), (int)pCell->GetTargetType(), 
+					pZone ? pZone->GetZoneID() : -1, pZone ? pZone->GetOverallDominanceFlag() : -1, pZone ? pZone->GetTerritoryType() : -1, 
 					iZoneFriendlyStrength, iZoneEnemyStrength, pCity ? pCity->getName().c_str() : "no city" );
 				pLog->Msg( dump.c_str() );
 			}
@@ -1387,24 +1253,8 @@ FDataStream& operator<<(FDataStream& saveTo, const CvTacticalAnalysisMap& readFr
 	saveTo << readFrom.m_ePlayer;
 	saveTo << readFrom.m_iTurnBuilt;
 
-	saveTo << readFrom.m_pCells.size();
-	for (size_t i=0; i<readFrom.m_pCells.size(); i++)
-		saveTo << readFrom.m_pCells[i];
-	saveTo << readFrom.m_DominanceZones.size();
-	for (size_t i=0; i<readFrom.m_DominanceZones.size(); i++)
-		saveTo << readFrom.m_DominanceZones[i];
-	saveTo << readFrom.m_EnemyUnits.size();
-	for (size_t i=0; i<readFrom.m_EnemyUnits.size(); i++)
-	{
-		saveTo << readFrom.m_EnemyUnits[i].eOwner;
-		saveTo << readFrom.m_EnemyUnits[i].iID;
-	}
-	saveTo << readFrom.m_EnemyCities.size();
-	for (size_t i=0; i<readFrom.m_EnemyCities.size(); i++)
-	{
-		saveTo << readFrom.m_EnemyCities[i].eOwner;
-		saveTo << readFrom.m_EnemyCities[i].iID;
-	}
+	saveTo << readFrom.m_vCells;
+	saveTo << readFrom.m_DominanceZones;
 
 	return saveTo;
 }
@@ -1416,42 +1266,15 @@ FDataStream& operator>>(FDataStream& loadFrom, CvTacticalAnalysisMap& writeTo)
 	loadFrom >> writeTo.m_ePlayer;
 	loadFrom >> writeTo.m_iTurnBuilt;
 
-	int tmp;
-	loadFrom >> tmp;
-	writeTo.m_pCells.clear();
-	for (int i=0; i<tmp; i++)
-	{
-		CvTacticalAnalysisCell tmp2;
-		loadFrom >> tmp2; writeTo.m_pCells.push_back(tmp2);
-	}
-	loadFrom >> tmp;
-	writeTo.m_DominanceZones.clear();
-	for (int i=0; i<tmp; i++)
-	{
-		CvTacticalDominanceZone tmp2;
-		loadFrom >> tmp2; writeTo.m_DominanceZones.push_back(tmp2);
-	}
-	loadFrom >> tmp;
-	writeTo.m_EnemyUnits.clear();
-	for (int i=0; i<tmp; i++)
-	{
-		IDInfo tmp2;
-		loadFrom >> tmp2.eOwner; loadFrom >> tmp2.iID; writeTo.m_EnemyUnits.push_back(tmp2);
-	}
-	loadFrom >> tmp;
-	writeTo.m_EnemyCities.clear();
-	for (int i=0; i<tmp; i++)
-	{
-		IDInfo tmp2;
-		loadFrom >> tmp2.eOwner; loadFrom >> tmp2.iID; writeTo.m_EnemyCities.push_back(tmp2);
-	}
+	loadFrom >> writeTo.m_vCells;
+	loadFrom >> writeTo.m_DominanceZones;
 
 	return loadFrom;
 }
 
 FDataStream& operator<<(FDataStream& saveTo, const CvTacticalDominanceZone& readFrom)
 {
-	saveTo << readFrom.m_iDominanceZoneID;
+	saveTo << readFrom.m_iZoneID;
 	saveTo << readFrom.m_eTerritoryType;
 	saveTo << readFrom.m_eOverallDominanceFlag;
 	saveTo << readFrom.m_eOwner;
@@ -1467,12 +1290,8 @@ FDataStream& operator<<(FDataStream& saveTo, const CvTacticalDominanceZone& read
 	saveTo << readFrom.m_iEnemyNavalRangedStrength;
 	saveTo << readFrom.m_iFriendlyUnitCount;
 	saveTo << readFrom.m_iEnemyUnitCount;
-	saveTo << 0;
-	saveTo << 0;
-	saveTo << 0;
 	saveTo << readFrom.m_iNeutralUnitCount;
 	saveTo << readFrom.m_iNeutralUnitStrength;
-	saveTo << 0;
 	saveTo << readFrom.m_iEnemyNavalUnitCount;
 	saveTo << readFrom.m_iFriendlyNavalUnitCount;
 	saveTo << readFrom.m_iZoneValue;
@@ -1483,9 +1302,7 @@ FDataStream& operator<<(FDataStream& saveTo, const CvTacticalDominanceZone& read
 	saveTo << readFrom.m_iAvgY;
 	saveTo << readFrom.m_iPlotCount;
 
-	saveTo << readFrom.m_vNeighboringZones.size();
-	for (size_t i=0; i<readFrom.m_vNeighboringZones.size(); i++)
-		saveTo << readFrom.m_vNeighboringZones[i];
+	saveTo << readFrom.m_vNeighboringZones;
 
 	return saveTo;
 }
@@ -1493,7 +1310,7 @@ FDataStream& operator>>(FDataStream& loadFrom, CvTacticalDominanceZone& writeTo)
 {
 	int tmp;
 
-	loadFrom >> writeTo.m_iDominanceZoneID;
+	loadFrom >> writeTo.m_iZoneID;
 	loadFrom >> tmp; writeTo.m_eTerritoryType = (eDominanceTerritoryTypes)tmp;
 	loadFrom >> tmp; writeTo.m_eOverallDominanceFlag = (eTacticalDominanceFlags)tmp;
 	loadFrom >> writeTo.m_eOwner;
@@ -1509,12 +1326,8 @@ FDataStream& operator>>(FDataStream& loadFrom, CvTacticalDominanceZone& writeTo)
 	loadFrom >> writeTo.m_iEnemyNavalRangedStrength;
 	loadFrom >> writeTo.m_iFriendlyUnitCount;
 	loadFrom >> writeTo.m_iEnemyUnitCount;
-	loadFrom >> tmp; //dummy for compatibility
-	loadFrom >> tmp; //dummy for compatibility
-	loadFrom >> tmp; //dummy for compatibility
 	loadFrom >> writeTo.m_iNeutralUnitCount;
 	loadFrom >> writeTo.m_iNeutralUnitStrength;
-	loadFrom >> tmp; //dummy for compatibility
 	loadFrom >> writeTo.m_iEnemyNavalUnitCount;
 	loadFrom >> writeTo.m_iFriendlyNavalUnitCount;
 	loadFrom >> writeTo.m_iZoneValue;
@@ -1525,12 +1338,7 @@ FDataStream& operator>>(FDataStream& loadFrom, CvTacticalDominanceZone& writeTo)
 	loadFrom >> writeTo.m_iAvgY;
 	loadFrom >> writeTo.m_iPlotCount;
 
-	loadFrom >> tmp;
-	for (int i=0; i<tmp; i++)
-	{
-		int tmp2;
-		loadFrom >> tmp2; writeTo.m_vNeighboringZones.push_back(tmp2);
-	}
+	loadFrom >> writeTo.m_vNeighboringZones;
 
 	return loadFrom;
 }
@@ -1540,7 +1348,7 @@ FDataStream& operator<<(FDataStream& saveTo, const CvTacticalAnalysisCell& readF
 	saveTo << readFrom.m_uiFlags;
 	saveTo << readFrom.m_iDeploymentScore;
 	saveTo << readFrom.m_eTargetType;
-	saveTo << readFrom.m_iDominanceZoneID;
+	saveTo << readFrom.m_iZoneID;
 	saveTo << readFrom.m_iTargetDistance;
 	saveTo << readFrom.m_bHasLOSToTarget;
 	return saveTo;
@@ -1552,7 +1360,7 @@ FDataStream& operator>>(FDataStream& loadFrom, CvTacticalAnalysisCell& writeTo)
 	loadFrom >> writeTo.m_uiFlags;
 	loadFrom >> writeTo.m_iDeploymentScore;
 	loadFrom >> tmp; writeTo.m_eTargetType = (AITacticalTargetType)tmp;
-	loadFrom >> writeTo.m_iDominanceZoneID;
+	loadFrom >> writeTo.m_iZoneID;
 	loadFrom >> writeTo.m_iTargetDistance;
 	loadFrom >> writeTo.m_bHasLOSToTarget;
 	return loadFrom;

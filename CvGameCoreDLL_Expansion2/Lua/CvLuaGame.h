@@ -150,6 +150,9 @@ protected:
 	static int lGetInitTech(lua_State* L);
 	static int lGetInitWonders(lua_State* L);
 	static int lGetNumWorldWonders(lua_State* L);
+#if defined(MOD_API_LUA_EXTENSIONS)
+	static int lIsWorldWonderClass(lua_State* L);
+#endif
 
 	static int lGetAIAutoPlay(lua_State* L);
 	static int lSetAIAutoPlay(lua_State* L);
@@ -305,6 +308,8 @@ protected:
 
 	static int lGetNumCitiesPolicyCostMod(lua_State* L);
 	static int lGetNumCitiesTechCostMod(lua_State* L);
+
+	static int lGetNumCitiesTourismCostMod(lua_State* L);
 
 	static int lGetBuildingYieldChange(lua_State* L);
 	static int lGetBuildingYieldModifier(lua_State* L);
@@ -503,12 +508,20 @@ protected:
 	static int lGetContractUnits(lua_State* L);
 	static int lGetInactiveContractUnitList(lua_State* L);
 	static int lGetActiveContractUnitList(lua_State* L);
+
+	LUAAPIEXTN(DoSpawnFreeCity, void);
 #endif
 
 #if defined(MOD_BATTLE_ROYALE)
 	// Lua CSV Logging Functions
 	static int lDeleteCSV(lua_State* L);
 	static int lWriteCSV(lua_State* L);
+#endif
+
+#if defined(MOD_API_LUA_EXTENSIONS)
+	static int lIsPitbossHost(lua_State* L);
+	static int lIsHost(lua_State* L);
+	static int lGetTimeStringForYear(lua_State* L);
 #endif
 };
 

@@ -133,7 +133,7 @@ public:
 	void changeNumMembers(int iChange);
 
 #if defined(MOD_BALANCE_CORE)
-	void addPlayer(PlayerTypes eID);
+	bool addPlayer(PlayerTypes eID);
 	void removePlayer(PlayerTypes eID);
 	const std::vector<PlayerTypes>& getPlayers();
 	bool isMember(PlayerTypes eID) const;
@@ -522,6 +522,8 @@ public:
 	int GetNumTurnsSinceVassalTaxSet(PlayerTypes ePlayer) const;
 	void SetNumTurnsSinceVassalTaxSet(PlayerTypes ePlayer, int iValue);
 	void ChangeNumTurnsSinceVassalTaxSet(PlayerTypes ePlayer, int iChange);
+
+	int GetSSProjectCount();
 #endif
 
 	// Wrapper for giving Players on this Team a notification message

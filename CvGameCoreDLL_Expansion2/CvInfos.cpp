@@ -3014,7 +3014,10 @@ CvHandicapInfo::CvHandicapInfo() :
 	m_iAIFreeXP(0),
 	m_iAIFreeXPPercent(0),
 #if defined(MOD_BALANCE_CORE)
-	m_iDifficultyBonus(0),
+	m_iDifficultyBonusBase(0),
+	m_iDifficultyBonusEarly(0),
+	m_iDifficultyBonusMid(0),
+	m_iDifficultyBonusLate(0),
 #endif
 	m_iNumGoodies(0),
 	m_piGoodies(NULL),
@@ -3337,9 +3340,23 @@ int CvHandicapInfo::getNumGoodies() const
 }
 #if defined(MOD_BALANCE_CORE)
 //------------------------------------------------------------------------------
-int CvHandicapInfo::getAIDifficultyBonus() const
+int CvHandicapInfo::getAIDifficultyBonusBase() const
 {
-	return m_iDifficultyBonus;
+	return m_iDifficultyBonusBase;
+}
+int CvHandicapInfo::getAIDifficultyBonusEarly() const
+{
+	return m_iDifficultyBonusEarly;
+}
+//------------------------------------------------------------------------------
+int CvHandicapInfo::getAIDifficultyBonusMid() const
+{
+	return m_iDifficultyBonusMid;
+}
+//------------------------------------------------------------------------------
+int CvHandicapInfo::getAIDifficultyBonusLate() const
+{
+	return m_iDifficultyBonusLate;
 }
 #endif
 //------------------------------------------------------------------------------
@@ -3432,7 +3449,10 @@ bool CvHandicapInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility
 	m_iAIFreeXP = kResults.GetInt("AIFreeXP");
 	m_iAIFreeXPPercent = kResults.GetInt("AIFreeXPPercent");
 #if defined(MOD_BALANCE_CORE)
-	m_iDifficultyBonus = kResults.GetInt("DifficultyBonus");
+	m_iDifficultyBonusBase = kResults.GetInt("DifficultyBonusBase");
+	m_iDifficultyBonusEarly = kResults.GetInt("DifficultyBonusA");
+	m_iDifficultyBonusMid = kResults.GetInt("DifficultyBonusB");
+	m_iDifficultyBonusLate = kResults.GetInt("DifficultyBonusC");
 #endif
 
 	//Arrays
@@ -6519,6 +6539,7 @@ CvWorldInfo::CvWorldInfo() :
 	m_iNumCitiesPolicyCostMod(10),
 	m_iNumCitiesTechCostMod(5),
 #if defined(MOD_TRADE_ROUTE_SCALING)
+	m_iNumCitiesTourismCostMod(5),
 	m_iTradeRouteDistanceMod(100),
 #endif
 #if defined(MOD_BALANCE_CORE)
@@ -6626,6 +6647,11 @@ int CvWorldInfo::GetNumCitiesTechCostMod() const
 }
 #if defined(MOD_TRADE_ROUTE_SCALING)
 //------------------------------------------------------------------------------
+int CvWorldInfo::GetNumCitiesTourismCostMod() const
+{
+	return m_iNumCitiesTourismCostMod;
+}
+//------------------------------------------------------------------------------
 int CvWorldInfo::getTradeRouteDistanceMod() const
 {
 	return m_iTradeRouteDistanceMod;
@@ -6704,6 +6730,7 @@ bool CvWorldInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility& k
 	}
 #endif
 #if defined(MOD_BALANCE_CORE)
+	m_iNumCitiesTourismCostMod = kResults.GetInt("NumCitiesTourismCostMod");
 	m_iMinDistanceCities = kResults.GetInt("MinDistanceCities");
 	m_iMinDistanceCityStates = kResults.GetInt("MinDistanceCityStates");
 	m_iReformationPercent = kResults.GetInt("ReformationPercentRequired");
@@ -6739,6 +6766,7 @@ bool CvWorldInfo::operator==(const CvWorldInfo& rhs) const
 	if(m_iTradeRouteDistanceMod != rhs.m_iTradeRouteDistanceMod) return false;
 #endif
 #if defined(MOD_BALANCE_CORE)
+	if (m_iNumCitiesTourismCostMod != rhs.m_iNumCitiesTourismCostMod) return false;
 	if(m_iMinDistanceCities != rhs.m_iMinDistanceCities) return false;
 	if(m_iMinDistanceCityStates != rhs.m_iMinDistanceCityStates) return false;
 	if(m_iReformationPercent != rhs.m_iReformationPercent) return false;
@@ -6791,6 +6819,7 @@ void CvWorldInfo::readFrom(FDataStream& loadFrom)
 	MOD_SERIALIZE_READ(52, loadFrom, m_iTradeRouteDistanceMod, 100);
 #endif
 #if defined(MOD_BALANCE_CORE)
+	MOD_SERIALIZE_READ(67, loadFrom, m_iNumCitiesTourismCostMod, 5);
 	MOD_SERIALIZE_READ(67, loadFrom, m_iMinDistanceCities, 3);
 	MOD_SERIALIZE_READ(67, loadFrom, m_iMinDistanceCityStates, 3);
 	MOD_SERIALIZE_READ(67, loadFrom, m_iReformationPercent, 100);
@@ -6851,6 +6880,7 @@ void CvWorldInfo::writeTo(FDataStream& saveTo) const
 	MOD_SERIALIZE_WRITE(saveTo, m_iTradeRouteDistanceMod);
 #endif
 #if defined(MOD_BALANCE_CORE)
+	MOD_SERIALIZE_WRITE(saveTo, m_iNumCitiesTourismCostMod);
 	MOD_SERIALIZE_WRITE(saveTo, m_iMinDistanceCities);
 	MOD_SERIALIZE_WRITE(saveTo, m_iMinDistanceCityStates);
 	MOD_SERIALIZE_WRITE(saveTo, m_iReformationPercent);
@@ -7006,6 +7036,7 @@ FDataStream& operator>>(FDataStream& loadFrom, CvSeaLevelInfo& writeTo)
 //======================================================================================================
 CvProcessInfo::CvProcessInfo() :
 	m_iTechPrereq(NO_TECH),
+	m_iDefenseValue(0),
 	m_paiProductionToYieldModifier(NULL),
 	m_paiFlavorValue(NULL)
 {
@@ -7020,6 +7051,12 @@ CvProcessInfo::~CvProcessInfo()
 int CvProcessInfo::getTechPrereq() const
 {
 	return m_iTechPrereq;
+}
+
+//------------------------------------------------------------------------------
+int CvProcessInfo::getDefenseValue() const
+{
+	return m_iDefenseValue;
 }
 
 //------------------------------------------------------------------------------
@@ -7047,6 +7084,8 @@ bool CvProcessInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 
 	const char* szTechPrereq = kResults.GetText("TechPrereq");
 	m_iTechPrereq = GC.getInfoTypeForString(szTechPrereq, true);
+
+	m_iDefenseValue = kResults.GetInt("DefenseValue");
 
 	const char* szProcessType = GetType();
 
@@ -8419,7 +8458,7 @@ int CvModEventChoiceInfo::getFlavorValue(int i) const
 //------------------------------------------------------------------------------
 int CvModEventChoiceInfo::getEventResourceChange(ResourceTypes eResource) const
 {
-	CvAssertMsg(eResource < GC.getNumResourceTypes(), "Index out of bounds");
+	CvAssertMsg(eResource < GC.getNumResourceInfos(), "Index out of bounds");
 	CvAssertMsg(eResource > -1, "Index out of bounds");
 	return m_piResourceChange ? m_piResourceChange[eResource] : 0;
 }
@@ -8446,7 +8485,7 @@ int CvModEventChoiceInfo::getPreCheckEventYield(YieldTypes eYield) const
 }
 CvEventNotificationInfo *CvModEventChoiceInfo::GetNotificationInfo(int i) const
 {
-	CvAssertMsg(i < GC.getNumNotificationInfos(), "Index out of bounds");
+//	CvAssertMsg(i < GC.getNumNotificationInfos(), "Index out of bounds");
 	CvAssertMsg(i > -1, "Index out of bounds");
 
 	if (m_paNotificationInfo[0].GetNotificationString() == "" || m_paNotificationInfo[0].GetNotificationString() == NULL)
@@ -10010,7 +10049,7 @@ int CvModEventCityChoiceInfo::getCityWideDestructionChance() const
 
 CvCityEventNotificationInfo *CvModEventCityChoiceInfo::GetNotificationInfo(int i) const
 {
-	CvAssertMsg(i < GC.getNumNotificationInfos(), "Index out of bounds");
+//	CvAssertMsg(i < GC.getNumNotificationInfos(), "Index out of bounds");
 	CvAssertMsg(i > -1, "Index out of bounds");
 
 	if (m_paCityNotificationInfo[0].GetNotificationString() == "" || m_paCityNotificationInfo[0].GetNotificationString() == NULL)
@@ -10106,7 +10145,7 @@ int CvModEventCityChoiceInfo::getCitySpecialistYieldChange(int i, int j) const
 //------------------------------------------------------------------------------
 int CvModEventCityChoiceInfo::getEventResourceChange(ResourceTypes eResource) const
 {
-	CvAssertMsg(eResource < GC.getNumResourceTypes(), "Index out of bounds");
+	CvAssertMsg(eResource < GC.getNumResourceInfos(), "Index out of bounds");
 	CvAssertMsg(eResource > -1, "Index out of bounds");
 	return m_piResourceChange ? m_piResourceChange[eResource] : 0;
 }

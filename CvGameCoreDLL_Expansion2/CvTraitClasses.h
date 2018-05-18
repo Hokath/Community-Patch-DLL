@@ -156,11 +156,14 @@ public:
 	bool IsConquestOfTheWorld() const;
 	bool IsFreeUpgrade() const;
 	bool IsWarsawPact() const;
+	PromotionTypes GetEnemyWarSawPactPromotion() const;
 	bool IsFreeZuluPikemanToImpi() const;
 	bool IsPermanentYieldsDecreaseEveryEra() const;
 	bool IsImportsCountTowardsMonopolies() const;
 	bool IsCanPurchaseNavalUnitsFaith() const;
-	bool IsIgnorePuppetPenalties() const;
+	int GetPuppetPenaltyReduction() const;
+	int GetSharedReligionTourismModifier() const;
+	int GetExtraMissionaryStrength() const;
 #endif
 #if defined(MOD_BALANCE_CORE_BUILDING_INVESTMENTS)
 	int GetInvestmentModifier() const;
@@ -232,6 +235,8 @@ public:
 #if defined(MOD_TRAITS_ANY_BELIEF)
 	bool IsAnyBelief() const;
 	bool IsAlwaysReligion() const;
+	bool IsIgnoreTradeDistanceScaling() const;
+	bool IsCanPlunderWithoutWar() const;
 #endif
 	bool IsBonusReligiousBelief() const;
 	bool IsAbleToAnnexCityStates() const;
@@ -289,8 +294,11 @@ public:
 	int GetGAPToYield(int i) const;
 	int GetMountainRangeYield(int i) const;
 	int GetNumPledgeDomainProductionModifier(DomainTypes eDomain) const;
+	int GetDomainFreeExperienceModifier(DomainTypes eDomain) const;
+	int GetGreatPersonProgressFromPolicyUnlock(GreatPersonTypes eIndex) const;
 	int GetFreeUnitClassesDOW(UnitClassTypes eUnitClass) const;
 	int GetYieldFromTileEarnTerrainType(TerrainTypes eIndex1, YieldTypes eIndex2) const;
+	int GetYieldChangePerImprovementBuilt(ImprovementTypes eIndex1, YieldTypes eIndex2) const;
 #endif
 	int GetMaintenanceModifierUnitCombat(const int unitCombatID) const;
 	int GetImprovementYieldChanges(ImprovementTypes eIndex1, YieldTypes eIndex2) const;
@@ -319,6 +327,8 @@ public:
 	bool IsPopulationBoostReligion() const;
 	bool IsCombatBoostNearNaturalWonder() const;
 	int GetFreePolicyPerXTechs() const;
+	EraTypes GetGPFaithPurchaseEra() const;
+	int GetFaithCostModifier() const;
 #endif
 #if defined(MOD_API_UNIFIED_YIELDS)
 	int GetBuildingClassYieldChanges(BuildingClassTypes eIndex1, YieldTypes eIndex2) const;
@@ -348,6 +358,9 @@ public:
 	int GetPerPuppetGreatPersonRateModifier(GreatPersonTypes eIndex1) const;
 	int GetGreatPersonCostReduction(GreatPersonTypes eIndex1) const;
 	int GetGreatPersonGWAM(GreatPersonTypes eIndex1) const;
+#if defined(MOD_BALANCE_CORE)
+	int GetGoldenAgeFromGreatPersonBirth(GreatPersonTypes eIndex1) const;
+#endif
 	int GetCityYieldFromUnimprovedFeature(FeatureTypes eIndex1, YieldTypes eIndex2) const;
 #endif
 	int GetUnimprovedFeatureYieldChanges(FeatureTypes eIndex1, YieldTypes eIndex2) const;
@@ -355,6 +368,7 @@ public:
 
 	bool IsFreePromotionUnitCombat(const int promotionID, const int unitCombatID) const;
 #if defined(MOD_BALANCE_CORE)
+	bool IsSpecialUpgradeUnitClass(const int unitClassesID, const int unitID) const;
 	bool IsFreePromotionUnitClass(const int promotionID, const int unitClassID) const;
 	bool UnitClassCanBuild(const int buildID, const int unitClassID) const;
 	bool TerrainClaimBoost(TerrainTypes eTerrain);
@@ -373,6 +387,7 @@ public:
 	virtual bool CacheResults(Database::Results& kResults, CvDatabaseUtility& kUtility);
 
 protected:
+
 	int m_iLevelExperienceModifier;
 	int m_iGreatPeopleRateModifier;
 	int m_iGreatScientistRateModifier;
@@ -476,11 +491,14 @@ protected:
 	bool m_bConquestOfTheWorld;
 	bool m_bFreeUpgrade;
 	bool m_bWarsawPact;
+	int m_iEnemyWarSawPactPromotion;
 	bool m_bFreeZuluPikemanToImpi;
 	bool m_bPermanentYieldsDecreaseEveryEra;
 	bool m_bImportsCountTowardsMonopolies;
 	bool m_bCanPurchaseNavalUnitsFaith;
-	bool m_bIgnorePuppetPenalties;
+	int m_iPuppetPenaltyReduction;
+	int m_iSharedReligionTourismModifier;
+	int m_iExtraMissionaryStrength;
 #endif
 #if defined(MOD_BALANCE_CORE_BUILDING_INVESTMENTS)
 	int m_iInvestmentModifier;
@@ -553,6 +571,8 @@ protected:
 #if defined(MOD_TRAITS_ANY_BELIEF)
 	bool m_bAnyBelief;
 	bool m_bAlwaysReligion;
+	bool m_bIgnoreTradeDistanceScaling;
+	bool m_bCanPlunderWithoutWar;
 #endif
 	bool m_bBonusReligiousBelief;
 	bool m_bAbleToAnnexCityStates;
@@ -601,6 +621,7 @@ protected:
 	int* m_paiMountainRangeYield;
 	int* m_piMovesChangeUnitClasses;
 	int** m_ppiYieldFromTileEarnTerrainType;
+	int** m_ppiYieldChangePerImprovementBuilt;
 #endif
 	int* m_piMaintenanceModifierUnitCombats;
 	int** m_ppiImprovementYieldChanges;
@@ -626,10 +647,14 @@ protected:
 	int m_iChanceToConvertReligiousUnits;
 	int m_iGoldenAgeFromVictory;
 	int m_iFreePolicyPerXTechs;
+	EraTypes m_eGPFaithPurchaseEra;
+	int m_iFaithCostModifier;
 	bool m_bFreeGreatWorkOnConquest;
 	bool m_bPopulationBoostReligion;
 	bool m_bCombatBoostNearNaturalWonder;
 	int* m_piNumPledgesDomainProdMod;
+	int* m_piDomainFreeExperienceModifier;
+	int* m_piGreatPersonProgressFromPolicyUnlock;
 	int* m_piFreeUnitClassesDOW;
 #endif
 #if defined(MOD_API_UNIFIED_YIELDS)
@@ -661,6 +686,9 @@ protected:
 	int* m_piPerPuppetGreatPersonRateModifier;
 	int* m_piGreatPersonGWAM;
 	int** m_ppiCityYieldFromUnimprovedFeature;
+#if defined(MOD_BALANCE_CORE)
+	int* m_piGoldenAgeFromGreatPersonBirth;
+#endif
 #endif
 	int** m_ppiUnimprovedFeatureYieldChanges;
 
@@ -669,6 +697,7 @@ protected:
 	std::multimap<int, int> m_FreePromotionUnitClass;
 	std::multimap<int, int> m_BuildsUnitClasses;
 	std::vector<bool> m_abTerrainClaimBoost;
+	std::multimap<int, int> m_piUpgradeUnitClass;
 #endif
 	std::vector<FreeResourceXCities> m_aFreeResourceXCities;
 	std::vector<bool> m_abNoTrainUnitClass;
@@ -730,6 +759,43 @@ public:
 	void Uninit();
 	void Reset();
 	void InitPlayerTraits();
+
+	void SetIsWarmonger();
+	void SetIsNerd();
+	void SetIsTourism();
+	void SetIsDiplomat();
+	void SetIsExpansionist();
+	void SetIsSmaller();
+	void SetIsReligious();
+
+	bool IsWarmonger() const
+	{
+		return m_bIsWarmonger;
+	}
+	bool IsNerd() const
+	{
+		return m_bIsNerd;
+	}
+	bool IsTourism() const
+	{
+		return m_bIsTourism;
+	}
+	bool IsDiplomat() const
+	{
+		return m_bIsDiplomat;
+	}
+	bool IsExpansionist() const
+	{
+		return m_bIsExpansionist;
+	}
+	bool IsSmaller() const
+	{
+		return m_bIsSmaller;
+	}
+	bool IsReligious() const
+	{
+		return m_bIsReligious;
+	}
 
 	// Accessor functions
 	bool HasTrait(TraitTypes eTrait) const;
@@ -1136,13 +1202,25 @@ public:
 	{
 		return m_bCanPurchaseNavalUnitsFaith;
 	};
-	bool IsIgnorePuppetPenalties() const
+	int GetPuppetPenaltyReduction() const
 	{
-		return m_bIgnorePuppetPenalties;
+		return m_iPuppetPenaltyReduction;
 	};
 	bool IsWarsawPact() const
 	{
 		return m_bWarsawPact;
+	};
+	PromotionTypes GetEnemyWarSawPactPromotion() const
+	{
+		return (PromotionTypes)m_iEnemyWarSawPactPromotion;
+	};
+	int GetSharedReligionTourismModifier() const
+	{
+		return m_iSharedReligionTourismModifier;
+	};
+	int GetExtraMissionaryStrength() const
+	{
+		return m_iExtraMissionaryStrength;
 	};
 #endif
 #if defined(MOD_BALANCE_CORE_BUILDING_INVESTMENTS)
@@ -1323,6 +1401,15 @@ public:
 	{
 		return m_bAlwaysReligion;
 	};
+
+	bool IsIgnoreTradeDistanceScaling() const
+	{
+		return m_bIgnoreTradeDistanceScaling;
+	};
+	bool IsCanPlunderWithoutWar() const
+	{
+		return m_bCanPlunderWithoutWar;
+	};
 #endif
 	bool IsBonusReligiousBelief() const
 	{
@@ -1474,9 +1561,22 @@ public:
 		return ((uint)eGreatPerson < m_aiGoldenAgeGreatPersonRateModifier.size()) ? m_aiGoldenAgeGreatPersonRateModifier[(int)eGreatPerson] : 0;
 	};
 
+	int GetGoldenAgeFromGreatPersonBirth(GreatPersonTypes eGreatPerson) const
+	{
+		return ((uint)eGreatPerson < m_aiGoldenAgeFromGreatPersonBirth.size()) ? m_aiGoldenAgeFromGreatPersonBirth[(int)eGreatPerson] : 0;
+	};
+
 	int GetNumPledgeDomainProductionModifier(DomainTypes eDomain) const
 	{
 		return ((uint)eDomain < m_aiNumPledgesDomainProdMod.size()) ? m_aiNumPledgesDomainProdMod[(int)eDomain] : 0;
+	};
+	int GetDomainFreeExperienceModifier(DomainTypes eDomain) const
+	{
+		return ((uint)eDomain < m_aiDomainFreeExperienceModifier.size()) ? m_aiDomainFreeExperienceModifier[(int)eDomain] : 0;
+	};
+	int GetGreatPersonProgressFromPolicyUnlock(GreatPersonTypes eIndex) const
+	{
+		return ((uint)eIndex < m_aiGreatPersonProgressFromPolicyUnlock.size()) ? m_aiGreatPersonProgressFromPolicyUnlock[(int)eIndex] : 0;
 	};
 	int GetFreeUnitClassesDOW(UnitClassTypes eUnitClass) const
 	{
@@ -1487,6 +1587,7 @@ public:
 #if defined(MOD_BALANCE_CORE)
 	int GetMovesChangeUnitClass(const int unitClassID) const;
 	int GetYieldChangeFromTileEarnTerrainType(TerrainTypes eTerrain, YieldTypes eYield) const;
+	int GetYieldChangePerImprovementBuilt(ImprovementTypes eImprovement, YieldTypes eYield) const;
 #endif
 	int GetMaintenanceModifierUnitCombat(const int unitCombatID) const;
 	int GetImprovementYieldChange(ImprovementTypes eImprovement, YieldTypes eYield) const;
@@ -1565,6 +1666,14 @@ public:
 	int GetFreePolicyPerXTechs() const
 	{
 		return m_iFreePolicyPerXTechs;
+	};
+	EraTypes GetGPFaithPurchaseEra() const
+	{
+		return m_eGPFaithPurchaseEra;
+	};
+	int GetFaithCostModifier() const
+	{
+		return m_iFaithCostModifier;
 	};
 	bool IsFreeGreatWorkOnConquest() const
 	{
@@ -1653,6 +1762,7 @@ public:
 
 	bool HasFreePromotionUnitCombat(const int promotionID, const int unitCombatID) const;
 #if defined(MOD_BALANCE_CORE)
+	bool HasSpecialUnitUpgrade(const int unitClassID, const int unitID) const;
 	bool HasFreePromotionUnitClass(const int promotionID, const int unitClassID) const;
 	bool HasUnitClassCanBuild(const int buildID, const int unitClassID) const;	
 #endif
@@ -1738,6 +1848,14 @@ private:
 	CvPlayer* m_pPlayer;
 	std::vector<bool> m_vLeaderHasTrait;
 	std::vector<TraitTypes> m_vPotentiallyActiveLeaderTraits;
+
+	bool m_bIsWarmonger;
+	bool m_bIsNerd;
+	bool m_bIsTourism;
+	bool m_bIsDiplomat;
+	bool m_bIsExpansionist;
+	bool m_bIsSmaller;
+	bool m_bIsReligious;
 
 	// Cached data about this player's traits
 	int m_iGreatPeopleRateModifier;
@@ -1840,11 +1958,14 @@ private:
 	bool m_bConquestOfTheWorld;
 	bool m_bFreeUpgrade;
 	bool m_bWarsawPact;
+	int m_iEnemyWarSawPactPromotion;
 	bool m_bFreeZuluPikemanToImpi;
 	bool m_bPermanentYieldsDecreaseEveryEra;
 	bool m_bImportsCountTowardsMonopolies;
 	bool m_bCanPurchaseNavalUnitsFaith;
-	bool m_bIgnorePuppetPenalties;
+	int m_iPuppetPenaltyReduction;
+	int m_iSharedReligionTourismModifier;
+	int m_iExtraMissionaryStrength;
 #endif
 #if defined(MOD_BALANCE_CORE_BUILDING_INVESTMENTS)
 	int m_iInvestmentModifier;
@@ -1900,6 +2021,8 @@ private:
 #if defined(MOD_TRAITS_ANY_BELIEF)
 	bool m_bAnyBelief;
 	bool m_bAlwaysReligion;
+	bool m_bIgnoreTradeDistanceScaling;
+	bool m_bCanPlunderWithoutWar;
 #endif
 	bool m_bBonusReligiousBelief;
 	bool m_bAbleToAnnexCityStates;
@@ -1969,6 +2092,7 @@ private:
 #if defined(MOD_BALANCE_CORE)
 	std::vector<int> m_paiMovesChangeUnitClass;
 	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppiYieldFromTileEarnTerrainType;
+	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppaaiYieldChangePerImprovementBuilt;
 #endif
 
 	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppaaiImprovementYieldChange;
@@ -1994,6 +2118,8 @@ private:
 	int m_iChanceToConvertReligiousUnits;
 	int m_iGoldenAgeFromVictory;
 	int m_iFreePolicyPerXTechs;
+	EraTypes m_eGPFaithPurchaseEra;
+	int m_iFaithCostModifier;
 	bool m_bFreeGreatWorkOnConquest;
 	bool m_bPopulationBoostReligion;
 	bool m_bCombatBoostNearNaturalWonder;
@@ -2025,6 +2151,10 @@ private:
 	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppiTradeRouteYieldChange;
 #endif
 	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppaaiSpecialistYieldChange;
+#if defined(MOD_BALANCE_CORE)
+	std::vector<int> m_aiDomainFreeExperienceModifier;
+	std::vector<int> m_aiGreatPersonProgressFromPolicyUnlock;
+#endif
 #if defined(MOD_API_UNIFIED_YIELDS)
 	std::vector<int> m_aiGreatPersonCostReduction;
 	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppiGreatPersonExpendedYield;
@@ -2034,6 +2164,9 @@ private:
 	std::vector<int> m_aiGoldenAgeGreatPersonRateModifier;
 	std::vector<int> m_aiPerPuppetGreatPersonRateModifier;
 	std::vector<int> m_aiGreatPersonGWAM;
+#if defined(MOD_BALANCE_CORE)
+	std::vector<int> m_aiGoldenAgeFromGreatPersonBirth;
+#endif
 	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppiCityYieldFromUnimprovedFeature;
 #endif
 	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppaaiUnimprovedFeatureYieldChange;

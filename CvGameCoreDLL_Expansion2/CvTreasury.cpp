@@ -86,10 +86,10 @@ void CvTreasury::DoGold()
 	iGoldChange = m_pPlayer->calculateGoldRateTimes100();
 
 	int iGoldAfterThisTurn = iGoldChange + GetGoldTimes100();
-	if(iGoldAfterThisTurn < 0)
+	if (iGoldAfterThisTurn < 0 || m_pPlayer->isMinorCiv())
 	{
 		SetGold(0);
-
+		//forced disbanding
 		if(iGoldAfterThisTurn <= /*-5*/ GC.getDEFICIT_UNIT_DISBANDING_THRESHOLD() * 100)
 			m_pPlayer->DoDeficit();
 	}
@@ -482,6 +482,10 @@ int CvTreasury::CalculateGrossGoldTimes100()
 	if(MOD_BALANCE_CORE_MINOR_CIV_GIFT)
 	{
 		iNetGold += m_pPlayer->GetGoldPerTurnFromMinorCivs() * 100;
+	}
+	if (MOD_BALANCE_CORE_JFD)
+	{
+		iNetGold += m_pPlayer->GetYieldPerTurnFromMinors(YIELD_GOLD) * 100;
 	}
 #endif
 #if defined(MOD_BALANCE_CORE_HAPPINESS_NATIONAL)

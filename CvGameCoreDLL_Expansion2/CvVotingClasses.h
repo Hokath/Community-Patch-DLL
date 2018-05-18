@@ -950,8 +950,8 @@ private:
 
 	// Proposing
 	void AllocateProposals(CvLeague* pLeague);
-	int ScoreProposal(CvLeague* pLeague, ResolutionTypes eResolution, int iChoice = LeagueHelpers::CHOICE_NONE);
-	int ScoreProposal(CvLeague* pLeague, CvActiveResolution* pResolution);
+	int ScoreProposal(CvLeague* pLeague, ResolutionTypes eResolution, int iChoice = LeagueHelpers::CHOICE_NONE, bool bIsProposing = false);
+	int ScoreProposal(CvLeague* pLeague, CvActiveResolution* pResolution, bool bIsProposing = false);
 
 	// Logging
 	void LogProposalConsidered(ProposalConsideration* pProposal, int iChoice, int iScore, bool bPre);

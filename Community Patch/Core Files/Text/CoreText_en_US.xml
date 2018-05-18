@@ -2659,11 +2659,14 @@
 		</Row>
 
 		<!-- Promises LUA -->
-		<Row Tag="TXT_KEY_DIPLO_PROMISE_EXPANSION">
-			<Text>[[COLOR_POSITIVE_TEXT]]You promised not to settle near them for {1_Num} more turn(s).[ENDCOLOR]</Text>
+		<Row Tag="TXT_KEY_DIPLO_MILITARY_PROMISE_TURNS">
+			<Text>You promised to keep your military forces away from their borders for {1_Num} more turn(s).</Text>
 		</Row>
-		<Row Tag="TXT_KEY_DIPLO_PROMISE_BORDER">
-			<Text>[[COLOR_POSITIVE_TEXT]]You promised not to buy land near them for {1_Num} more turn(s).[ENDCOLOR]</Text>
+		<Row Tag="TXT_KEY_DIPLO_EXPANSION_PROMISE_TURNS">
+			<Text>You promised not to settle near them for {1_Num} more turn(s).</Text>
+		</Row>
+		<Row Tag="TXT_KEY_DIPLO_BORDER_PROMISE_TURNS">
+			<Text>You promised not to buy land near them for {1_Num} more turn(s).</Text>
 		</Row>
 		<!-- Tourism Lua -->
 		<Row Tag="TXT_KEY_CO_CITY_TOURISM_GENERAL">
@@ -2687,6 +2690,11 @@
 		<Row Tag="TXT_KEY_CHOOSE_INTERNATIONAL_TRADE_ROUTE_ITEM_TT_OPEN_BORDERS_MOD">
 			<Text>Open Borders [ICON_GOLD] Gold Bonus: +{1_Num}%</Text>
 		</Row>
+
+		<Row Tag="TXT_KEY_CHOOSE_INTERNATIONAL_TRADE_ROUTE_ITEM_TT_DISTANCE_MOD">
+			<Text>Proximity Penalty: {1_Num}%</Text>
+		</Row>
+	
 		<!-- LUA for CBP -->
 		<Row Tag="TXT_KEY_DIPLO_NO_WAR_DOF">
 			<Text>A Declaration of Friendship prevents this.</Text>
@@ -2745,6 +2753,12 @@
 		</Row>
 		<Row Tag="TXT_KEY_DIPLO_TRADE_VALUE_STR_PEACE_IMPOSSIBLE">
 			<Text>Deal Value for Them: Impossible!</Text>
+		</Row>
+		<Row Tag="TXT_KEY_DIPLO_TRADE_VALUE_STR_PEACE_EMBARGO">
+			<Text>SANCTIONED BY WORLD CONGRESS</Text>
+		</Row>
+		<Row Tag="TXT_KEY_DIPLO_TRADE_VALUE_STR_PEACE_EMBARGO_TT">
+			<Text>You cannot make deals during peacetime with this Civilization until the Sanction is lifted.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_DIPLO_TRADE_VALUE_STR_PEACE_ACCEPTABLE">
 			<Text>Deal Value for Them: Acceptable</Text>
@@ -5175,7 +5189,7 @@
 		</Row>
 		<!-- Global Domination Resistance -->
 		<Row Tag="TXT_KEY_EUPANEL_RESISTANCE_POWER">
-			<Text>Resistance (Domination)</Text>
+			<Text>Anti-Warmonger Fervor</Text>
 		</Row>
 
 		<!-- Tooltips for required resource monopolies-->
@@ -5189,6 +5203,9 @@
 		</Row>
 		<Row Tag="TXT_KEY_COOLDOWN_X_TURNS_REMAINING_FAITH">
 			<Text>[NEWLINE]You recently purchased a [ICON_GREAT_PEOPLE] Great Person with [ICON_PEACE] Faith, and must wait for {1_Num} more turn(s) to do so again.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_COOLDOWN_X_TURNS_REMAINING_FAITH_LOCAL">
+			<Text>[NEWLINE]You recently made a [ICON_PEACE] Faith purchase in this city, and must wait for {1_Num} more turn(s) to do so again.</Text>
 		</Row>
 
 		<!-- Tooltips for CBP Austria Ability -->
@@ -5270,6 +5287,13 @@
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_CIV_REVOLUTION_SHORT_CP">
 			<Text>{1_PlayerName} restored!</Text>
+		</Row>
+
+		<Row Tag="TXT_KEY_NOTIFICATION_POSSIBLE_CITY_REVOLUTION_CP_FREE_CITY">
+			<Text>Because the empire has at least 20 [ICON_HAPPINESS_4] Unhappiness, a city will revolt in {1_Turns} turns. Based on current Unhappiness levels, the city most likely to revolt is {2_CityName}. If this city revolts, it will become an independent City-State. Try to get your empire's Happiness level out of this range as soon as possible!</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_OTHER_PLAYER_CITY_REVOLT_FREE_CITY">
+			<Text>The {1_CivAdjective} city of {2_CityName} has revolted and declared itself the free City-State of {3_CivName}!</Text>
 		</Row>
 
 		<!-- Denounce Statements -->
@@ -5683,7 +5707,7 @@
 			<Text>Ocean Embarkation with Defense</Text>
 		</Row>
 		<Row Tag="TXT_KEY_PROMOTION_DEFENSIVE_DEEPWATER_EMBARKATION_HELP">
-			<Text>Permits hovering units to embark at the coastal/ocean boundary. Embarked units receive a defensive bonus.</Text>
+			<Text>Permits hovering units to embark at the coastal/ocean boundary. Embarked units receive +100% [ICON_STRENGTH] defensive bonus.</Text>
 		</Row>
 
 		<!-- MP Denounce -->
@@ -5791,7 +5815,7 @@
 			<Text>Because your Civilization entered a new [ICON_RESEARCH] Era, your [ICON_TOURISM] Tourism with all known Civs has increased by {1_Num} (before Tourism modifiers)!</Text>
 		</Row>
 		<Row Tag="TXT_KEY_TOURISM_EVENT_WAR">
-			<Text>Because your Civilization won a [ICON_VICTORY_DOMINATION] War, your [ICON_TOURISM] Tourism with all known Civs has increased by {1_Num} (before Tourism modifiers)!</Text>
+			<Text>Because your Civilization won a [ICON_VICTORY_DOMINATION] War (Warscore of 25 or more), your [ICON_TOURISM] Tourism with all known Civs has increased by {1_Num} (before Tourism modifiers)!</Text>
 		</Row>
 		<Row Tag="TXT_KEY_TOURISM_EVENT_GP">
 			<Text>Because a [ICON_GREAT_PEOPLE] Great Person was born in your Civilization, your [ICON_TOURISM] Tourism with all known Civs has increased by {1_Num} (before Tourism modifiers)!</Text>
@@ -5811,28 +5835,28 @@
 
 		<!-- Arabia -->
 		<Row Tag="TXT_KEY_TOURISM_EVENT_GP_BONUS">
-			<Text>Scheherazade's stories draw brilliant minds from around the world to your land. Your [ICON_CAPITAL] Capital gains +1 [ICON_CULTURE] Culture and [ICON_RESEARCH] Science, +2 [ICON_GOLD] Gold, and +{1_Num} towards a [ICON_GREAT_PEOPLE] Great Person!</Text>
+			<Text>Scheherazade's stories draw brilliant minds from around the world to your land. Your [ICON_CAPITAL] Capital gains +1 [ICON_CULTURE] Culture and [ICON_RESEARCH] Science, and +{1_Num} towards a [ICON_GREAT_PEOPLE] Great Person!</Text>
 		</Row>
 		<Row Tag="TXT_KEY_TOURISM_EVENT_GP_BONUS_SCIENTIST">
-			<Text>Legends and folklore surrounding strange creatures and artifacts draw wise thinkers to your lands. Your [ICON_CAPITAL] Capital gains +1 [ICON_CULTURE] Culture and [ICON_RESEARCH] Science, +2 [ICON_GOLD] Gold, and +{1_Num} to [ICON_GREAT_SCIENTIST] Great Scientist progress!</Text>
+			<Text>Legends and folklore surrounding strange creatures and artifacts draw wise thinkers to your lands. Your [ICON_CAPITAL] Capital gains +1 [ICON_CULTURE] Culture and [ICON_RESEARCH] Science, and +{1_Num} to [ICON_GREAT_SCIENTIST] Great Scientist progress!</Text>
 		</Row>
 		<Row Tag="TXT_KEY_TOURISM_EVENT_GP_BONUS_WRITER">
-			<Text>The tales of Scheherazade have inspired generations of your best authors. Your [ICON_CAPITAL] Capital gains +1 [ICON_CULTURE] Culture and [ICON_RESEARCH] Science, +2 [ICON_GOLD] Gold, and +{1_Num} to [ICON_GREAT_WRITER] Great Writer progress!</Text>
+			<Text>The tales of Scheherazade have inspired generations of your best authors. Your [ICON_CAPITAL] Capital gains +1 [ICON_CULTURE] Culture and [ICON_RESEARCH] Science, and +{1_Num} to [ICON_GREAT_WRITER] Great Writer progress!</Text>
 		</Row>
 		<Row Tag="TXT_KEY_TOURISM_EVENT_GP_BONUS_ARTIST">
-			<Text>Painters from around the world have come to your lands in order to depict scenes from Scheherazade's stories. Your [ICON_CAPITAL] Capital gains +1 [ICON_CULTURE] Culture and [ICON_RESEARCH] Science, +2 [ICON_GOLD] Gold, and +{1_Num} to [ICON_GREAT_ARTIST] Great Artist progress!</Text>
+			<Text>Painters from around the world have come to your lands in order to depict scenes from Scheherazade's stories. Your [ICON_CAPITAL] Capital gains +1 [ICON_CULTURE] Culture and [ICON_RESEARCH] Science, and +{1_Num} to [ICON_GREAT_ARTIST] Great Artist progress!</Text>
 		</Row>
 		<Row Tag="TXT_KEY_TOURISM_EVENT_GP_BONUS_MUSICIAN">
-			<Text>Scheherazade's poetry has led to a musical renaissance in your empire. Your [ICON_CAPITAL] Capital gains +1 [ICON_CULTURE] Culture and [ICON_RESEARCH] Science, +2 [ICON_GOLD] Gold, and +{1_Num} to [ICON_GREAT_MUSICIAN] Great Musician progress!</Text>
+			<Text>Scheherazade's poetry has led to a musical renaissance in your empire. Your [ICON_CAPITAL] Capital gains +1 [ICON_CULTURE] Culture and [ICON_RESEARCH] Science, and +{1_Num} to [ICON_GREAT_MUSICIAN] Great Musician progress!</Text>
 		</Row>
 		<Row Tag="TXT_KEY_TOURISM_EVENT_GP_BONUS_MERCHANT">
-			<Text>Powerful and wealthy people flock to your court to listen to the tales of Scheherazade. Your [ICON_CAPITAL] Capital gains +1 [ICON_CULTURE] Culture and [ICON_RESEARCH] Science, +2 [ICON_GOLD] Gold, and +{1_Num} to [ICON_GREAT_MERCHANT] Great Merchant progress!</Text>
+			<Text>Powerful and wealthy people flock to your court to listen to the tales of Scheherazade. Your [ICON_CAPITAL] Capital gains +1 [ICON_CULTURE] Culture and [ICON_RESEARCH] Science, and +{1_Num} to [ICON_GREAT_MERCHANT] Great Merchant progress!</Text>
 		</Row>
 		<Row Tag="TXT_KEY_TOURISM_EVENT_GP_BONUS_ENGINEER">
-			<Text>Architects and engineers draw inspiration from the legendary heroes of Scheherazade's stories. Your [ICON_CAPITAL] Capital gains +1 [ICON_CULTURE] Culture and [ICON_RESEARCH] Science, +2 [ICON_GOLD] Gold, and +{1_Num} to [ICON_GREAT_ENGINEER] Great Engineer progress!</Text>
+			<Text>Architects and engineers draw inspiration from the legendary heroes of Scheherazade's stories. Your [ICON_CAPITAL] Capital gains +1 [ICON_CULTURE] Culture and [ICON_RESEARCH] Science, and +{1_Num} to [ICON_GREAT_ENGINEER] Great Engineer progress!</Text>
 		</Row>
 		<Row Tag="TXT_KEY_TOURISM_EVENT_GP_BONUS_DIPLOMAT">
-			<Text>Courtiers from around the world beg for an audience with you and Scheherazade. Your [ICON_CAPITAL] Capital gains +1 [ICON_CULTURE] Culture and [ICON_RESEARCH] Science, +2 [ICON_GOLD] Gold, and +{1_Num} to [ICON_DIPLOMAT] Great Diplomat progress!</Text>
+			<Text>Courtiers from around the world beg for an audience with you and Scheherazade. Your [ICON_CAPITAL] Capital gains +1 [ICON_CULTURE] Culture and [ICON_RESEARCH] Science, and +{1_Num} to [ICON_DIPLOMAT] Great Diplomat progress!</Text>
 		</Row>
 
 		<Row Tag="TXT_KEY_TOURISM_EVENT_SUMMARY_GP_BONUS">
@@ -5879,7 +5903,7 @@
 		</Row>
 
 		<Row Tag="TXT_KEY_NOTIFICATION_CITY_GAINED_HOLY">
-			<Text>You captured the Holy City of {1_CityName:textkey}! If eligible, {2_Religion} may become your primary relgion, thus giving you access to the Founder and Enhancer Belief bonuses associated with it (so long as you retain control of the City).</Text>
+			<Text>You captured the Holy City of {1_CityName:textkey}! If eligible, {2_Religion} may become your primary religion, thus giving you access to the Founder and Enhancer Belief bonuses associated with it (so long as you retain control of the City).</Text>
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_SUMMARY_CITY_GAINED_HOLY">
 			<Text>Holy City of {1_CityName:textkey} taken!</Text>
@@ -5904,7 +5928,7 @@
 			<Text>+{1_Num} [ICON_PEACE] from Great Works and Themes</Text>
 		</Row>
 		<Row Tag="TXT_KEY_YIELD_FROM_TRAIT_BONUS">
-			<Text>+{1_Num} {2_IconString} from Trait</Text>
+			<Text>{1_Num} {2_IconString} from Trait</Text>
 		</Row>
 
 		<Row Tag="TXT_KEY_CO_PLAYER_TOURISM_LEAGUE">
@@ -6031,6 +6055,13 @@
 			<Text>Your empire has entered a state of anarchy! This will last for {1_num} turns.</Text>
 		</Row>
 
+		<!-- Tooltips for Growth Modifiers -->
+		<Row Tag="TXT_KEY_FOODMOD_EATEN_FOOD">
+			<Text>[NEWLINE][COLOR_NEGATIVE_TEXT]-{1_Num}[ENDCOLOR] [ICON_FOOD] eaten by [ICON_CITIZEN] Citizens</Text>
+		</Row>
+		<Row Tag="TXT_KEY_FOODMOD_PUPPET">
+			<Text>[NEWLINE][ICON_BULLET][ICON_PUPPET] Modifier for Puppet: {1_Num}%</Text>
+		</Row>
 		<Row Tag="TXT_KEY_FOODMOD_YIELD_GOLDEN_AGE_POLICIES">
 			<Text>[NEWLINE][ICON_BULLET][ICON_GOLDEN_AGE] Golden Age Modifier (Policies): {1_Num}%</Text>
 		</Row>
@@ -6041,15 +6072,33 @@
 			<Text>[NEWLINE][ICON_BULLET][ICON_TOURISM] Tourism Modifier (Trade Routes): {1_Num}%</Text>
 		</Row>
 		<Row Tag="TXT_KEY_FOODMOD_YIELD_OVER_SUPPLY">
-			<Text>[NEWLINE][ICON_BULLET][ICON_FOOD] Growth Penalty (Over Military Unit Supply Cap): {1_Num}%</Text>
+			<Text>[NEWLINE][ICON_BULLET][ICON_SILVER_FIST] Growth [COLOR_NEGATIVE_TEXT]Penalty[ENDCOLOR] (Over Military Unit Supply Cap): {1_Num}%</Text>
 		</Row>
 
-
+		<!-- Tooltips for Standard Base Modifiers -->
 		<Row Tag="TXT_KEY_PRODMOD_YIELD_GOLDEN_AGE_BUILDINGS">
-			<Text>[NEWLINE][ICON_BULLET][ICON_GOLDEN_AGE] Golden Age Modifier (Buildings): {1_Num}%</Text>
+			<Text>[NEWLINE][ICON_BULLET]Golden Age Modifier (Buildings): {1_Num}%</Text>
 		</Row>
 		<Row Tag="TXT_KEY_PRODMOD_YIELD_GOLDEN_AGE_POLICIES">
-			<Text>[NEWLINE][ICON_BULLET][ICON_GOLDEN_AGE] Golden Age Modifier (Policies): {1_Num}%</Text>
+			<Text>[NEWLINE][ICON_BULLET]Golden Age Modifier (Policies): {1_Num}%</Text>
+		</Row>
+		<Row Tag="TXT_KEY_PRODMOD_YIELD_GOLDEN_AGE_RELIGION">
+			<Text>[NEWLINE][ICON_BULLET]Golden Age Modifier (Beliefs): {1_Num}%</Text>
+		</Row>
+		<Row Tag="TXT_KEY_PRODMOD_WLTKD">
+			<Text>[NEWLINE][ICON_BULLET]We Love the King Day Modifier: {1_Num}%</Text>
+		</Row>
+		<Row Tag="TXT_KEY_PRODMOD_WLTKD_RELIGION">
+			<Text>[NEWLINE][ICON_BULLET]We Love the King Day Modifier (Beliefs): {1_Num}%</Text>
+		</Row>
+		<Row Tag="TXT_KEY_PRODMOD_WLTKD_TRAIT">
+			<Text>[NEWLINE][ICON_BULLET]We Love the King Day Modifier (Player): {1_Num}%</Text>
+		</Row>
+		<Row Tag="TXT_KEY_PRODMOD_GREAT_WORKS">
+			<Text>[NEWLINE][ICON_BULLET]Great Works Modifier: {1_Num}%</Text>
+		</Row>
+		<Row Tag="TXT_KEY_PRODMOD_SPIES">
+			<Text>[NEWLINE][ICON_BULLET]Active Spies Modifier: {1_Num}%</Text>
 		</Row>
 
 		<!-- Lua for Buildings -->
@@ -6323,6 +6372,9 @@
 		<Row Tag="TXT_KEY_TECH_HELP_YIELDS_UNLOCKED">
 			<Text>[NEWLINE][COLOR_CYAN]Yield Changes:[ENDCOLOR][NEWLINE]</Text>
 		</Row>
+		<Row Tag="TXT_KEY_TECH_HELP_BUILD_REDUCTION">
+			<Text>{1_Build}: {2_Turns} Turn(s) Required</Text>
+		</Row>
 
 
 		<!-- Plague for JFD-->
@@ -6374,6 +6426,20 @@
 		</Row>
 		<Row Tag="TXT_KEY_PEDIA_NUM_POPULATION_LOCAL_NEEDED_LABEL">
 			<Text>Local Population Required: [COLOR_CYAN]{1_Num}[ENDCOLOR] (Have: {2_Num})</Text>
+		</Row>
+
+		<!-- Great Person Progress -->
+		<Row Tag="TXT_KEY_NOTIFICATION_SUMMARY_GREAT_PERSON_PROGRESS">
+			<Text>Empire-Wide Bonus Great Person Points</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_SUMMARY_GREAT_PERSON_PROGRESS_EMPIRE">
+			<Text>Bonus Great Person Points Update</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_SUMMARY_GREAT_PERSON_PROGRESS_IN_CITY">
+			<Text>Bonus Great Person Points in {1_City}!</Text>
+		</Row>
+		<Row Tag="TXT_KEY_INSTANT_GREAT_PERSON_PROGRESS_DETAILS">
+			<Text>+{3_Num} {2_Icon} {1_Name}</Text>
 		</Row>
 		
 		<!-- Instant Yield Text -->
@@ -6488,6 +6554,126 @@
 		<Row Tag="TXT_KEY_INSTANT_YIELD_SPIES">
 			<Text>[ICON_SPY] Spy Actions:[NEWLINE]{1_YieldString}</Text>
 		</Row>
+		<Row Tag="TXT_KEY_INSTANT_YIELD_MINOR_QUEST">
+			<Text>[ICON_CITY_STATE] City-State Quest ({1_Data}):[NEWLINE]{2_YieldString}</Text>
+		</Row>
+		
+		<!-- Quest Data -->
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_ROUTE_NAME">
+			<Text>Construct Route for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_KILL_CAMP_NAME">
+			<Text>Kill Camp for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_CONNECT_RESOURCE_NAME">
+			<Text>Connect Resource for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_CONSTRUCT_WONDER_NAME">
+			<Text>Build Wonder for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_GREAT_PERSON_NAME">
+			<Text>Great Person for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_KILL_CITY_STATE_NAME">
+			<Text>Kill City-State for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_FIND_PLAYER_NAME">
+			<Text>Find Player for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_FIND_NATURAL_WONDER_NAME">
+			<Text>Find Natural Wonder for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_GIVE_GOLD_NAME">
+			<Text>Give Gold to {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_PLEDGE_TO_PROTECT_NAME">
+			<Text>Pledge Protection to {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_CONTEST_CULTURE_NAME">
+			<Text>Culture Contest for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_CONTEST_FAITH_NAME">
+			<Text>Faith Contest for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_CONTEST_TECHS_NAME">
+			<Text>Tech Contest for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_INVEST_NAME">
+			<Text>Invest in {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_BULLY_CITY_STATE_NAME">
+			<Text>Bully City-State for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_DENOUNCE_MAJOR_NAME">
+			<Text>Denounce Player for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_SPREAD_RELIGION_NAME">
+			<Text>Spread Religion to {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_TRADE_ROUTE_NAME">
+			<Text>Trade Route to {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_WAR_NAME">
+			<Text>War for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_CONSTRUCT_NATIONAL_WONDER_NAME">
+			<Text>Built National Wonder for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_FIND_CITY_STATE_NAME">
+			<Text>Found City-State for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_INFLUENCE_NAME">
+			<Text>Influence for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_CONTEST_TOURISM_NAME">
+			<Text>Tourism Contest for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_ARCHAEOLOGY_NAME">
+			<Text>Archaeology for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_CIRCUMNAVIGATION_NAME">
+			<Text>Circumnavigation for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_LIBERATION_NAME">
+			<Text>Liberation for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_HORDE_NAME">
+			<Text>Quell Horde for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_REBELLION_NAME">
+			<Text>Quell Rebellion for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_DISCOVER_PLOT_NAME">
+			<Text>Discover Land for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_BUILD_X_BUILDINGS_NAME">
+			<Text>Construct Buildings for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_UNIT_STEAL_FROM_NAME">
+			<Text>Spy for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_UNIT_COUP_CITY_NAME">
+			<Text>Coup for {1_CSName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_MINOR_CIV_QUEST_UNIT_GET_CITY_NAME">
+			<Text>Conquest for {1_CSName}</Text>
+		</Row>
+		
+		<Row Tag="TXT_KEY_INSTANT_YIELD_DETAILS_HAPPINESS">
+			<Text>+{1_Num} [ICON_HAPPINESS_1] Happiness</Text>
+		</Row>
+		<Row Tag="TXT_KEY_INSTANT_YIELD_DETAILS_INFLUENCE">
+			<Text>+{1_Num} [ICON_INFLUENCE] Influence</Text>
+		</Row>
+		<Row Tag="TXT_KEY_INSTANT_YIELD_DETAILS_EXPERIENCE">
+			<Text>+{1_Num} [ICON_STRENGTH] Experience for all Units</Text>
+		</Row>
+		<Row Tag="TXT_KEY_INSTANT_YIELD_DETAILS_GPP_GLOBAL">
+			<Text>+{1_Num} [ICON_GREAT_PEOPLE] Great Person Points in all Cities</Text>
+		</Row>
+		<Row Tag="TXT_KEY_INSTANT_YIELD_DETAILS_GPP">
+			<Text>+{1_Num} [ICON_GREAT_PEOPLE] Great Person Points in [ICON_CAPITAL] Capital</Text>
+		</Row>
 
 		<Row Tag="TXT_KEY_YIELD_PER_TURN_HEADER">
 			<Text>[COLOR_POSITIVE_TEXT]Instant Yields gained this turn, and over the past {1_Num} Turn(s)[ENDCOLOR]</Text>
@@ -6513,9 +6699,13 @@
 		<Row Tag="TXT_KEY_YIELD_SPY_MODIFIER">
 			<Text>[NEWLINE][ICON_BULLET]Active Spies Modifier: {1_Num}%</Text>
 		</Row>
-		
-
-
+		<!-- Unit Panel stuff -->
+		<Row Tag="TXT_KEY_UPANEL_BUILDER_STRENGTH">
+			<Text>Build Charges</Text>
+		</Row>
+		<Row Tag="TXT_KEY_UPANEL_BUILDER_STRENGTH_TT">
+			<Text>The number of times you can use this unit to build. At zero, the unit is consumed, unless it is a military unit.</Text>
+		</Row>
 		<!-- Tooltip for Investments in cities -->
 		<Row Tag="TXT_KEY_ALREADY_INVESTED">
 			<Text>[NEWLINE]You have already invested [ICON_GOLD] Gold in this building. This building's [ICON_PRODUCTION] Production cost is reduced by {1_Num}%.</Text>
@@ -6539,7 +6729,7 @@
 		</Row>
 
 		<Row Tag="TXT_KEY_WONDER_COST_INCREASE_METRIC">
-			<Text>Additional [ICON_PRODUCTION] Production cost due to owned World Wonders: [COLOR_POSITIVE_TEXT]{1_Num}%[ENDCOLOR].[NEWLINE][ICON_PRODUCTION] Production cost increase metric:[NEWLINE][ICON_BULLET] Wonders from the same Era: [COLOR_POSITIVE_TEXT]25%.[ENDCOLOR][NEWLINE][ICON_BULLET] Wonders from the previous Era: [COLOR_POSITIVE_TEXT]15%[ENDCOLOR].[NEWLINE][ICON_BULLET] Wonders from earlier Eras: [COLOR_POSITIVE_TEXT]10%.[ENDCOLOR]</Text>
+			<Text>Additional [ICON_PRODUCTION] Production cost due to owned World Wonders: [COLOR_POSITIVE_TEXT]{1_Num}%[ENDCOLOR].[NEWLINE][ICON_PRODUCTION] Production cost increase metric:[NEWLINE][ICON_BULLET] Wonders from the same Era: [COLOR_POSITIVE_TEXT]25%.[ENDCOLOR][NEWLINE][ICON_BULLET] Wonders from the previous Era: [COLOR_POSITIVE_TEXT]15%[ENDCOLOR].[NEWLINE][ICON_BULLET] Wonders from two Eras earlier: [COLOR_POSITIVE_TEXT]10%.[ENDCOLOR][NEWLINE][ICON_BULLET] Note: Wonders three Eras earlier or more do not count towards the cost.</Text>
 		</Row>
 		
 		<Row Tag="TXT_KEY_GAME_OPTION_EVENTS">
@@ -6593,9 +6783,16 @@
 			<Text>Randomized Victories</Text>
 		</Row>
 		<Row Tag="TXT_KEY_GAMEOPTION_RANDOM_VICTORY_HELP">
-			<Text>One random Victory Type (Domination, Culture, Diplomatic, or Spaceship) is enabled when any player enters the Information Era. All other victories are disabled (note: Score and Domination Victories are always possible).</Text>
+			<Text>One random Victory Type (Culture, Diplomatic, or Spaceship) is enabled when any player enters the Atomic Era. All other victories are disabled (note: Score and Domination Victories are always possible).</Text>
 		</Row>
 
+		<Row Tag="TXT_KEY_GAMEOPTION_KEEP_UNMET_PLAYERS_UNKNOWN">
+			<Text>Hide Unmet Civs In Pregame</Text>
+		</Row>
+		<Row Tag="TXT_KEY_GAMEOPTION_KEEP_UNMET_PLAYERS_UNKNOWN_HELP">
+			<Text>In Game Setup, do not show the leader/civ details of other human players on other teams (if they are not choosing Random Leader).[NEW_LINE]When loading a savegame, do not show the leader/civ details for players on other teams that you have not met in-game.[NEW_LINE]</Text>
+		</Row>
+			
 		<!-- Egypt CBO-->
 
 		<Row Tag="TXT_KEY_ARTIFACT_SARCOPHAGUS_1">
@@ -6986,6 +7183,21 @@
 		</Row>
 		<Row Tag="TXT_KEY_POP_WORLD_VICTORY_TYPE_CONQUEST">
 			<Text>An age of eternal war has fallen upon humanity. Bitter rivalries, unsolved through diplomacy, look to the battlefield for resolution.To be second place in this contest is to be condemnded to the ash heap of history. Harness the weapons of war and bring glory to your empire![NEWLINE][COLOR_POSITIVE_TEXT]Conquer or be conquered via a Domination Victory![ENDCOLOR]</Text>
+		</Row>
+		<Row Tag="TXT_KEY_REPLAY_VIEWER_GRAPHBY_TOURISM">
+			<Text>Tourism [ICON_TOURISM] Per Turn</Text>
+		</Row>
+
+		<!-- Hopefully removed if option is not needed or better solution in place -->
+		<Row Tag="TXT_KEY_FORCE_MP_SAVE">
+			<Text>Force Mid-Turn New Save (Not recommended - may corrupt save game!)</Text>
+		</Row>
+		<Row Tag="TXT_KEY_FORCE_MP_SAVE_TOOLTIP">
+			<Text>DANGER! Emulate vanilla where a save of the current turn state could be made mid-turn by exploiting a bug in the overwrite file check. Normally a save is/was just a renamed copy of the most recent autosave. With this option enabled mid-turn state can be saved BUT Firaxis explicitly tried to prevent this, presumably because it can cause issues. This option is in NO WAY recommended and to use at own risk.</Text>
+		</Row>
+		<!-- Splash Damage popup texts -->
+		<Row Tag="TXT_KEY_MISC_YOU_UNIT_WAS_DAMAGED_AOE_STRIKE_ON_MOVE">
+			<Text>Rend</Text>
 		</Row>
 	</Language_en_US>
 	<PostDefines>

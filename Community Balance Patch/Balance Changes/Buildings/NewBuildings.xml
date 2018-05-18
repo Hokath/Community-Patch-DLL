@@ -172,14 +172,15 @@
 			<ArtDefineTag>TEMPLE</ArtDefineTag>
 			<ConversionModifier>-10</ConversionModifier>
 			<MinAreaSize>-1</MinAreaSize>
-			<ExtraMissionarySpreads>1</ExtraMissionarySpreads>
-			<ReligiousPressureModifier>50</ReligiousPressureModifier>
+			<ExtraMissionaryStrengthGlobal>5</ExtraMissionaryStrengthGlobal>
+			<ReligiousPressureModifier>40</ReligiousPressureModifier>
 			<Cost>-1</Cost>
 			<IconAtlas>COMMUNITY_ATLAS</IconAtlas>
 			<PortraitIndex>3</PortraitIndex>
 			<UnlockedByBelief>true</UnlockedByBelief>
 			<FaithCost>200</FaithCost>
-		</Row>
+		
+	</Row>
 		<!--Mandir-->
 		<Row>
 			<Type>BUILDING_MANDIR</Type>
@@ -382,8 +383,8 @@
 			<Happiness>1</Happiness>
 			<LandmarksTourismPercent>50</LandmarksTourismPercent>
 			<GreatWorksTourismModifier>50</GreatWorksTourismModifier>
-			<IconAtlas>COMMUNITY_ATLAS</IconAtlas>
-			<PortraitIndex>14</PortraitIndex>
+			<IconAtlas>COMMUNITY_2_ATLAS</IconAtlas>
+			<PortraitIndex>10</PortraitIndex>
 		</Row>
 		<Row>
 			<Type>BUILDING_SIEGE_WORKSHOP</Type>
@@ -397,7 +398,7 @@
 			<Strategy>TXT_KEY_BUILDING_SIEGE_WORKSHOP_STRATEGY</Strategy>
 			<ArtDefineTag>ART_DEF_BUILDING_MILITARY_ACADEMY</ArtDefineTag>
 			<MinAreaSize>-1</MinAreaSize>
-			<ConquestProb>66</ConquestProb>
+			<ConquestProb>0</ConquestProb>
 			<TrainedFreePromotion>PROMOTION_VOLLEY</TrainedFreePromotion>
 			<SpecialistType>SPECIALIST_ENGINEER</SpecialistType>
 			<FreeStartEra>ERA_INDUSTRIAL</FreeStartEra>
@@ -442,7 +443,7 @@
 			<CityConnectionTradeRouteModifier>2</CityConnectionTradeRouteModifier>
 			<ArtDefineTag>COLESSEUM</ArtDefineTag>
 			<MinAreaSize>-1</MinAreaSize>
-			<ConquestProb>66</ConquestProb>
+			<ConquestProb>0</ConquestProb>
 			<DisplayPosition>2</DisplayPosition>
 			<ArtInfoCulturalVariation>true</ArtInfoCulturalVariation>
 			<HurryCostModifier>25</HurryCostModifier>
@@ -505,7 +506,7 @@
 			<FoodKept>20</FoodKept>
 			<NeverCapture>true</NeverCapture>
 			<MinAreaSize>-1</MinAreaSize>
-			<ConquestProb>66</ConquestProb>
+			<ConquestProb>0</ConquestProb>
 			<HurryCostModifier>15</HurryCostModifier>
 			<IconAtlas>COMMUNITY_ATLAS</IconAtlas>
 			<PortraitIndex>56</PortraitIndex>
@@ -528,8 +529,8 @@
 			<ConquestProb>66</ConquestProb>
 			<HurryCostModifier>25</HurryCostModifier>
 			<AllowsFoodTradeRoutes>true</AllowsFoodTradeRoutes>
-			<IconAtlas>COMMUNITY_ATLAS</IconAtlas>
-			<PortraitIndex>41</PortraitIndex>
+			<IconAtlas>COMMUNITY_2_ATLAS</IconAtlas>
+			<PortraitIndex>9</PortraitIndex>
 		</Row>
 		<Row>
 			<Type>BUILDING_SEOWON</Type>
@@ -547,7 +548,7 @@
 			<Strategy>TXT_KEY_BUILDING_SEOWON_STRATEGY</Strategy>
 			<ArtDefineTag>ART_DEF_BUILDING_UNIVERSITY</ArtDefineTag>
 			<SpecialistType>SPECIALIST_SCIENTIST</SpecialistType>
-			<SpecialistCount>2</SpecialistCount>
+			<SpecialistCount>1</SpecialistCount>
 			<MinAreaSize>-1</MinAreaSize>
 			<HurryCostModifier>15</HurryCostModifier>
 			<IconAtlas>COMMUNITY_ATLAS</IconAtlas>
@@ -650,6 +651,7 @@
 			<NumTradeRouteBonus>2</NumTradeRouteBonus>
 			<NukeImmune>true</NukeImmune>
 			<ExtraLuxuries>true</ExtraLuxuries>
+			<ResourceDiversityModifier>25</ResourceDiversityModifier>
 			<TradeRouteRecipientBonus>5</TradeRouteRecipientBonus>
 			<TradeRouteTargetBonus>3</TradeRouteTargetBonus>
 			<NationalPopRequired>20</NationalPopRequired>
@@ -903,7 +905,6 @@
 			<Civilopedia>TXT_KEY_CIV5_BUILDINGS_COAL_PLANT_TEXT</Civilopedia>
 			<Strategy>TXT_KEY_BUILDING_COAL_PLANT_STRATEGY</Strategy>
 			<Help>TXT_KEY_BUILDING_COAL_PLANT_HELP</Help>
-			<MutuallyExclusiveGroup>1</MutuallyExclusiveGroup>
 			<ArtDefineTag>ART_DEF_BUILDING_GARDEN</ArtDefineTag>
 			<MinAreaSize>-1</MinAreaSize>
 			<ConquestProb>66</ConquestProb>
@@ -946,7 +947,7 @@
 			<MutuallyExclusiveGroup>10</MutuallyExclusiveGroup>
 			<RequiresRail>true</RequiresRail>
 			<SpecialistType>SPECIALIST_ENGINEER</SpecialistType>
-			<SpecialistCount>2</SpecialistCount>
+			<SpecialistCount>1</SpecialistCount>
 			<MinAreaSize>-1</MinAreaSize>
 			<ConquestProb>66</ConquestProb>
 			<HurryCostModifier>0</HurryCostModifier>

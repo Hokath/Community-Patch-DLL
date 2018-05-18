@@ -139,6 +139,8 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_iMinorFriendshipChange(0),
 	m_iVictoryPoints(0),
 	m_iExtraMissionarySpreads(0),
+	m_iExtraMissionaryStrength(0),
+	m_iExtraMissionarySpreadsGlobal(0),
 	m_iReligiousPressureModifier(0),
 	m_iEspionageModifier(0),
 	m_iGlobalEspionageModifier(0),
@@ -201,6 +203,7 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_bPurchaseOnly(false),
 	m_bSecondaryPantheon(false),
 	m_piGreatWorkYieldChange(NULL),
+	m_piGreatWorkYieldChangeLocal(NULL),
 #endif
 #if defined(MOD_BALANCE_CORE)
 	m_bIsNoWater(false),
@@ -210,6 +213,7 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_bBuildAnywhere(false),
 	m_iTradeReligionModifier(-1),
 	m_iFreeArtifacts(0),
+	m_iResourceDiversityModifier(0),
 #endif
 #if defined(MOD_BALANCE_CORE_SPIES)
 	 m_iCannotFailSpies(-1),
@@ -376,9 +380,11 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_ppaiTerrainYieldChange(NULL),
 #if defined(MOD_API_UNIFIED_YIELDS) && defined(MOD_API_PLOT_YIELDS)
 	m_ppaiYieldPerXTerrain(NULL),
+	m_ppaiYieldPerXFeature(NULL),
 	m_ppaiPlotYieldChange(NULL),
 #endif
 	m_ppiBuildingClassYieldChanges(NULL),
+	m_ppiBuildingClassYieldModifiers(NULL),
 #if defined(MOD_BALANCE_CORE)
 	m_ppiBuildingClassLocalYieldChanges(NULL),
 #endif
@@ -423,6 +429,7 @@ CvBuildingEntry::~CvBuildingEntry(void)
 	SAFE_DELETE_ARRAY(m_piYieldFromSpyAttack);
 	SAFE_DELETE_ARRAY(m_piYieldFromSpyDefense);
 	SAFE_DELETE_ARRAY(m_piGreatWorkYieldChange);
+	SAFE_DELETE_ARRAY(m_piGreatWorkYieldChangeLocal);
 	SAFE_DELETE_ARRAY(m_piYieldFromTech);
 	SAFE_DELETE_ARRAY(m_piYieldFromConstruction);
 	SAFE_DELETE_ARRAY(m_piScienceFromYield);
@@ -490,9 +497,11 @@ CvBuildingEntry::~CvBuildingEntry(void)
 	CvDatabaseUtility::SafeDelete2DArray(m_ppaiTerrainYieldChange);
 #if defined(MOD_API_UNIFIED_YIELDS) && defined(MOD_API_PLOT_YIELDS)
 	CvDatabaseUtility::SafeDelete2DArray(m_ppaiYieldPerXTerrain);
+	CvDatabaseUtility::SafeDelete2DArray(m_ppaiYieldPerXFeature);
 	CvDatabaseUtility::SafeDelete2DArray(m_ppaiPlotYieldChange);
 #endif
 	CvDatabaseUtility::SafeDelete2DArray(m_ppiBuildingClassYieldChanges);
+	CvDatabaseUtility::SafeDelete2DArray(m_ppiBuildingClassYieldModifiers);
 #if defined(MOD_BALANCE_CORE)
 	SAFE_DELETE_ARRAY(m_paiBuildingClassLocalHappiness);
 	CvDatabaseUtility::SafeDelete2DArray(m_ppiBuildingClassLocalYieldChanges);
@@ -527,6 +536,7 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	m_bBuildAnywhere = kResults.GetBool("BuildAnywhere");
 	m_iTradeReligionModifier = kResults.GetInt("TradeReligionModifier");
 	m_iFreeArtifacts = kResults.GetInt("FreeArtifacts");
+	m_iResourceDiversityModifier = kResults.GetInt("ResourceDiversityModifier");
 #endif
 #if defined(MOD_BALANCE_CORE_SPIES)
 	m_iCannotFailSpies = kResults.GetInt("CannotFailSpies");
@@ -672,6 +682,8 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	m_iMinorFriendshipChange = kResults.GetInt("MinorFriendshipChange");
 	m_iVictoryPoints = kResults.GetInt("VictoryPoints");
 	m_iExtraMissionarySpreads = kResults.GetInt("ExtraMissionarySpreads");
+	m_iExtraMissionaryStrength = kResults.GetInt("ExtraMissionaryStrengthGlobal");
+	m_iExtraMissionarySpreadsGlobal = kResults.GetInt("ExtraMissionarySpreadsGlobal");
 	m_iReligiousPressureModifier = kResults.GetInt("ReligiousPressureModifier");
 	m_iEspionageModifier = kResults.GetInt("EspionageModifier");
 	m_iGlobalEspionageModifier = kResults.GetInt("GlobalEspionageModifier");
@@ -867,6 +879,7 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	kUtility.SetYields(m_piYieldFromSpyAttack, "Building_YieldFromSpyAttack", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromSpyDefense, "Building_YieldFromSpyDefense", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piGreatWorkYieldChange, "Building_GreatWorkYieldChanges", "BuildingType", szBuildingType);
+	kUtility.SetYields(m_piGreatWorkYieldChangeLocal, "Building_GreatWorkYieldChangesLocal", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromTech, "Building_YieldFromTech", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromConstruction, "Building_YieldFromConstruction", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piScienceFromYield, "Building_ScienceFromYield", "BuildingType", szBuildingType);
@@ -1056,6 +1069,28 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 			m_ppaiYieldPerXTerrain[TerrainID][YieldID] = yield;
 		}
 	}
+	//FeatureYieldChanges
+	{
+		kUtility.Initialize2DArray(m_ppaiYieldPerXFeature, "Features", "Yields");
+
+		std::string strKey("Building_YieldPerXFeatureTimes100");
+		Database::Results* pResults = kUtility.GetResults(strKey);
+		if (pResults == NULL)
+		{
+			pResults = kUtility.PrepareResults(strKey, "select Features.ID as FeatureID, Yields.ID as YieldID, Yield from Building_YieldPerXFeatureTimes100 inner join Features on Features.Type = FeatureType inner join Yields on Yields.Type = YieldType where BuildingType = ?");
+		}
+
+		pResults->Bind(1, szBuildingType);
+
+		while (pResults->Step())
+		{
+			const int FeatureID = pResults->GetInt(0);
+			const int YieldID = pResults->GetInt(1);
+			const int yield = pResults->GetInt(2);
+
+			m_ppaiYieldPerXFeature[FeatureID][YieldID] = yield;
+		}
+	}
 #endif
 
 	//TerrainYieldChanges
@@ -1196,6 +1231,28 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 			const int iYieldChange = pResults->GetInt(2);
 
 			m_ppiBuildingClassYieldChanges[BuildingClassID][iYieldID] = iYieldChange;
+		}
+	}
+	//BuildingClassYieldModifiers
+	{
+		kUtility.Initialize2DArray(m_ppiBuildingClassYieldModifiers, "BuildingClasses", "Yields");
+
+		std::string strKey("Building_BuildingClassYieldModifiers");
+		Database::Results* pResults = kUtility.GetResults(strKey);
+		if (pResults == NULL)
+		{
+			pResults = kUtility.PrepareResults(strKey, "select BuildingClasses.ID as BuildingClassID, Yields.ID as YieldID, Modifier from Building_BuildingClassYieldModifiers inner join BuildingClasses on BuildingClasses.Type = BuildingClassType inner join Yields on Yields.Type = YieldType where BuildingType = ?");
+		}
+
+		pResults->Bind(1, szBuildingType);
+
+		while (pResults->Step())
+		{
+			const int BuildingClassID = pResults->GetInt(0);
+			const int iYieldID = pResults->GetInt(1);
+			const int iYieldModifier = pResults->GetInt(2);
+
+			m_ppiBuildingClassYieldModifiers[BuildingClassID][iYieldID] = iYieldModifier;
 		}
 	}
 #if defined(MOD_BALANCE_CORE)
@@ -1962,6 +2019,18 @@ int CvBuildingEntry::GetExtraMissionarySpreads() const
 	return m_iExtraMissionarySpreads;
 }
 
+/// Extra religion spreads from missionaries global
+int CvBuildingEntry::GetExtraMissionarySpreadsGlobal() const
+{
+	return m_iExtraMissionarySpreadsGlobal;
+}
+
+/// Extra religion spreads from missionaries built in this city
+int CvBuildingEntry::GetExtraMissionaryStrength() const
+{
+	return m_iExtraMissionaryStrength;
+}
+
 /// Extra religion pressure emanating from this city
 int CvBuildingEntry::GetReligiousPressureModifier() const
 {
@@ -2237,6 +2306,19 @@ int CvBuildingEntry::GetGreatWorkYieldChange(int i) const
 int* CvBuildingEntry::GetGreatWorkYieldChangeArray() const
 {
 	return m_piGreatWorkYieldChange;
+}
+
+/// Change to Great Work yield by type
+int CvBuildingEntry::GetGreatWorkYieldChangeLocal(int i) const
+{
+	CvAssertMsg(i < NUM_YIELD_TYPES, "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	return m_piGreatWorkYieldChangeLocal ? m_piGreatWorkYieldChangeLocal[i] : -1;
+}
+/// Array of yield changes to Great Works
+int* CvBuildingEntry::GetGreatWorkYieldChangeLocalArray() const
+{
+	return m_piGreatWorkYieldChangeLocal;
 }
 
 #endif
@@ -3233,7 +3315,7 @@ int* CvBuildingEntry::GetFeatureYieldChangeArray(int i) const
 /// Change to Improvement yield by type
 int CvBuildingEntry::GetImprovementYieldChange(int i, int j) const
 {
-	CvAssertMsg(i < GC.getNumFeatureInfos(), "Index out of bounds");
+	CvAssertMsg(i < GC.getNumImprovementInfos(), "Index out of bounds");
 	CvAssertMsg(i > -1, "Index out of bounds");
 	CvAssertMsg(j < NUM_YIELD_TYPES, "Index out of bounds");
 	CvAssertMsg(j > -1, "Index out of bounds");
@@ -3243,14 +3325,14 @@ int CvBuildingEntry::GetImprovementYieldChange(int i, int j) const
 /// Array of changes to Improvement yield
 int* CvBuildingEntry::GetImprovementYieldChangeArray(int i) const
 {
-	CvAssertMsg(i < GC.getNumFeatureInfos(), "Index out of bounds");
+	CvAssertMsg(i < GC.getNumImprovementInfos(), "Index out of bounds");
 	CvAssertMsg(i > -1, "Index out of bounds");
 	return m_ppaiImprovementYieldChange[i];
 }
 /// Change to Improvement yield by type
 int CvBuildingEntry::GetImprovementYieldChangeGlobal(int i, int j) const
 {
-	CvAssertMsg(i < GC.getNumFeatureInfos(), "Index out of bounds");
+	CvAssertMsg(i < GC.getNumImprovementInfos(), "Index out of bounds");
 	CvAssertMsg(i > -1, "Index out of bounds");
 	CvAssertMsg(j < NUM_YIELD_TYPES, "Index out of bounds");
 	CvAssertMsg(j > -1, "Index out of bounds");
@@ -3354,6 +3436,24 @@ int* CvBuildingEntry::GetYieldPerXTerrainArray(int i) const
 	CvAssertMsg(i > -1, "Index out of bounds");
 	return m_ppaiYieldPerXTerrain[i];
 }
+
+int CvBuildingEntry::GetYieldPerXFeature(int i, int j) const
+{
+	CvAssertMsg(i < GC.getNumFeatureInfos(), "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	CvAssertMsg(j < NUM_YIELD_TYPES, "Index out of bounds");
+	CvAssertMsg(j > -1, "Index out of bounds");
+	return m_ppaiYieldPerXFeature ? m_ppaiYieldPerXFeature[i][j] : -1;
+}
+
+/// Array of changes to Feature yield
+int* CvBuildingEntry::GetYieldPerXFeatureArray(int i) const
+{
+	CvAssertMsg(i < GC.getNumFeatureInfos(), "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	return m_ppaiYieldPerXFeature[i];
+}
+
 /// Change to Plot yield by type
 int CvBuildingEntry::GetPlotYieldChange(int i, int j) const
 {
@@ -3385,6 +3485,16 @@ int CvBuildingEntry::GetBuildingClassYieldChange(int i, int j) const
 	CvAssertMsg(j < NUM_YIELD_TYPES, "Index out of bounds");
 	CvAssertMsg(j > -1, "Index out of bounds");
 	return m_ppiBuildingClassYieldChanges[i][j];
+}
+
+/// Yield change for a specific BuildingClass by yield type
+int CvBuildingEntry::GetBuildingClassYieldModifier(int i, int j) const
+{
+	CvAssertMsg(i < GC.getNumBuildingClassInfos(), "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	CvAssertMsg(j < NUM_YIELD_TYPES, "Index out of bounds");
+	CvAssertMsg(j > -1, "Index out of bounds");
+	return m_ppiBuildingClassYieldModifiers[i][j];
 }
 #if defined(MOD_BALANCE_CORE)
 /// Yield change for a specific BuildingClass by yield type
@@ -3459,6 +3569,11 @@ int CvBuildingEntry::GetTradeReligionModifier() const
 int CvBuildingEntry::GetNumFreeArtifacts() const
 {
 	return m_iFreeArtifacts;
+}
+
+int CvBuildingEntry::GetResourceDiversityModifier() const
+{
+	return m_iResourceDiversityModifier;
 }
 #endif
 #if defined(MOD_BALANCE_CORE_SPIES)
@@ -3780,7 +3895,7 @@ void CvCityBuildings::Reset()
 /// Serialization read
 void CvCityBuildings::Read(FDataStream& kStream)
 {
-	CvAssertMsg(m_pBuildings != NULL && m_pBuildings->GetNumBuildings() > 0, "Number of buildings to serialize is expected to greater than 0");
+	CvAssertMsg(GetNumBuildings() > 0, "Number of buildings to serialize is expected to greater than 0");
 
 	// Version number to maintain backwards compatibility
 	uint uiVersion;
@@ -3822,7 +3937,7 @@ void CvCityBuildings::Read(FDataStream& kStream)
 /// Serialization write
 void CvCityBuildings::Write(FDataStream& kStream)
 {
-	CvAssertMsg(m_pBuildings != NULL && m_pBuildings->GetNumBuildings() > 0, "Number of buildings to serialize is expected to greater than 0");
+	CvAssertMsg(GetNumBuildings() > 0, "Number of buildings to serialize is expected to greater than 0");
 
 	// Current version number
 	uint uiVersion = 1;
@@ -4002,7 +4117,7 @@ bool CvCityBuildings::IsBuildingSellable(const CvBuildingEntry& kBuilding) const
 void CvCityBuildings::DoSellBuilding(BuildingTypes eIndex)
 {
 	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
-	CvAssertMsg(eIndex < m_pBuildings->GetNumBuildings(), "eIndex expected to be < m_pBuildings->GetNumBuildings()");
+	CvAssertMsg(eIndex < GetNumBuildings(), "eIndex expected to be < GetNumBuildings()");
 
 	CvBuildingEntry* pkBuildingEntry = GC.getBuildingInfo(eIndex);
 	if(!pkBuildingEntry)
@@ -4028,7 +4143,7 @@ void CvCityBuildings::DoSellBuilding(BuildingTypes eIndex)
 int CvCityBuildings::GetSellBuildingRefund(BuildingTypes eIndex) const
 {
 	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
-	CvAssertMsg(eIndex < m_pBuildings->GetNumBuildings(), "eIndex expected to be < m_pBuildings->GetNumBuildings()");
+	CvAssertMsg(eIndex < GetNumBuildings(), "eIndex expected to be < GetNumBuildings()");
 
 	int iRefund = GET_PLAYER(m_pCity->getOwner()).getProductionNeeded(eIndex);
 	iRefund /= /*10*/ GC.getBUILDING_SALE_DIVISOR();
@@ -4073,7 +4188,7 @@ int CvCityBuildings::GetTotalBaseBuildingMaintenance() const
 int CvCityBuildings::GetBuildingProduction(BuildingTypes eIndex)	const
 {
 	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
-	CvAssertMsg(eIndex < m_pBuildings->GetNumBuildings(), "eIndex expected to be < m_pBuildings->GetNumBuildings()");
+	CvAssertMsg(eIndex < GetNumBuildings(), "eIndex expected to be < GetNumBuildings()");
 	return m_paiBuildingProduction[eIndex] / 100;
 }
 
@@ -4081,7 +4196,7 @@ int CvCityBuildings::GetBuildingProduction(BuildingTypes eIndex)	const
 int CvCityBuildings::GetBuildingProductionTimes100(BuildingTypes eIndex)	const
 {
 	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
-	CvAssertMsg(eIndex < m_pBuildings->GetNumBuildings(), "eIndex expected to be < m_pBuildings->GetNumBuildings()");
+	CvAssertMsg(eIndex < GetNumBuildings(), "eIndex expected to be < GetNumBuildings()");
 	return m_paiBuildingProduction[eIndex];
 }
 
@@ -4095,7 +4210,7 @@ void CvCityBuildings::SetBuildingProduction(BuildingTypes eIndex, int iNewValue)
 void CvCityBuildings::SetBuildingProductionTimes100(BuildingTypes eIndex, int iNewValue)
 {
 	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
-	CvAssertMsg(eIndex < m_pBuildings->GetNumBuildings(), "eIndex expected to be < m_pBuildings->GetNumBuildings())");
+	CvAssertMsg(eIndex < GetNumBuildings(), "eIndex expected to be < GetNumBuildings())");
 
 	if(GetBuildingProductionTimes100(eIndex) != iNewValue)
 	{
@@ -4134,7 +4249,7 @@ void CvCityBuildings::ChangeBuildingProductionTimes100(BuildingTypes eIndex, int
 int CvCityBuildings::GetBuildingProductionTime(BuildingTypes eIndex)	const
 {
 	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
-	CvAssertMsg(eIndex < m_pBuildings->GetNumBuildings(), "eIndex expected to be < m_pBuildings->GetNumBuildings()");
+	CvAssertMsg(eIndex < GetNumBuildings(), "eIndex expected to be < GetNumBuildings()");
 	return m_paiBuildingProductionTime[eIndex];
 }
 
@@ -4142,7 +4257,7 @@ int CvCityBuildings::GetBuildingProductionTime(BuildingTypes eIndex)	const
 void CvCityBuildings::SetBuildingProductionTime(BuildingTypes eIndex, int iNewValue)
 {
 	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
-	CvAssertMsg(eIndex < m_pBuildings->GetNumBuildings(), "eIndex expected to be < m_pBuildings->GetNumBuildings()");
+	CvAssertMsg(eIndex < GetNumBuildings(), "eIndex expected to be < GetNumBuildings()");
 	m_paiBuildingProductionTime[eIndex] = iNewValue;
 	CvAssert(GetBuildingProductionTime(eIndex) >= 0);
 }
@@ -4157,7 +4272,7 @@ void CvCityBuildings::ChangeBuildingProductionTime(BuildingTypes eIndex, int iCh
 int CvCityBuildings::GetBuildingOriginalOwner(BuildingTypes eIndex) const
 {
 	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
-	CvAssertMsg(eIndex < m_pBuildings->GetNumBuildings(), "eIndex expected to be < m_pBuildings->GetNumBuildings()");
+	CvAssertMsg(eIndex < GetNumBuildings(), "eIndex expected to be < GetNumBuildings()");
 	return m_paiBuildingOriginalOwner[eIndex];
 }
 
@@ -4165,7 +4280,7 @@ int CvCityBuildings::GetBuildingOriginalOwner(BuildingTypes eIndex) const
 void CvCityBuildings::SetBuildingOriginalOwner(BuildingTypes eIndex, int iNewValue)
 {
 	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
-	CvAssertMsg(eIndex < m_pBuildings->GetNumBuildings(), "eIndex expected to be < m_pBuildings->GetNumBuildings()");
+	CvAssertMsg(eIndex < GetNumBuildings(), "eIndex expected to be < GetNumBuildings()");
 	m_paiBuildingOriginalOwner[eIndex] = iNewValue;
 }
 
@@ -4173,7 +4288,7 @@ void CvCityBuildings::SetBuildingOriginalOwner(BuildingTypes eIndex, int iNewVal
 int CvCityBuildings::GetBuildingOriginalTime(BuildingTypes eIndex) const
 {
 	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
-	CvAssertMsg(eIndex < m_pBuildings->GetNumBuildings(), "eIndex expected to be < m_pBuildings->GetNumBuildings()");
+	CvAssertMsg(eIndex < GetNumBuildings(), "eIndex expected to be < GetNumBuildings()");
 	return m_paiBuildingOriginalTime[eIndex];
 }
 
@@ -4181,7 +4296,7 @@ int CvCityBuildings::GetBuildingOriginalTime(BuildingTypes eIndex) const
 void CvCityBuildings::SetBuildingOriginalTime(BuildingTypes eIndex, int iNewValue)
 {
 	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
-	CvAssertMsg(eIndex < m_pBuildings->GetNumBuildings(), "eIndex expected to be < m_pBuildings->GetNumBuildings()");
+	CvAssertMsg(eIndex < GetNumBuildings(), "eIndex expected to be < GetNumBuildings()");
 	m_paiBuildingOriginalTime[eIndex] = iNewValue;
 }
 
@@ -4189,7 +4304,7 @@ void CvCityBuildings::SetBuildingOriginalTime(BuildingTypes eIndex, int iNewValu
 int CvCityBuildings::GetNumRealBuilding(BuildingTypes eIndex) const
 {
 	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
-	CvAssertMsg(eIndex < m_pBuildings->GetNumBuildings(), "eIndex expected to be < m_pBuildings->GetNumBuildings()");
+	CvAssertMsg(eIndex < GetNumBuildings(), "eIndex expected to be < GetNumBuildings()");
 	return m_paiNumRealBuilding[eIndex];
 }
 
@@ -4217,7 +4332,7 @@ void CvCityBuildings::SetNumRealBuildingTimed(BuildingTypes eIndex, int iNewValu
 	CvPlayer* pPlayer = &GET_PLAYER(m_pCity->getOwner());
 
 	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
-	CvAssertMsg(eIndex < m_pBuildings->GetNumBuildings(), "eIndex expected to be < m_pBuildings->GetNumBuildings()");
+	CvAssertMsg(eIndex < GetNumBuildings(), "eIndex expected to be < GetNumBuildings()");
 
 	int iChangeNumRealBuilding = iNewValue - GetNumRealBuilding(eIndex);
 
@@ -4482,7 +4597,7 @@ void CvCityBuildings::SetNumRealBuildingTimed(BuildingTypes eIndex, int iNewValu
 int CvCityBuildings::GetNumFreeBuilding(BuildingTypes eIndex) const
 {
 	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
-	CvAssertMsg(eIndex < m_pBuildings->GetNumBuildings(), "eIndex expected to be < m_pBuildings->GetNumBuildings()");
+	CvAssertMsg(eIndex < GetNumBuildings(), "eIndex expected to be < GetNumBuildings()");
 	return m_paiNumFreeBuilding[eIndex];
 }
 
@@ -4490,7 +4605,7 @@ int CvCityBuildings::GetNumFreeBuilding(BuildingTypes eIndex) const
 void CvCityBuildings::SetNumFreeBuilding(BuildingTypes eIndex, int iNewValue)
 {
 	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
-	CvAssertMsg(eIndex < m_pBuildings->GetNumBuildings(), "eIndex expected to be < m_pBuildings->GetNumBuildings()");
+	CvAssertMsg(eIndex < GetNumBuildings(), "eIndex expected to be < GetNumBuildings()");
 
 	if(GetNumFreeBuilding(eIndex) != iNewValue)
 	{
@@ -4558,13 +4673,13 @@ void CvCityBuildings::SetNumFreeBuilding(BuildingTypes eIndex, int iNewValue)
 int CvCityBuildings::IsFirstTimeBuilding(BuildingTypes eBuilding)
 {
 	CvAssertMsg(eBuilding >= 0, "eIndex expected to be >= 0");
-	CvAssertMsg(eBuilding < m_pBuildings->GetNumBuildings(), "eIndex expected to be < m_pBuildings->GetNumBuildings()");
+	CvAssertMsg(eBuilding < GetNumBuildings(), "eIndex expected to be < GetNumBuildings()");
 	return m_paiFirstTimeBuilding[eBuilding];
 }
 void CvCityBuildings::SetFirstTimeBuilding(BuildingTypes eBuilding, int iValue)
 {
 	CvAssertMsg(eBuilding >= 0, "eIndex expected to be >= 0");
-	CvAssertMsg(eBuilding < m_pBuildings->GetNumBuildings(), "eIndex expected to be < m_pBuildings->GetNumBuildings()");
+	CvAssertMsg(eBuilding < GetNumBuildings(), "eIndex expected to be < GetNumBuildings()");
 	if(IsFirstTimeBuilding(eBuilding) != iValue)
 	{
 		m_paiFirstTimeBuilding[eBuilding] = iValue;
@@ -4661,6 +4776,8 @@ int CvCityBuildings::GetBuildingGreatWork(BuildingClassTypes eBuildingClass, int
 /// Accessor: Set yield boost for a specific building by yield type
 void CvCityBuildings::SetBuildingGreatWork(BuildingClassTypes eBuildingClass, int iSlot, int iGreatWorkIndex)
 {
+	m_pCity->ResetGreatWorkYieldCache();
+	
 	for(std::vector<BuildingGreatWork>::iterator it = m_aBuildingGreatWork.begin(); it != m_aBuildingGreatWork.end(); ++it)
 	{
 		if((*it).eBuildingClass == eBuildingClass && (*it).iSlot == iSlot)
@@ -4811,6 +4928,41 @@ int CvCityBuildings::GetNumAvailableGreatWorkSlots(GreatWorkSlotType eSlotType) 
 	return iCount;
 }
 
+int CvCityBuildings::GetNumFilledGreatWorkSlots(GreatWorkSlotType eSlotType) const
+{
+	int iCount = 0;
+
+	for (int iI = 0; iI < GC.getNumBuildingClassInfos(); iI++)
+	{
+		BuildingClassTypes eLoopBuildingClass = (BuildingClassTypes)iI;
+		CvCivilizationInfo *pkCivInfo = GC.getCivilizationInfo(m_pCity->getCivilizationType());
+		if (pkCivInfo)
+		{
+			BuildingTypes eBuilding = (BuildingTypes)pkCivInfo->getCivilizationBuildings(eLoopBuildingClass);
+			if (NO_BUILDING != eBuilding)
+			{
+				if (GetNumBuilding(eBuilding) > 0)
+				{
+					CvBuildingEntry *pkBuilding = GC.getBuildingInfo(eBuilding);
+					if (pkBuilding)
+					{
+						if (pkBuilding->GetGreatWorkSlotType() == eSlotType)
+						{
+							int iNumFilledSlots = GetNumGreatWorksInBuilding(eLoopBuildingClass);
+							if (iNumFilledSlots > 0)
+							{
+								iCount += iNumFilledSlots;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return iCount;
+}
+
 /// Accessor: Is there a Great Work slot of this type somewhere in the city?
 bool CvCityBuildings::GetNextAvailableGreatWorkSlot(BuildingClassTypes *eBuildingClass, int *iSlot) const
 {
@@ -4882,7 +5034,7 @@ int CvCityBuildings::GetYieldFromGreatWorks(YieldTypes eYield) const
 {
 
 	//Simplification - errata yields not worth considering.
-	if(eYield > YIELD_GOLDEN_AGE_POINTS)
+	if(eYield > YIELD_GOLDEN_AGE_POINTS && !MOD_BALANCE_CORE_JFD)
 	{
 		return 0;
 	}
@@ -4943,11 +5095,22 @@ int CvCityBuildings::GetYieldFromGreatWorks(YieldTypes eYield) const
 		iTypeBonuses += (GET_PLAYER(m_pCity->getOwner()).GetPlayerTraits()->GetMusicYieldChanges(eYield) * iMusic);
 		iTypeBonuses += (GET_PLAYER(m_pCity->getOwner()).getMusicYieldBonus(eYield) * iMusic);
 	}
+	int iFilm = GetNumGreatWorks(CvTypes::getGREAT_WORK_SLOT_FILM());
+	if (iFilm > 0)
+	{
+		iTypeBonuses += (GET_PLAYER(m_pCity->getOwner()).getFilmYieldBonus(eYield) * iFilm);
+	}
+	int iRelic = GetNumGreatWorks(CvTypes::getGREAT_WORK_SLOT_RELIC());
+	if (iRelic > 0)
+	{
+		iTypeBonuses += (GET_PLAYER(m_pCity->getOwner()).getRelicYieldBonus(eYield) * iRelic);
+	}
 	
 	//Now grab the base yields.
 	int iBaseYield = GC.getBASE_CULTURE_PER_GREAT_WORK();
 	int iSecondaryYield = GET_PLAYER(m_pCity->getOwner()).GetGreatWorkYieldChange(eYield);
 	iSecondaryYield += GET_PLAYER(m_pCity->getOwner()).GetPlayerTraits()->GetGreatWorkYieldChanges(eYield);
+	iSecondaryYield += m_pCity->GetGreatWorkYieldChange(eYield);
 
 	ReligionTypes eMajority = m_pCity->GetCityReligions()->GetReligiousMajority();
 	if(eMajority >= RELIGION_PANTHEON)
@@ -5050,6 +5213,9 @@ int CvCityBuildings::GetNumGreatWorks(GreatWorkSlotType eGreatWorkSlot, bool bAr
 int CvCityBuildings::GetNumGreatWorks(GreatWorkSlotType eGreatWorkSlot) const
 #endif
 {
+	if (eGreatWorkSlot == NO_GREAT_WORK_SLOT)
+		return 0;
+
 	int iRtnValue = 0;
 #if defined(MOD_BALANCE_CORE)
 	GreatWorkClass eArtifactsClass = (GreatWorkClass)GC.getInfoTypeForString("GREAT_WORK_ARTIFACT");
@@ -5110,7 +5276,7 @@ int CvCityBuildings::GetThemingBonusIndex(BuildingTypes eBuilding) const
 void CvCityBuildings::SetThemingBonusIndex(BuildingTypes eBuilding, int iIndex)
 {
 	CvAssertMsg(eBuilding >= 0, "eBuilding expected to be >= 0");
-	CvAssertMsg(eBuilding < m_pBuildings->GetNumBuildings(), "eBuilding expected to be < m_pBuildings->GetNumBuildings()");
+	CvAssertMsg(eBuilding < GetNumBuildings(), "eBuilding expected to be < GetNumBuildings()");
 	if (GetThemingBonusIndex(eBuilding) != iIndex)
 	{
 		m_paiThemingBonusIndex[eBuilding] = iIndex;
@@ -5363,6 +5529,26 @@ void CvCityBuildings::ChangeMissionaryExtraSpreads(int iChange)
 	{
 		m_iMissionaryExtraSpreads = (m_iMissionaryExtraSpreads + iChange);
 		CvAssert(m_iMissionaryExtraSpreads >= 0);
+		if (iChange > 0)
+		{
+			int iUnitLoop;
+			for (CvUnit* pLoopUnit = GET_PLAYER(m_pCity->getOwner()).firstUnit(&iUnitLoop); pLoopUnit != NULL; pLoopUnit = GET_PLAYER(m_pCity->getOwner()).nextUnit(&iUnitLoop))
+			{
+				if (pLoopUnit->getOriginCity() != m_pCity)
+					continue;
+
+				if (pLoopUnit->IsGreatPerson())
+					continue;
+
+				if (pLoopUnit->GetReligionData() == NULL)
+					continue;
+
+				if (pLoopUnit->GetReligionData()->GetSpreadsLeft() <= 0)
+					continue;
+
+				pLoopUnit->GetReligionData()->SetSpreadsLeft(pLoopUnit->GetReligionData()->GetSpreadsLeft() + iChange);
+			}
+		}
 	}
 }
 

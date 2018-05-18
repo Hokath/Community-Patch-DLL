@@ -316,9 +316,9 @@ function GetCityStateStatusToolTip(iMajor, iMinor, bFullInfo)
 	end
 	-- Embassy Check
 	if pMinor:GetImprovementCount(iEmbassy) > 0 then
-		strStatusTT = strStatusTT .. "[NEWLINE][COLOR_NEGATIVE_TEXT][ICON_CITY_STATE] Embassy Established.[ENDCOLOR]";
+		strStatusTT = strStatusTT .. Locale.ConvertTextKey("TXT_KEY_CSTATE_CANNOT_EMBASSY");
 	else
-		strStatusTT = strStatusTT .. "[NEWLINE][COLOR_POSITIVE_TEXT][ICON_CITY_STATE] Establish an Embassy Available![ENDCOLOR]";
+		strStatusTT = strStatusTT .. Locale.ConvertTextKey("TXT_KEY_CSTATE_CAN_EMBASSY");
 	end
 	-- Influence change
 	if (iInfluence ~= iInfluenceAnchor) then
@@ -510,6 +510,26 @@ function GetAllyToolTip(iActivePlayer, iMinor)
 	
 	return sToolTip;
 end
+
+
+-- Vox Populi contender info
+function GetContenderInfo(majorPlayerID, minorPlayerID)
+	local pMinor = Players[ minorPlayerID ]
+	if not pMinor then return "error" end
+	
+	local iContInfluence = 0
+	local eAllyID = pMinor:GetAlly()
+	
+	for ePlayer = 0, GameDefines.MAX_MAJOR_CIVS - 1 do
+		if ePlayer ~= eAllyID then
+			local iInfluence = pMinor:GetMinorCivFriendshipWithMajor(ePlayer)
+			if iInfluence > iContInfluence then iContInfluence = iInfluence end
+		end
+	end
+	
+	return tostring(iContInfluence).."[ICON_INFLUENCE]"
+end
+
 
 function GetActiveQuestText(iMajor, iMinor)
 	local iMajor = iMajor;

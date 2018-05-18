@@ -941,7 +941,10 @@ public:
 	int getAIFreeXPPercent() const;
 	int getNumGoodies() const;
 #if defined(MOD_BALANCE_CORE)
-	int getAIDifficultyBonus() const;
+	int getAIDifficultyBonusBase() const;
+	int getAIDifficultyBonusEarly() const;
+	int getAIDifficultyBonusMid() const;
+	int getAIDifficultyBonusLate() const;
 #endif
 
 	// Arrays
@@ -1017,7 +1020,10 @@ protected:
 	int m_iAIFreeXPPercent;
 	int m_iNumGoodies;
 #if defined(MOD_BALANCE_CORE)
-	int m_iDifficultyBonus;
+	int m_iDifficultyBonusBase;
+	int m_iDifficultyBonusEarly;
+	int m_iDifficultyBonusMid;
+	int m_iDifficultyBonusLate;
 #endif
 
 	CvString m_strHandicapName;
@@ -1237,7 +1243,6 @@ public:
 	int getTechObsolete() const;
 	bool isKillOnlyCivilian() const;
 	bool IsFreeBestDomainUnit() const;
-	bool IsKillImprovement() const;
 	bool IsCultureBoost() const;
 #endif
 	int getImprovement() const;
@@ -2090,6 +2095,7 @@ public:
 	int GetNumCitiesPolicyCostMod() const;
 	int GetNumCitiesTechCostMod() const;
 #if defined(MOD_TRADE_ROUTE_SCALING)
+	int GetNumCitiesTourismCostMod() const;
 	int getTradeRouteDistanceMod() const;
 #endif
 #if defined(MOD_BALANCE_CORE)
@@ -2136,6 +2142,7 @@ protected:
 	int m_iNumCitiesPolicyCostMod;
 	int m_iNumCitiesTechCostMod;
 #if defined(MOD_TRADE_ROUTE_SCALING)
+	int m_iNumCitiesTourismCostMod;
 	int m_iTradeRouteDistanceMod;
 #endif
 #if defined(MOD_BALANCE_CORE)
@@ -2271,6 +2278,7 @@ public:
 	virtual ~CvProcessInfo();
 
 	int getTechPrereq() const;
+	int getDefenseValue() const;
 
 	// Arrays
 	int getProductionToYieldModifier(int i) const;
@@ -2280,6 +2288,7 @@ public:
 
 protected:
 	int m_iTechPrereq;
+	int m_iDefenseValue;
 
 	// Arrays
 	int* m_paiProductionToYieldModifier;

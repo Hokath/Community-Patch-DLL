@@ -406,7 +406,7 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(GetCapitalUnhappinessMod);
 	Method(GetTraitCityUnhappinessMod);
 	Method(GetTraitPopUnhappinessMod);
-	Method(IsIgnorePuppetPenalties);
+	Method(GetPuppetYieldPenalty);
 	Method(IsHalfSpecialistUnhappiness);
 
 	Method(GetHappinessPerGarrisonedUnit);
@@ -436,6 +436,7 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(GetWarDamageLevel);
 	Method(IsWillingToMakePeaceWithHuman);
 	Method(GetTreatyWillingToOffer);
+	Method(GetDominationResistance);
 #endif
 	Method(GetCombatBonusVsHigherTech);
 	Method(GetCombatBonusVsLargerCiv);
@@ -554,6 +555,10 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(GetScienceRateFromMinorAllies);
 	Method(GetScienceRateFromLeagueAid);
 	Method(GetLeagueCultureCityModifier);
+#endif
+#if defined(MOD_API_LUA_EXTENSIONS) && defined(MOD_BALANCE_CORE)
+	Method(GetArtsyGreatPersonRateModifier);
+	Method(GetScienceyGreatPersonRateModifier);
 #endif
 
 	Method(GetPolicyGreatPeopleRateModifier);
@@ -791,7 +796,6 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(GetCurrentTotalPop);
 	Method(GetScalingNationalPopulationRequrired);
 	Method(GetBaseLuxuryHappiness);
-	Method(GetLuxuryBonusPlusOne);
 #endif
 #if defined(MOD_BALANCE_CORE_HAPPINESS_NATIONAL)
 	Method(CalculateUnhappinessTooltip);
@@ -803,6 +807,7 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 
 	Method(IsAlive);
 	Method(IsEverAlive);
+	Method(IsPotentiallyAlive);
 	Method(IsExtendedGame);
 	Method(IsFoundedFirstCity);
 
@@ -917,7 +922,7 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(Units);
 	Method(GetNumUnits);
 #if defined(MOD_BALANCE_CORE)
-	Method(GetNumUnitsNoCivilian);
+	Method(GetNumUnitsToSupply);
 #endif
 	Method(GetUnitByID);
 
@@ -1042,6 +1047,11 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 #if defined(MOD_BALANCE_CORE_DEALS)
 	Method(IsHasDefensivePact);
 	Method(IsHasDefensivePactWithPlayer);
+#endif
+#if defined(MOD_API_LUA_EXTENSIONS) 
+	Method(GetNumTurnsMilitaryPromise);
+	Method(GetNumTurnsExpansionPromise);
+	Method(GetNumTurnsBorderPromise);
 #endif
 
 	Method(GetNumNotifications);
@@ -1202,6 +1212,7 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(GetInternationalTradeRouteBaseBonus);
 	Method(GetInternationalTradeRouteGPTBonus);
 	Method(GetInternationalTradeRouteResourceBonus);
+	Method(GetCityResourceBonus);
 	Method(GetInternationalTradeRouteResourceTraitModifier);
 	Method(GetInternationalTradeRouteExclusiveBonus);
 	Method(GetInternationalTradeRouteYourBuildingBonus);
@@ -1210,6 +1221,10 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(GetInternationalTradeRouteOtherTraitBonus);
 	Method(GetInternationalTradeRouteRiverModifier);
 #if defined(MOD_BALANCE_CORE)
+	Method(GetTradeRouteTurns);
+	Method(GetTradeConnectionDistanceValueModifierTimes100);
+	Method(GetTradeRouteTurns);
+	Method(GetTradeConnectionDistance);
 	Method(GetTradeConnectionOpenBordersModifierTimes100);
 	Method(GetInternationalTradeRouteCorporationModifier);
 	Method(GetInternationalTradeRouteCorporationModifierScience);
@@ -1293,6 +1308,8 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(GetVassalIndependenceTooltipAsVassal);
 #endif
 #if defined(MOD_BALANCE_CORE)
+	Method(GetYieldPerTurnFromMinors);
+	Method(SetYieldPerTurnFromMinors);
 	Method(GetScoreFromMinorAllies);
 	Method(GetScoreFromMilitarySize);
 #endif
@@ -1570,7 +1587,7 @@ int CvLuaPlayer::lIsCityNameValid(lua_State* L)
 }
 #endif
 //------------------------------------------------------------------------------
-//CvUnit* initUnit(UnitTypes eUnit, int iX, int iY, UnitAITypes eUnitAI = NO_UNITAI, DirectionTypes eFacingDirection = NO_DIRECTION);
+//CvUnit* initUnit(UnitTypes eUnit, int iX, int iY, UnitAITypes eUnitAI = NO_UNITAI, DirectionTypes eFacingDirection = NO_DIRECTION, bool bHistoric = true);
 int CvLuaPlayer::lInitUnit(lua_State* L)
 {
 	CvPlayerAI* pkPlayer = GetInstance(L);
@@ -1579,14 +1596,18 @@ int CvLuaPlayer::lInitUnit(lua_State* L)
 	const int y = lua_tointeger(L, 4);
 	const UnitAITypes eUnitAI = (UnitAITypes)luaL_optint(L, 5, NO_UNITAI);
 	const DirectionTypes eFacingDirection = (DirectionTypes)luaL_optint(L, 6, NO_DIRECTION);
-
+#if defined(MOD_BALANCE_CORE)
+	const bool bHistoric = luaL_optbool(L, 7, true);
+	CvUnit* pkUnit = pkPlayer->initUnit(eUnit, x, y, eUnitAI, eFacingDirection, false, true, 0, 0, NO_CONTRACT, bHistoric);
+#else
 	CvUnit* pkUnit = pkPlayer->initUnit(eUnit, x, y, eUnitAI, eFacingDirection);
+#endif
 	CvLuaUnit::Push(L, pkUnit);
 	return 1;
 }
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-//CvUnit* initUnitWithNameOffset(UnitTypes eUnit, int iX, int iY, UnitAITypes eUnitAI = NO_UNITAI, DirectionTypes eFacingDirection = NO_DIRECTION);
+//CvUnit* initUnitWithNameOffset(UnitTypes eUnit, int iX, int iY, UnitAITypes eUnitAI = NO_UNITAI, DirectionTypes eFacingDirection = NO_DIRECTION, bool bHistoric = true);
 int CvLuaPlayer::lInitUnitWithNameOffset(lua_State* L)
 {
 	CvPlayerAI* pkPlayer = GetInstance(L);
@@ -1596,8 +1617,12 @@ int CvLuaPlayer::lInitUnitWithNameOffset(lua_State* L)
 	const int y = lua_tointeger(L, 5);
 	const UnitAITypes eUnitAI = (UnitAITypes)luaL_optint(L, 6, NO_UNITAI);
 	const DirectionTypes eFacingDirection = (DirectionTypes)luaL_optint(L, 7, NO_DIRECTION);
-
+#if defined(MOD_BALANCE_CORE)
+	const bool bHistoric = luaL_optbool(L, 8, true);
+	CvUnit* pkUnit = pkPlayer->initUnitWithNameOffset(eUnit, iNameOffset, x, y, eUnitAI, eFacingDirection, false, true, 0, 0, NO_CONTRACT, bHistoric);
+#else
 	CvUnit* pkUnit = pkPlayer->initUnitWithNameOffset(eUnit, iNameOffset, x, y, eUnitAI, eFacingDirection);
+#endif
 	CvLuaUnit::Push(L, pkUnit);
 	return 1;
 }
@@ -3027,7 +3052,7 @@ int CvLuaPlayer::lGetInfluencePerTurn(lua_State* L)
 {
 	CvPlayerAI* pkPlayer = GetInstance(L);
 	PlayerTypes ePlayer = (PlayerTypes)lua_tointeger(L, 2);
-	const int iResult = pkPlayer->GetCulture()->GetInfluencePerTurn(ePlayer);
+	const int iResult = pkPlayer->GetCulture()->GetTourismPerTurnIncludingInstant(ePlayer);
 	lua_pushinteger(L, iResult);
 	return 1;
 }
@@ -3174,7 +3199,7 @@ int CvLuaPlayer::lGetTourismPenalty(lua_State* L)
 		return 0;
 
 	// Mod for City Count
-	int iMod = (GC.getMap().getWorldInfo().GetNumCitiesPolicyCostMod() / 2);	// Default is 15, gets smaller on larger maps
+	int iMod = GC.getMap().getWorldInfo().GetNumCitiesTourismCostMod();	// Default is 15, gets smaller on larger maps
 
 	lua_pushinteger(L, iMod);
 	return 1;
@@ -3628,7 +3653,7 @@ int CvLuaPlayer::lGetFoundedReligionEnemyCityCombatMod(lua_State* L)
 	CvPlot* pkPlot = CvLuaPlot::GetInstance(L, 2);
 	if(pkPlot)
 	{
-		CvCity* pPlotCity = pkPlot->getWorkingCity();
+		CvCity* pPlotCity = pkPlot->getOwningCity();
 		if(pPlotCity)
 		{
 			CvGameReligions* pReligions = GC.getGame().GetGameReligions();
@@ -3659,7 +3684,7 @@ int CvLuaPlayer::lGetFoundedReligionFriendlyCityCombatMod(lua_State* L)
 	CvPlot* pkPlot = CvLuaPlot::GetInstance(L, 2);
 	if(pkPlot)
 	{
-		CvCity* pPlotCity = pkPlot->getWorkingCity();
+		CvCity* pPlotCity = pkPlot->getOwningCity();
 		if(pPlotCity)
 		{
 			CvGameReligions* pReligions = GC.getGame().GetGameReligions();
@@ -4073,11 +4098,40 @@ int CvLuaPlayer::lGetTraitPopUnhappinessMod(lua_State* L)
 }
 
 //------------------------------------------------------------------------------
-int CvLuaPlayer::lIsIgnorePuppetPenalties(lua_State* L)
+int CvLuaPlayer::lGetPuppetYieldPenalty(lua_State* L)
 {
 	CvPlayerAI* pkPlayer = GetInstance(L);
-	const bool bResult = pkPlayer->GetPlayerTraits()->IsIgnorePuppetPenalties();
-	lua_pushboolean(L, bResult);
+	const YieldTypes eYield = (YieldTypes)lua_tointeger(L, 2);
+
+	int iResult = pkPlayer->GetPlayerTraits()->GetPuppetPenaltyReduction() + pkPlayer->GetPuppetYieldPenaltyMod();
+	switch (eYield)
+	{
+		case(YIELD_FOOD) :
+			iResult += GC.getPUPPET_GROWTH_MODIFIER();
+			break;
+		case(YIELD_PRODUCTION) :
+			iResult += GC.getPUPPET_PRODUCTION_MODIFIER();
+			break;
+		case(YIELD_SCIENCE) :
+			iResult += GC.getPUPPET_SCIENCE_MODIFIER();
+			break;
+		case(YIELD_GOLD) :
+			iResult += GC.getPUPPET_GOLD_MODIFIER();
+			break;
+		case(YIELD_FAITH) :
+			iResult += GC.getPUPPET_FAITH_MODIFIER();
+			break;
+		case(YIELD_TOURISM) :
+			iResult += GC.getPUPPET_TOURISM_MODIFIER();
+			break;
+		case(YIELD_CULTURE) :
+			iResult += GC.getPUPPET_CULTURE_MODIFIER();
+			break;
+	}
+	if (iResult > 0)
+		iResult = 0;
+
+	lua_pushinteger(L, iResult);
 	return 1;
 }
 
@@ -4397,6 +4451,47 @@ int CvLuaPlayer::lGetInternationalTradeRouteResourceBonus(lua_State* L)
 }
 
 //------------------------------------------------------------------------------
+int CvLuaPlayer::lGetCityResourceBonus(lua_State* L)
+{
+	CvCity* pOriginCity = CvLuaCity::GetInstance(L, 2, true);
+	CvCity* pDestCity = CvLuaCity::GetInstance(L, 3, true);
+	bool bOrigin = lua_toboolean(L, 4);
+	
+	int iOurResources = 0;
+	int iTheirResources = 0;
+	for (int i = 0; i < GC.getNumResourceInfos(); i++)
+	{
+		ResourceTypes eResource = (ResourceTypes)i;
+		const CvResourceInfo* pkResourceInfo = GC.getResourceInfo(eResource);
+		if (pkResourceInfo)
+		{
+			bool bOurMonopoly = false;
+			bool bTheirMonopoly = false;
+			if (GET_PLAYER(pOriginCity->getOwner()).HasGlobalMonopoly(eResource))
+				bOurMonopoly = true;;
+			if (GET_PLAYER(pDestCity->getOwner()).HasGlobalMonopoly(eResource))
+				bTheirMonopoly= true;
+
+			if (pkResourceInfo->getResourceUsage() == RESOURCEUSAGE_LUXURY)
+			{
+				iOurResources += bOurMonopoly ? pOriginCity->GetNumResourceLocal(eResource, true) * 2 : pOriginCity->GetNumResourceLocal(eResource, true);
+				iTheirResources += bTheirMonopoly ? pDestCity->GetNumResourceLocal(eResource, true) * 2 : pDestCity->GetNumResourceLocal(eResource, true);
+			}
+			if (pkResourceInfo->getResourceUsage() == RESOURCEUSAGE_STRATEGIC)
+			{
+				if (pOriginCity->GetNumResourceLocal(eResource, true) > 0)
+					iOurResources += bOurMonopoly ? 2 : 1;
+				if (pDestCity->GetNumResourceLocal(eResource, true) > 0)
+					iTheirResources += bTheirMonopoly ? 2 : 1;
+			}
+		}
+	}
+
+	lua_pushinteger(L, bOrigin ? iOurResources : iTheirResources);
+
+	return 1;
+}
+//------------------------------------------------------------------------------
 int CvLuaPlayer::lGetInternationalTradeRouteResourceTraitModifier(lua_State* L)
 {
 	CvPlayerAI* pkPlayer = GetInstance(L);
@@ -4518,6 +4613,56 @@ int CvLuaPlayer::lGetInternationalTradeRouteRiverModifier(lua_State* L)
 	return 1;	
 }
 #if defined(MOD_BALANCE_CORE)
+//------------------------------------------------------------------------------
+int CvLuaPlayer::lGetTradeConnectionDistanceValueModifierTimes100(lua_State* L)
+{
+	CvPlayerAI* pkPlayer = GetInstance(L);
+	CvPlayerTrade* pPlayerTrade = pkPlayer->GetTrade();
+	CvCity* pOriginCity = CvLuaCity::GetInstance(L, 2, true);
+	CvCity* pDestCity = CvLuaCity::GetInstance(L, 3, true);
+	DomainTypes eDomain = (DomainTypes)lua_tointeger(L, 4);
+
+	TradeConnection kTradeConnection;
+	kTradeConnection.SetCities(pOriginCity, pDestCity);
+	kTradeConnection.m_eDomain = eDomain;
+	kTradeConnection.m_eConnectionType = TRADE_CONNECTION_INTERNATIONAL;
+
+	int iResult = pPlayerTrade->GetTradeConnectionDistanceValueModifierTimes100(kTradeConnection);
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
+int CvLuaPlayer::lGetTradeRouteTurns(lua_State* L)
+{
+	CvCity* pOriginCity = CvLuaCity::GetInstance(L, 2, true);
+	CvCity* pDestCity = CvLuaCity::GetInstance(L, 3, true);
+	DomainTypes eDomain = (DomainTypes)lua_tointeger(L, 4);
+
+	int iTurns = GC.getGame().GetGameTrade()->GetTradeRouteTurns(pOriginCity, pDestCity, eDomain, NULL);
+	lua_pushinteger(L, iTurns);
+	return 1;
+}
+//------------------------------------------------------------------------------
+int CvLuaPlayer::lGetTradeConnectionDistance(lua_State* L)
+{
+	CvCity* pOriginCity = CvLuaCity::GetInstance(L, 2, true);
+	CvCity* pDestCity = CvLuaCity::GetInstance(L, 3, true);
+	DomainTypes eDomain = (DomainTypes)lua_tointeger(L, 4);
+
+	TradeConnection kTradeConnection;
+	kTradeConnection.SetCities(pOriginCity, pDestCity);
+	kTradeConnection.m_eDomain = eDomain;
+
+	SPath path;
+	bool bTradeAvailable = GC.getGame().GetGameTrade()->IsValidTradeRoutePath(pOriginCity, pDestCity, kTradeConnection.m_eDomain, &path);
+	if (!bTradeAvailable)
+		return 0;
+
+	int iLength = path.iNormalizedDistance;
+
+	lua_pushinteger(L, iLength);
+	return 1;
+}
 //------------------------------------------------------------------------------
 int CvLuaPlayer::lGetTradeConnectionOpenBordersModifierTimes100(lua_State* L)
 {
@@ -5414,8 +5559,8 @@ int CvLuaPlayer::lGetTradeRoutes(lua_State* L)
 		lua_pushinteger(L, iFromPressure);
 		lua_setfield(L, t, "FromPressure");
 #if defined(MOD_BALANCE_CORE)
-		int iToDelta = pFromCity->GetBaseTourism() * pFromCity->GetCityCulture()->GetTourismMultiplier(pToPlayer->GetID(), true, true, false, true, true);
-		int iFromDelta = pToCity->GetBaseTourism() * pToCity->GetCityCulture()->GetTourismMultiplier(pkPlayer->GetID(), true, true, false, true, true);
+		int iToDelta = (pFromCity->GetBaseTourism() / 100) * pFromCity->GetCityCulture()->GetTourismMultiplier(pToPlayer->GetID(), true, true, false, true, true);
+		int iFromDelta = (pToCity->GetBaseTourism() / 100) * pToCity->GetCityCulture()->GetTourismMultiplier(pkPlayer->GetID(), true, true, false, true, true);
 #else
 		int iToDelta = pFromCity->GetBaseTourism() * pFromCity->GetCityCulture()->GetTourismMultiplier(pToPlayer->GetID(), true, true, false, true, true);
 		int iFromDelta = pToCity->GetBaseTourism() * pToCity->GetCityCulture()->GetTourismMultiplier(pkPlayer->GetID(), true, true, false, true, true);
@@ -5504,7 +5649,9 @@ int CvLuaPlayer::lGetTradeRoutesAvailable(lua_State* L)
 					{
 						eConnection = (TradeConnectionType)uiConnectionTypes;
 				
-						bool bTradeAvailable = pPlayerTrade->CanCreateTradeRoute(pOriginCity, pDestCity, eDomain, eConnection, true, bCheckPath);
+						const TradeConnection* pConnection = pPlayerTrade->GetTradeConnection(pOriginCity, pDestCity);
+
+						bool bTradeAvailable = !pConnection && pPlayerTrade->CanCreateTradeRoute(pOriginCity, pDestCity, eDomain, eConnection, true, bCheckPath);
 						if (!bTradeAvailable)
 						{
 							continue;
@@ -5521,7 +5668,7 @@ int CvLuaPlayer::lGetTradeRoutesAvailable(lua_State* L)
 						kConnection.m_eDomain = eDomain;
 
 						int iTurnsLeft = -1;
-						const TradeConnection* pConnection = pPlayerTrade->GetTradeConnection(pOriginCity, pDestCity);
+						
 						if (pConnection && pConnection->m_eDomain == eDomain)
 						{
 							iTurnsLeft = pConnection->m_iTurnRouteComplete - GC.getGame().getGameTurn();
@@ -5600,8 +5747,8 @@ int CvLuaPlayer::lGetTradeRoutesAvailable(lua_State* L)
 						lua_pushinteger(L, iFromPressure);
 						lua_setfield(L, t, "FromPressure");
 #if defined(MOD_BALANCE_CORE)
-						int iToDelta = pOriginCity->GetBaseTourism() * pOriginCity->GetCityCulture()->GetTourismMultiplier(eOtherPlayer, true, true, false, true, true);
-						int iFromDelta = pDestCity->GetBaseTourism() * pDestCity->GetCityCulture()->GetTourismMultiplier(pkPlayer->GetID(), true, true, false, true, true);
+						int iToDelta = (pOriginCity->GetBaseTourism() / 100) * pOriginCity->GetCityCulture()->GetTourismMultiplier(eOtherPlayer, true, true, false, true, true);
+						int iFromDelta = (pDestCity->GetBaseTourism() / 100) * pDestCity->GetCityCulture()->GetTourismMultiplier(pkPlayer->GetID(), true, true, false, true, true);
 #else
 						int iToDelta = pOriginCity->GetBaseTourism() * pOriginCity->GetCityCulture()->GetTourismMultiplier(eOtherPlayer, true, true, false, true, true);
 						int iFromDelta = pDestCity->GetBaseTourism() * pDestCity->GetCityCulture()->GetTourismMultiplier(pkPlayer->GetID(), true, true, false, true, true);
@@ -5724,8 +5871,8 @@ int CvLuaPlayer::lGetTradeRoutesToYou(lua_State* L)
 		lua_pushinteger(L, iFromPressure);
 		lua_setfield(L, t, "FromPressure");
 #if defined(MOD_BALANCE_CORE)
-		int iToDelta = pFromCity->GetBaseTourism() * pFromCity->GetCityCulture()->GetTourismMultiplier(pToPlayer->GetID(), true, true, false, true, true);
-		int iFromDelta = pToCity->GetBaseTourism() * pToCity->GetCityCulture()->GetTourismMultiplier(pkPlayer->GetID(), true, true, false, true, true);
+		int iToDelta = (pFromCity->GetBaseTourism() / 100) * pFromCity->GetCityCulture()->GetTourismMultiplier(pToPlayer->GetID(), true, true, false, true, true);
+		int iFromDelta = (pToCity->GetBaseTourism() / 100) * pToCity->GetCityCulture()->GetTourismMultiplier(pkPlayer->GetID(), true, true, false, true, true);
 #else
 		int iToDelta = pFromCity->GetCityCulture()->GetBaseTourism() * pFromCity->GetCityCulture()->GetTourismMultiplier(pToPlayer->GetID(), true, true, false, true, true);
 		int iFromDelta = pToCity->GetCityCulture()->GetBaseTourism() * pToCity->GetCityCulture()->GetTourismMultiplier(pkPlayer->GetID(), true, true, false, true, true);
@@ -6056,6 +6203,17 @@ int CvLuaPlayer::lGetTreatyWillingToOffer(lua_State* L)
 	lua_pushinteger(L, iResult);
 	return 1;
 }
+
+int CvLuaPlayer::lGetDominationResistance(lua_State* L)
+{
+	CvPlayer* pkPlayer = GetInstance(L);
+	const PlayerTypes ePlayer = (PlayerTypes)lua_tointeger(L, 2);
+	int iResistancePower = pkPlayer->GetDominationResistance(ePlayer);
+	lua_pushinteger(L, iResistancePower);
+
+	return 1;
+}
+
 #endif
 //------------------------------------------------------------------------------
 int CvLuaPlayer::lGetCombatBonusVsHigherTech(lua_State* L)
@@ -6914,7 +7072,18 @@ int CvLuaPlayer::lGetLeagueCultureCityModifier(lua_State* L)
 	return BasicLuaMethod(L, &CvPlayerAI::GetLeagueCultureCityModifier);
 }
 #endif
-
+#if defined(MOD_API_LUA_EXTENSIONS) && defined(MOD_BALANCE_CORE)
+//int GetArtsyGreatPersonRateModifier();
+int CvLuaPlayer::lGetArtsyGreatPersonRateModifier(lua_State* L)
+{
+	return BasicLuaMethod(L, &CvPlayerAI::getArtsyGreatPersonRateModifier);
+}
+//int GetScienceyGreatPersonRateModifier();
+int CvLuaPlayer::lGetScienceyGreatPersonRateModifier(lua_State* L)
+{
+	return BasicLuaMethod(L, &CvPlayerAI::getScienceyGreatPersonRateModifier);
+}
+#endif
 //------------------------------------------------------------------------------
 //int getGreatEngineerRateModifier();
 int CvLuaPlayer::lGetGreatEngineerRateModifier(lua_State* L)
@@ -8699,36 +8868,19 @@ int CvLuaPlayer::lGetBaseLuxuryHappiness(lua_State* L)
 {
 	CvPlayerAI* pkPlayer = GetInstance(L);
 
-	const int iResult = pkPlayer->GetBaseLuxuryHappiness();
-	lua_pushinteger(L, iResult);
-	return 1;
-}
-//------------------------------------------------------------------------------
-//int GetLuxuryBonusPlusOne();
-int CvLuaPlayer::lGetLuxuryBonusPlusOne(lua_State* L)
-{
-	CvPlayerAI* pkPlayer = GetInstance(L);
-	int iHappiness = pkPlayer->GetBaseLuxuryHappiness();
-	const int iIncrease = lua_tointeger(L, 2);
-	int iExtraHappiness = 0;
 	int iNumHappinessResources = 0;
 	ResourceTypes eResource;
-	for(int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
+	for (int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
 	{
-		eResource = (ResourceTypes) iResourceLoop;
+		eResource = (ResourceTypes)iResourceLoop;
 
-		if(eResource != NO_RESOURCE && (pkPlayer->GetHappinessFromLuxury(eResource) > 0))
+		if (eResource != NO_RESOURCE && (pkPlayer->GetHappinessFromLuxury(eResource) > 0))
 		{
 			iNumHappinessResources++;
 		}
 	}
-	int iNumLux = iNumHappinessResources + iIncrease;
-	if(iNumLux > 0)
-	{
-		iExtraHappiness = ((iNumLux * iHappiness * 100) / /*8*/ std::max(1,GC.getBALANCE_HAPPINESS_LUXURY_BASE()));
-	}
+	const int iResult = (iNumHappinessResources * pkPlayer->GetBaseLuxuryHappiness()) / max(1, (pkPlayer->getNumCities() / max(1, GC.getBALANCE_HAPPINESS_POPULATION_DIVISOR())));
 
-	const int iResult = iExtraHappiness;
 	lua_pushinteger(L, iResult);
 	return 1;
 }
@@ -8779,6 +8931,13 @@ int CvLuaPlayer::lIsAlive(lua_State* L)
 int CvLuaPlayer::lIsEverAlive(lua_State* L)
 {
 	return BasicLuaMethod(L, &CvPlayerAI::isEverAlive);
+}
+
+//------------------------------------------------------------------------------
+//bool isEverAlive();
+int CvLuaPlayer::lIsPotentiallyAlive(lua_State* L)
+{
+	return BasicLuaMethod(L, &CvPlayerAI::isPotentiallyAlive);
 }
 //------------------------------------------------------------------------------
 //bool isExtendedGame();
@@ -9301,6 +9460,8 @@ int CvLuaPlayer::lGetSpecialistExtraYield(lua_State* L)
 }
 //------------------------------------------------------------------------------
 //int findPathLength(TechTypes  eTech, bool bCost);
+// If bCost is false, then it returns number of techs that need to be researched to acquire eTech
+// If bCost is true, then it returns the cost of a currently researched tech
 int CvLuaPlayer::lFindPathLength(lua_State* L)
 {
 	return BasicLuaMethod(L, &CvPlayerAI::findPathLength);
@@ -9522,9 +9683,9 @@ int CvLuaPlayer::lGetNumUnits(lua_State* L)
 #if defined(MOD_BALANCE_CORE)
 //------------------------------------------------------------------------------
 //int getNumUnits();
-int CvLuaPlayer::lGetNumUnitsNoCivilian(lua_State* L)
+int CvLuaPlayer::lGetNumUnitsToSupply(lua_State* L)
 {
-	return BasicLuaMethod(L, &CvPlayerAI::getNumUnitsNoCivilian);
+	return BasicLuaMethod(L, &CvPlayerAI::GetNumUnitsToSupply);
 }
 
 #endif
@@ -10686,6 +10847,32 @@ int CvLuaPlayer::lIsHasDefensivePactWithPlayer(lua_State* L)
 	return 1;
 }
 #endif
+#if defined(MOD_API_LUA_EXTENSIONS)
+int CvLuaPlayer::lGetNumTurnsMilitaryPromise(lua_State* L)
+{
+	CvPlayerAI* pkPlayer = GetInstance(L);
+	PlayerTypes eWithPlayer = (PlayerTypes)lua_tointeger(L, 2);
+	int iValue = pkPlayer->GetDiplomacyAI()->GetPlayerMadeMilitaryPromise(eWithPlayer);
+	lua_pushinteger(L, iValue);
+	return 1;
+}
+int CvLuaPlayer::lGetNumTurnsExpansionPromise(lua_State* L)
+{
+	CvPlayerAI* pkPlayer = GetInstance(L);
+	PlayerTypes eWithPlayer = (PlayerTypes)lua_tointeger(L, 2);
+	int iValue = pkPlayer->GetDiplomacyAI()->GetPlayerMadeExpansionPromise(eWithPlayer);
+	lua_pushinteger(L, iValue);
+	return 1;
+}
+int CvLuaPlayer::lGetNumTurnsBorderPromise(lua_State* L)
+{
+	CvPlayerAI* pkPlayer = GetInstance(L);
+	PlayerTypes eWithPlayer = (PlayerTypes)lua_tointeger(L, 2);
+	int iValue = pkPlayer->GetDiplomacyAI()->GetPlayerMadeBorderPromise(eWithPlayer);
+	lua_pushinteger(L, iValue);
+	return 1;
+}
+#endif
 //------------------------------------------------------------------------------
 //void AddNotification()
 int CvLuaPlayer::lAddNotification(lua_State* L)
@@ -11502,7 +11689,7 @@ int CvLuaPlayer::lGetTraitConquestOfTheWorldCityAttackMod(lua_State* L)
 	{
 		if(pkPlayer->isGoldenAge())
 		{
-			CvCity* pPlotCity = pkPlot->getWorkingCity();
+			CvCity* pPlotCity = pkPlot->getOwningCity();
 			if(pPlotCity)
 			{
 				if(!GET_PLAYER(pPlotCity->getOwner()).isMinorCiv())
@@ -11731,8 +11918,9 @@ int CvLuaPlayer::lGetExtraYieldWorldWonder(lua_State* L)
 		{
 			if(::isWorldWonderClass(pkBuildingInfo->GetBuildingClassInfo()))
 			{
-				
-
+#if defined(MOD_API_UNIFIED_YIELDS)
+				iExtraYield += pkPlayer->GetPlayerTraits()->GetYieldChangeWorldWonder(eYieldType);
+#endif
 				for(int iPolicyLoop = 0; iPolicyLoop < GC.getNumPolicyInfos(); iPolicyLoop++)
 				{
 					const PolicyTypes ePolicy = static_cast<PolicyTypes>(iPolicyLoop);
@@ -11880,13 +12068,7 @@ int CvLuaPlayer::lAddTemporaryDominanceZone(lua_State* L)
 	const int iY = lua_tointeger(L, 3);
 
 	// Notify tactical AI to focus on this area
-	CvTemporaryZone zone;
-	zone.SetX(iX);
-	zone.SetY(iY);
-	zone.SetTargetType(AI_TACTICAL_TARGET_CITY);
-	zone.SetLastTurn(GC.getGame().getGameTurn() + GC.getAI_TACTICAL_MAP_TEMP_ZONE_TURNS());
-	pkPlayer->GetTacticalAI()->AddTemporaryZone(zone);
-
+	pkPlayer->GetTacticalAI()->AddTemporaryZone( GC.getMap().plot(iX,iY), GC.getAI_TACTICAL_MAP_TEMP_ZONE_TURNS() );
 	return 1;
 }
 //------------------------------------------------------------------------------
@@ -11916,6 +12098,7 @@ int CvLuaPlayer::lGetPolicyBuildingClassYieldModifier(lua_State* L)
 	if(pkPlayer)
 	{
 		int modifier = pkPlayer->GetPlayerPolicies()->GetBuildingClassYieldModifier(eBuildingClass, eYieldType);
+		modifier += pkPlayer->GetBuildingClassYieldModifier(eBuildingClass, eYieldType);
 		lua_pushinteger(L, modifier);
 
 		return 1;
@@ -12318,20 +12501,28 @@ int CvLuaPlayer::lGetOpinionTable(lua_State* L)
 	if(MOD_BALANCE_CORE_DEALS)
 	{
 		//Promises
+		iValue = pDiploAI->GetPlayerMadeMilitaryPromise(eWithPlayer);
+		if(iValue > 0)
+		{
+			Opinion kOpinion;
+			kOpinion.m_iValue = 0;
+			kOpinion.m_str = GetLocalizedText("TXT_KEY_DIPLO_MILITARY_PROMISE_TURNS", iValue);
+			aOpinions.push_back(kOpinion);
+		}
 		iValue = pDiploAI->GetPlayerMadeExpansionPromise(eWithPlayer);
 		if(iValue > 0)
 		{
 			Opinion kOpinion;
-			kOpinion.m_iValue = iValue;
-			kOpinion.m_str = GetLocalizedText("TXT_KEY_DIPLO_PROMISE_EXPANSION", iValue);
+			kOpinion.m_iValue = 0;
+			kOpinion.m_str = GetLocalizedText("TXT_KEY_DIPLO_EXPANSION_PROMISE_TURNS", iValue);
 			aOpinions.push_back(kOpinion);
 		}
 		iValue = pDiploAI->GetPlayerMadeBorderPromise(eWithPlayer);
 		if(iValue > 0)
 		{
 			Opinion kOpinion;
-			kOpinion.m_iValue = iValue;
-			kOpinion.m_str = GetLocalizedText("TXT_KEY_DIPLO_PROMISE_BORDER", iValue);
+			kOpinion.m_iValue = 0;
+			kOpinion.m_str = GetLocalizedText("TXT_KEY_DIPLO_BORDER_PROMISE_TURNS", iValue);
 			aOpinions.push_back(kOpinion);
 		}
 
@@ -13328,6 +13519,13 @@ int CvLuaPlayer::lGetTotalValueToMeNormal(lua_State* L)
 	CvDeal* pkDeal = CvLuaDeal::GetInstance(L, 2);
 	int iValueImOffering, iValueTheyreOffering;
 	int iResult = 0;
+	CvLeague* pLeague = GC.getGame().GetGameLeagues()->GetActiveLeague();
+	if (pLeague != NULL && pLeague->IsTradeEmbargoed(pkThisPlayer->GetID(), GC.getGame().getActivePlayer()))
+	{
+		iResult = -99999;
+		lua_pushinteger(L, iResult);
+		return 1;
+	}
 	iResult = pkThisPlayer->GetDealAI()->GetDealValue(pkDeal, iValueImOffering, iValueTheyreOffering, false);
 	if(iResult == INT_MAX || iResult == (INT_MAX * -1))
 	{
@@ -14153,6 +14351,24 @@ LUAAPIIMPL(Player, CountAllTerrain)
 LUAAPIIMPL(Player, CountAllWorkedTerrain)
 #endif
 #if defined(MOD_BALANCE_CORE)
+//-------------------------------------------------------------------------
+int CvLuaPlayer::lGetYieldPerTurnFromMinors(lua_State* L)
+{
+CvPlayerAI* pkPlayer = GetInstance(L);
+	const YieldTypes eYield = (YieldTypes)lua_tointeger(L, 2);
+	const int iResult = pkPlayer->GetYieldPerTurnFromMinors(eYield);
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+//-------------------------------------------------------------------------
+int CvLuaPlayer::lSetYieldPerTurnFromMinors(lua_State* L)
+{
+	CvPlayerAI* pkPlayer = GetInstance(L);
+	const YieldTypes eYield = (YieldTypes)lua_tointeger(L, 2);
+	const int iValue = lua_tointeger(L, 3);
+	pkPlayer->SetYieldPerTurnFromMinors(eYield, iValue);
+	return 1;
+}
 //-------------------------------------------------------------------------
 int CvLuaPlayer::lGetScoreFromMinorAllies(lua_State* L)
 {

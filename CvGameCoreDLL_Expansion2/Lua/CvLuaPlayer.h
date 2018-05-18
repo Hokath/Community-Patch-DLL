@@ -389,7 +389,7 @@ protected:
 	static int lGetCapitalUnhappinessMod(lua_State* L);
 	static int lGetTraitCityUnhappinessMod(lua_State* L);
 	static int lGetTraitPopUnhappinessMod(lua_State* L);
-	static int lIsIgnorePuppetPenalties(lua_State* L);
+	static int lGetPuppetYieldPenalty(lua_State* L);
 	static int lIsHalfSpecialistUnhappiness(lua_State* L);
 
 	static int lGetHappinessPerGarrisonedUnit(lua_State* L);
@@ -417,6 +417,7 @@ protected:
 	LUAAPIEXTN(GetWarDamageLevel, int);
 	LUAAPIEXTN(IsWillingToMakePeaceWithHuman, bool);
 	LUAAPIEXTN(GetTreatyWillingToOffer, int);
+	LUAAPIEXTN(GetDominationResistance, int);
 	LUAAPIEXTN(GetMajorCivOpinion, int);
 	LUAAPIEXTN(GetMajorityReligion, int);
 	//JFD
@@ -618,7 +619,10 @@ protected:
 	LUAAPIEXTN(GetScienceRateFromLeagueAid, int);
 	LUAAPIEXTN(GetLeagueCultureCityModifier, int);
 #endif
-
+#if defined(MOD_API_LUA_EXTENSIONS) && defined(MOD_BALANCE_CORE)
+	LUAAPIEXTN(GetArtsyGreatPersonRateModifier, int);
+	LUAAPIEXTN(GetScienceyGreatPersonRateModifier, int);
+#endif
 	static int lGetPolicyGreatPeopleRateModifier(lua_State* L);
 	static int lGetPolicyGreatWriterRateModifier(lua_State* L);
 	static int lGetPolicyGreatArtistRateModifier(lua_State* L);
@@ -769,7 +773,6 @@ protected:
 	LUAAPIEXTN(GetCurrentTotalPop, int);
 	LUAAPIEXTN(GetScalingNationalPopulationRequrired, int);
 	LUAAPIEXTN(GetBaseLuxuryHappiness, int);
-	LUAAPIEXTN(GetLuxuryBonusPlusOne, int);
 #endif
 #if defined(MOD_BALANCE_CORE_HAPPINESS_NATIONAL)
 	LUAAPIEXTN(CalculateUnhappinessTooltip, int);
@@ -866,6 +869,7 @@ protected:
 
 	static int lIsAlive(lua_State* L);
 	static int lIsEverAlive(lua_State* L);
+	static int lIsPotentiallyAlive(lua_State* L);
 	static int lIsExtendedGame(lua_State* L);
 	static int lIsFoundedFirstCity(lua_State* L);
 
@@ -979,7 +983,7 @@ protected:
 	static int lGetUnits(lua_State* L);
 	static int lGetNumUnits(lua_State* L);
 #if defined(MOD_BALANCE_CORE)
-	static int lGetNumUnitsNoCivilian(lua_State* L);
+	static int lGetNumUnitsToSupply(lua_State* L);
 #endif
 	static int lGetUnitByID(lua_State* L);
 
@@ -1107,6 +1111,11 @@ protected:
 #if defined(MOD_BALANCE_CORE_DEALS)
 	LUAAPIEXTN(IsHasDefensivePact, bool);
 	LUAAPIEXTN(IsHasDefensivePactWithPlayer, bool);
+#endif
+#if defined(MOD_API_LUA_EXTENSIONS)
+	LUAAPIEXTN(GetNumTurnsMilitaryPromise, int);
+	LUAAPIEXTN(GetNumTurnsExpansionPromise, int);
+	LUAAPIEXTN(GetNumTurnsBorderPromise, int);
 #endif
 	// END Diplomacy Stuff
 
@@ -1283,6 +1292,7 @@ protected:
 	static int lGetInternationalTradeRouteBaseBonus(lua_State* L);
 	static int lGetInternationalTradeRouteGPTBonus(lua_State* L);
 	static int lGetInternationalTradeRouteResourceBonus(lua_State* L);
+	static int lGetCityResourceBonus(lua_State* L);
 	static int lGetInternationalTradeRouteResourceTraitModifier(lua_State* L);
 	static int lGetInternationalTradeRouteExclusiveBonus(lua_State* L);
 	static int lGetInternationalTradeRouteYourBuildingBonus(lua_State* L);
@@ -1291,6 +1301,9 @@ protected:
 	static int lGetInternationalTradeRouteOtherTraitBonus(lua_State* L);
 	static int lGetInternationalTradeRouteRiverModifier(lua_State* L);
 #if defined(MOD_BALANCE_CORE)
+	static int lGetTradeRouteTurns(lua_State* L);
+	static int lGetTradeConnectionDistanceValueModifierTimes100(lua_State* L);
+	static int lGetTradeConnectionDistance(lua_State* L);
 	static int lGetTradeConnectionOpenBordersModifierTimes100(lua_State* L);
 	static int lGetInternationalTradeRouteCorporationModifier(lua_State* L);
 	static int lGetInternationalTradeRouteCorporationModifierScience(lua_State* L);
@@ -1376,6 +1389,8 @@ protected:
 	LUAAPIEXTN(GetVassalIndependenceTooltipAsVassal, CvString);
 #endif
 #if defined(MOD_BALANCE_CORE)
+	LUAAPIEXTN(GetYieldPerTurnFromMinors, int);
+	LUAAPIEXTN(SetYieldPerTurnFromMinors, int);
 	LUAAPIEXTN(GetScoreFromMinorAllies, int);
 	LUAAPIEXTN(GetScoreFromMilitarySize, int);
 #endif

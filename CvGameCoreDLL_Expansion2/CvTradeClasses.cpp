@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	? 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -210,9 +210,19 @@ void CvGameTrade::UpdateTradePathCache(uint iPlayer1)
 			CvCity* pDestCity = it->first->getPlotCity();
 			AddTradePathToCache(m_aPotentialTradePathsLand,pOriginCity->GetID(),pDestCity->GetID(),it->second);
 		}
+
 	}
 
 	m_lastTradePathUpdate[iPlayer1]=GC.getGame().getGameTurn();
+
+	for (CvCity* pOriginCity = kPlayer1.firstCity(&iOriginCityLoop); pOriginCity != NULL; pOriginCity = kPlayer1.nextCity(&iOriginCityLoop))
+	{
+		int iDistanceLand = kPlayer1.GetTrade()->GetTradeRouteRange(DOMAIN_LAND, pOriginCity);
+		int iDistanceSea = kPlayer1.GetTrade()->GetTradeRouteRange(DOMAIN_SEA, pOriginCity);
+
+		kPlayer1.GetTrade()->UpdateFurthestPossibleTradeRoute(DOMAIN_LAND, pOriginCity, iDistanceLand);
+		kPlayer1.GetTrade()->UpdateFurthestPossibleTradeRoute(DOMAIN_SEA, pOriginCity, iDistanceSea);
+	}
 }
 
 //	--------------------------------------------------------------------------------
@@ -341,6 +351,23 @@ bool CvGameTrade::CanCreateTradeRoute(CvCity* pOriginCity, CvCity* pDestCity, Do
 				return false;
 			}
 		}
+#if defined(MOD_BALANCE_CORE)
+		//Only matters if there's more than one option on the table.
+		if (MOD_TRADE_ROUTE_SCALING && eConnectionType == TRADE_CONNECTION_INTERNATIONAL)
+		{
+			// check for duplicate routes from the owner
+			for (uint i = 0; i < m_aTradeConnections.size(); i++)
+			{
+				if (m_aTradeConnections[i].m_eOriginOwner != pOriginCity->getOwner())
+					continue;
+
+				if (m_aTradeConnections[i].m_iDestX == iDestX && m_aTradeConnections[i].m_iDestY == iDestY)
+				{
+					return false;
+				}
+			}
+		}
+#endif
 	}
 
 	if (bCheckPath && !IsValidTradeRoutePath(pOriginCity, pDestCity, eDomain))
@@ -450,6 +477,9 @@ bool CvGameTrade::CreateTradeRoute(CvCity* pOriginCity, CvCity* pDestCity, Domai
 
 	CopyPathIntoTradeConnection(path, &(m_aTradeConnections[iNewTradeRouteIndex]));
 
+	// try to make the trade units move faster on "faster" routes
+	m_aTradeConnections[iNewTradeRouteIndex].m_iSpeedFactor = (100 * path.length()) / path.iNormalizedDistance;
+
 	// reveal all plots to the player who created the trade route
 	TeamTypes eOriginTeam = GET_PLAYER(eOriginPlayer).getTeam();
 	for (uint ui = 0; ui < m_aTradeConnections[iNewTradeRouteIndex].m_aPlotList.size(); ui++)
@@ -460,34 +490,12 @@ bool CvGameTrade::CreateTradeRoute(CvCity* pOriginCity, CvCity* pDestCity, Domai
 	m_aTradeConnections[iNewTradeRouteIndex].m_iTradeUnitLocationIndex = 0;
 	m_aTradeConnections[iNewTradeRouteIndex].m_bTradeUnitMovingForward = true;
 
-	int iRouteSpeed = GET_PLAYER(pOriginCity->getOwner()).GetTrade()->GetTradeRouteSpeed(eDomain);
-	int iTurnsPerCircuit = 1;
-	if (iRouteSpeed != 0)
-	{
-		iTurnsPerCircuit = ((m_aTradeConnections[iNewTradeRouteIndex].m_aPlotList.size() - 1) * 2) / iRouteSpeed;
-	}
-	
-#if defined(MOD_TRADE_ROUTE_SCALING)
-	int iTargetTurns = GD_INT_GET(TRADE_ROUTE_BASE_TARGET_TURNS); // how many turns do we want the cycle to consume
-	iTargetTurns = iTargetTurns * GC.getGame().getGameSpeedInfo().getTradeRouteSpeedMod() / 100;
-	int iEra = GET_PLAYER(pOriginCity->getOwner()).GetCurrentEra();
-	if(iEra <= 0)
-	{
-		iEra = 1;
-	}
-	iTargetTurns -= iEra;
-#else
-	int iTargetTurns = 30; // how many turns do we want the cycle to consume
-#endif
-	int iCircuitsToComplete = 1; // how many circuits do we want this trade route to run to reach the target turns
-	if (iTurnsPerCircuit != 0)
-	{
-		iCircuitsToComplete = max(iTargetTurns / iTurnsPerCircuit, 2);
-	}
-
+	int iCircuitsToComplete = 0;
+	int iTurns = GetTradeRouteTurns(pOriginCity, pDestCity, eDomain, &iCircuitsToComplete);
 	m_aTradeConnections[iNewTradeRouteIndex].m_iCircuitsCompleted = 0;
 	m_aTradeConnections[iNewTradeRouteIndex].m_iCircuitsToComplete = iCircuitsToComplete;
-	m_aTradeConnections[iNewTradeRouteIndex].m_iTurnRouteComplete = (iTurnsPerCircuit * iCircuitsToComplete) + GC.getGame().getGameTurn();
+	m_aTradeConnections[iNewTradeRouteIndex].m_iTurnRouteComplete = iTurns + GC.getGame().getGameTurn();
+
 #if defined(MOD_API_TRADEROUTES)
 	m_aTradeConnections[iNewTradeRouteIndex].m_bTradeUnitRecalled = false;
 #endif
@@ -536,9 +544,11 @@ bool CvGameTrade::CreateTradeRoute(CvCity* pOriginCity, CvCity* pDestCity, Domai
 			int iFlavorGoldDest = GET_PLAYER(eDestPlayer).GetGrandStrategyAI()->GetPersonalityAndGrandStrategy((FlavorTypes)GC.getInfoTypeForString("FLAVOR_GOLD"));
 			int iFlavorScienceDest = GET_PLAYER(eDestPlayer).GetGrandStrategyAI()->GetPersonalityAndGrandStrategy((FlavorTypes)GC.getInfoTypeForString("FLAVOR_SCIENCE"));
 			int iFlavorDiplomacyDest = GET_PLAYER(eDestPlayer).GetGrandStrategyAI()->GetPersonalityAndGrandStrategy((FlavorTypes)GC.getInfoTypeForString("FLAVOR_DIPLOMACY"));
+			int iFlavorCultureDest = GET_PLAYER(eDestPlayer).GetGrandStrategyAI()->GetPersonalityAndGrandStrategy((FlavorTypes)GC.getInfoTypeForString("FLAVOR_CULTURE"));
 			int iGoldDest = (m_aTradeConnections[iNewTradeRouteIndex].m_aiDestYields[YIELD_GOLD] / 10);
 			int iScienceDest = (m_aTradeConnections[iNewTradeRouteIndex].m_aiDestYields[YIELD_SCIENCE] / 10);
-			int iTradeValueDest = ((iScienceDest + iGoldDest + iFlavorGoldDest + iFlavorScienceDest + iFlavorDiplomacyDest) / 4);
+			int iCultureDest = (m_aTradeConnections[iNewTradeRouteIndex].m_aiDestYields[YIELD_CULTURE] / 10);
+			int iTradeValueDest = ((iScienceDest + iCultureDest + iGoldDest + iFlavorCultureDest + iFlavorGoldDest + iFlavorScienceDest + iFlavorDiplomacyDest) / 4);
 			if(iTradeValueDest > 0)
 			{
 				GET_PLAYER(eDestPlayer).GetDiplomacyAI()->ChangeRecentTradeValue(eOriginPlayer, iTradeValueDest);
@@ -549,9 +559,11 @@ bool CvGameTrade::CreateTradeRoute(CvCity* pOriginCity, CvCity* pDestCity, Domai
 			int iFlavorGoldOrigin = GET_PLAYER(eOriginPlayer).GetGrandStrategyAI()->GetPersonalityAndGrandStrategy((FlavorTypes)GC.getInfoTypeForString("FLAVOR_GOLD"));
 			int iFlavorScienceOrigin = GET_PLAYER(eOriginPlayer).GetGrandStrategyAI()->GetPersonalityAndGrandStrategy((FlavorTypes)GC.getInfoTypeForString("FLAVOR_SCIENCE"));
 			int iFlavorDiplomacyOrigin = GET_PLAYER(eOriginPlayer).GetGrandStrategyAI()->GetPersonalityAndGrandStrategy((FlavorTypes)GC.getInfoTypeForString("FLAVOR_DIPLOMACY"));
+			int iFlavorCultureOrigin = GET_PLAYER(eOriginPlayer).GetGrandStrategyAI()->GetPersonalityAndGrandStrategy((FlavorTypes)GC.getInfoTypeForString("FLAVOR_CULTURE"));
 			int iGoldOrigin = (m_aTradeConnections[iNewTradeRouteIndex].m_aiOriginYields[YIELD_GOLD] / 10);
 			int iScienceOrigin = (m_aTradeConnections[iNewTradeRouteIndex].m_aiOriginYields[YIELD_SCIENCE] / 10);
-			int iTradeValueOrigin = ((iScienceOrigin + iGoldOrigin + iFlavorGoldOrigin + iFlavorScienceOrigin + iFlavorDiplomacyOrigin) / 4);
+			int iCultureDest = (m_aTradeConnections[iNewTradeRouteIndex].m_aiDestYields[YIELD_CULTURE] / 10);
+			int iTradeValueOrigin = ((iScienceOrigin + iCultureDest + iFlavorCultureOrigin + iGoldOrigin + iFlavorGoldOrigin + iFlavorScienceOrigin + iFlavorDiplomacyOrigin) / 4);
 			if(iTradeValueOrigin > 0)
 			{
 				GET_PLAYER(eOriginPlayer).GetDiplomacyAI()->ChangeRecentTradeValue(eDestPlayer, iTradeValueOrigin);
@@ -636,7 +648,7 @@ bool CvGameTrade::CreateTradeRoute(CvCity* pOriginCity, CvCity* pDestCity, Domai
 }
 
 //	--------------------------------------------------------------------------------
-bool CvGameTrade::IsValidTradeRoutePath (CvCity* pOriginCity, CvCity* pDestCity, DomainTypes eDomain, SPath* pPath, bool bWarCheck)
+bool CvGameTrade::IsValidTradeRoutePath(CvCity* pOriginCity, CvCity* pDestCity, DomainTypes eDomain, SPath* pPath, bool bWarCheck)
 {
 	SPath path;
 	//if we did not get an external pointer, make up our own
@@ -657,6 +669,30 @@ bool CvGameTrade::IsValidTradeRoutePath (CvCity* pOriginCity, CvCity* pDestCity,
 	}
 
 	return false;
+}
+
+//	--------------------------------------------------------------------------------
+int CvGameTrade::GetValidTradeRoutePathLength(CvCity* pOriginCity, CvCity* pDestCity, DomainTypes eDomain, SPath* pPath, bool bWarCheck)
+{
+	SPath path;
+	//if we did not get an external pointer, make up our own
+	if (!pPath)
+		pPath = &path;
+
+	if (bWarCheck && GET_PLAYER(pOriginCity->getOwner()).IsAtWarWith(pDestCity->getOwner()))
+		return false;
+
+	if (HavePotentialTradePath(eDomain == DOMAIN_SEA, pOriginCity, pDestCity, pPath))
+	{
+		// check if beyond the origin player's trade range
+		int iMaxNormDist = GET_PLAYER(pOriginCity->getOwner()).GetTrade()->GetTradeRouteRange(eDomain, pOriginCity);
+
+		int iNormDist = pPath->iNormalizedDistance;
+		if (iNormDist>0 && iNormDist <= iMaxNormDist)
+			return iNormDist;
+	}
+
+	return -1;
 }
 
 //	--------------------------------------------------------------------------------
@@ -1045,6 +1081,47 @@ void CvGameTrade::UpdateTradePlots()
 		}
 	}
 }
+//	--------------------------------------------------------------------------------
+//	Returns number of turns to complete the TR between two cities
+//	iCircuitsToComplete calculated so it can be used in CreateTradeRoute()
+int CvGameTrade::GetTradeRouteTurns(CvCity* pOriginCity, CvCity* pDestCity, DomainTypes eDomain, int* piCircuitsToComplete)
+{
+	// calculate distance
+	SPath path;
+	bool bTradeAvailable = GC.getGame().GetGameTrade()->IsValidTradeRoutePath(pOriginCity, pDestCity, eDomain, &path);
+	if (!bTradeAvailable)
+		return -1;
+	int iDistance = path.length();
+
+	// calculate turns per circuit
+	int iRawSpeed = GET_PLAYER(pOriginCity->getOwner()).GetTrade()->GetTradeRouteSpeed(eDomain);
+	int iSpeedFactor = (100 * path.length() / path.iNormalizedDistance);
+	int iRouteSpeed = int(0.5f + iSpeedFactor*iRawSpeed / 100.f);
+
+	float fTurnsPerCircuit = 1;
+	if (iRouteSpeed != 0)
+		fTurnsPerCircuit = (iDistance * 2.f - 2) / iRouteSpeed;
+
+#if defined(MOD_TRADE_ROUTE_SCALING)
+	int iTargetTurns = GD_INT_GET(TRADE_ROUTE_BASE_TARGET_TURNS); // how many turns do we want the cycle to consume
+	int iEra = max((int)GET_PLAYER(pOriginCity->getOwner()).GetCurrentEra(), 1);
+	iTargetTurns -= iEra;
+	iTargetTurns = iTargetTurns * GC.getGame().getGameSpeedInfo().getTradeRouteSpeedMod() / 100;
+	iTargetTurns = max(iTargetTurns, 1);
+#else
+	int iTargetTurns = 30; // how many turns do we want the cycle to consume
+#endif
+
+	// calculate how many circuits do we want this trade route to run to reach the target turns
+	int iCircuitsToComplete = 1; 
+	if (fTurnsPerCircuit != 0)
+		iCircuitsToComplete = max( int(iTargetTurns/fTurnsPerCircuit), 2);
+
+	// return values
+	if (piCircuitsToComplete != NULL) 
+		*piCircuitsToComplete = iCircuitsToComplete;
+	return int(fTurnsPerCircuit * iCircuitsToComplete);
+}
 #endif
 //	--------------------------------------------------------------------------------
 /// Called when a city changes hands
@@ -1295,6 +1372,9 @@ void CvGameTrade::CancelTradeBetweenTeams (TeamTypes eTeam1, TeamTypes eTeam2)
 		{
 			continue;
 		}
+		if (MOD_BALANCE_CORE_DIPLOMACY_ADVANCED && IsRecalledUnit(ui))
+			continue;
+
 
 		TeamTypes eOriginTeam = GET_PLAYER(m_aTradeConnections[ui].m_eOriginOwner).getTeam();
 		TeamTypes eDestTeam = GET_PLAYER(m_aTradeConnections[ui].m_eDestOwner).getTeam();
@@ -1351,6 +1431,12 @@ void CvGameTrade::DoAutoWarPlundering(TeamTypes eTeam1, TeamTypes eTeam2)
 				// if the destination is not the civ I'm going to war with
 				if (GET_PLAYER(m_aTradeConnections[uiTradeRoute].m_eDestOwner).getTeam() != ePlunderTeam)
 				{
+					continue;
+				}
+
+				if (MOD_BALANCE_CORE_DIPLOMACY_ADVANCED)
+				{
+					RecallUnit(uiTradeRoute, true);
 					continue;
 				}
 
@@ -1750,7 +1836,7 @@ bool CvGameTrade::MoveUnit (int iIndex)
 	}
 
 	TradeConnection &kTradeConnection = m_aTradeConnections[iIndex];
-	int iMoves = GET_PLAYER(kTradeConnection.m_eOriginOwner).GetTrade()->GetTradeRouteSpeed(kTradeConnection.m_eDomain);
+	int iMoves = kTradeConnection.GetMovementSpeed();
 	for (int i = 0; i < iMoves; i++)
 	{
 		if (kTradeConnection.m_iCircuitsCompleted >= kTradeConnection.m_iCircuitsToComplete)
@@ -1765,11 +1851,12 @@ bool CvGameTrade::MoveUnit (int iIndex)
 		}
 	}
 
-	gDLL->TradeVisuals_UpdateRouteDirection(iIndex, kTradeConnection.m_bTradeUnitMovingForward);
-
 	CvUnit *pkUnit = GetTradeUnitForRoute(iIndex);
 	if (pkUnit)
 	{
+		//show the movement animation
+		pkUnit->finishMoves();
+
 #if defined(MOD_BALANCE_CORE)
 		//Free resources when your trade units move.
 		CvGameTrade* pTrade = GC.getGame().GetGameTrade();
@@ -1795,6 +1882,7 @@ bool CvGameTrade::MoveUnit (int iIndex)
 #endif
 	}
 
+	gDLL->TradeVisuals_UpdateRouteDirection(iIndex, kTradeConnection.m_bTradeUnitMovingForward);
 	return true;
 }
 
@@ -1830,79 +1918,53 @@ bool CvGameTrade::StepUnit (int iIndex)
 			kTradeConnection.m_iCircuitsCompleted += 1;
 		}
 	}
+
 	// Move the visualization
 	CvUnit *pkUnit = GetTradeUnitForRoute(iIndex);
-#if defined(MOD_BALANCE_CORE)
-	CorporationTypes eCorporation = GET_PLAYER(kTradeConnection.m_eOriginOwner).GetCorporations()->GetFoundedCorporation();
-	int iCorporationVisionBoost = 0;
-	if (eCorporation != NO_CORPORATION)
-	{
-		CvCorporationEntry* pkCorporation = GC.getCorporationInfo(eCorporation);
-		if (pkCorporation)
-		{
-			iCorporationVisionBoost = pkCorporation->GetTradeRouteVisionBoost();
-		}
-	}
-
-	if(pkUnit && (GET_PLAYER(kTradeConnection.m_eOriginOwner).GetTRVisionBoost() > 0 || iCorporationVisionBoost > 0))
-	{
-		int iPlotVisRange = GC.getPLOT_VISIBILITY_RANGE();
-		int iRange = (GET_PLAYER(kTradeConnection.m_eOriginOwner).GetTRVisionBoost() + iCorporationVisionBoost);
-		CvPlot* pLoopPlot;
-		for(int iDX = -iRange; iDX <= iRange; iDX++)
-		{
-			for(int iDY = -iRange; iDY <= iRange; iDY++)
-			{
-				pLoopPlot = ::plotXYWithRangeCheck(pkUnit->getX(), pkUnit->getY(), iDX, iDY, iRange);
-
-				if(pLoopPlot != NULL)
-				{
-					pLoopPlot->changeAdjacentSight(pkUnit->getTeam(), iPlotVisRange, false, NO_INVISIBLE, NO_DIRECTION, false);
-				}
-			}
-		}
-		if(pkUnit->getOwner() == GC.getGame().getActivePlayer())
-		{
-			GC.getMap().updateDeferredFog();
-		}
-	}
-#endif
-
 	if (pkUnit)
-	{
 		pkUnit->setXY(kTradeConnection.m_aPlotList[kTradeConnection.m_iTradeUnitLocationIndex].m_iX, kTradeConnection.m_aPlotList[kTradeConnection.m_iTradeUnitLocationIndex].m_iY, true, false, true, true);
-		pkUnit->finishMoves();
-	}
-
-#if defined(MOD_BALANCE_CORE)
-	if(pkUnit && (GET_PLAYER(kTradeConnection.m_eOriginOwner).GetTRVisionBoost() > 0 || iCorporationVisionBoost > 0))
-	{
-		int iPlotVisRange = GC.getPLOT_VISIBILITY_RANGE();
-		int iRange = GET_PLAYER(kTradeConnection.m_eOriginOwner).GetTRVisionBoost() + iCorporationVisionBoost;
-		CvPlot* pLoopPlot;
-		for(int iDX = -iRange; iDX <= iRange; iDX++)
-		{
-			for(int iDY = -iRange; iDY <= iRange; iDY++)
-			{
-				pLoopPlot = ::plotXYWithRangeCheck(pkUnit->getX(), pkUnit->getY(), iDX, iDY, iRange);
-
-				if(pLoopPlot != NULL)
-				{
-					pLoopPlot->changeAdjacentSight(pkUnit->getTeam(), iPlotVisRange, true, NO_INVISIBLE, NO_DIRECTION, false);
-				}
-			}
-		}
-		if(pkUnit->getOwner() == GC.getGame().getActivePlayer())
-		{
-			GC.getMap().updateDeferredFog();
-		}
-	}
-#endif
 
 	// auto-pillage when a trade unit moves under an enemy unit
 	CvPlot* pPlot = GC.getMap().plot(kTradeConnection.m_aPlotList[kTradeConnection.m_iTradeUnitLocationIndex].m_iX, kTradeConnection.m_aPlotList[kTradeConnection.m_iTradeUnitLocationIndex].m_iY);
 	if (pPlot)
 	{
+#if defined(MOD_CIV6_ROADS)
+		if (MOD_CIV6_ROADS)
+		{
+			//build land routes
+			RouteTypes autoBuildRoadType = ROUTE_ROAD;
+			// check if the rairoad is unlocked (by tech and by era).
+			EraTypes eModern = (EraTypes)GC.getInfoTypeForString("ERA_MODERN", true);
+			TechTypes iRequiredTech = (TechTypes)GC.getInfoTypeForString("TECH_RAILROAD", true);
+			if ((GET_PLAYER(kTradeConnection.m_eOriginOwner).GetCurrentEra() >= eModern) && (GET_TEAM(GET_PLAYER(kTradeConnection.m_eOriginOwner).getTeam()).GetTeamTechs()->HasTech(iRequiredTech)))
+			{
+				autoBuildRoadType = ROUTE_RAILROAD;
+			}
+
+			//don't build roads on sea
+			if (!pPlot->IsPlotOcean())
+			{
+				//don't build a road if route is already a Railroad
+				if (pPlot->getRouteType() != ROUTE_RAILROAD)
+				{
+					CvRouteInfo* pkRouteInfo = GC.getRouteInfo(autoBuildRoadType);
+					if (pkRouteInfo)
+					{
+						pPlot->setRouteType(autoBuildRoadType);
+						// Unowned plot, someone has to foot the bill
+						if (pPlot->getOwner() == NO_PLAYER)
+						{
+							if (pPlot->MustPayMaintenanceHere(kTradeConnection.m_eOriginOwner))
+							{
+								GET_PLAYER(kTradeConnection.m_eOriginOwner).GetTreasury()->ChangeBaseImprovementGoldMaintenance(pkRouteInfo->GetGoldMaintenance());
+							}
+							pPlot->SetPlayerResponsibleForRoute(kTradeConnection.m_eOriginOwner);
+						}
+					}
+				}
+			}
+		}
+#endif
 		CvUnit* pEnemyUnit = pPlot->getVisibleEnemyDefender(kTradeConnection.m_eOriginOwner);
 		if (pEnemyUnit)
 		{
@@ -2090,7 +2152,7 @@ FDataStream& operator>>(FDataStream& loadFrom, TradeConnection& writeTo)
 	loadFrom >> writeTo.m_bTradeUnitMovingForward;
 
 	loadFrom >> writeTo.m_unitID;
-
+	loadFrom >> writeTo.m_iSpeedFactor;
 	loadFrom >> writeTo.m_iCircuitsCompleted;
 	loadFrom >> writeTo.m_iCircuitsToComplete;
 	loadFrom >> writeTo.m_iTurnRouteComplete;
@@ -2218,6 +2280,7 @@ FDataStream& operator<<(FDataStream& saveTo, const TradeConnection& readFrom)
 	saveTo << readFrom.m_iTradeUnitLocationIndex;
 	saveTo << readFrom.m_bTradeUnitMovingForward;
 	saveTo << readFrom.m_unitID;
+	saveTo << readFrom.m_iSpeedFactor;
 	saveTo << readFrom.m_iCircuitsCompleted;
 	saveTo << readFrom.m_iCircuitsToComplete;
 	saveTo << readFrom.m_iTurnRouteComplete;
@@ -2350,225 +2413,178 @@ void CvPlayerTrade::MoveUnits (void)
 #if defined(MOD_BALANCE_CORE)
 				int iDestX = pTradeConnection->m_iDestX;
 				int iDestY = pTradeConnection->m_iDestY;
+
 				//Free lump resource when you complete an international trade route.
 				CvPlot* pPlot = GC.getMap().plot(iOriginX, iOriginY);
-				
+
 				CvCity* pOriginCity = NULL;
-				if(pPlot != NULL)
+				if (pPlot != NULL)
 				{
 					pOriginCity = pPlot->getPlotCity();
 				}
-				if(pOriginCity != NULL)
-				{
-					bool bInternational = false;
-					if(pTradeConnection->m_eConnectionType == TRADE_CONNECTION_INTERNATIONAL)
+
+				if (!pTradeConnection->m_bTradeUnitRecalled)
+				{	
+					if (pOriginCity != NULL)
 					{
-						bInternational = true;
-					}
-					m_pPlayer->doInstantYield(INSTANT_YIELD_TYPE_TR_END, false, NO_GREATPERSON, NO_BUILDING, 0, true, NO_PLAYER, NULL, false, pOriginCity, false, bInternational);
-					if(bInternational)
-					{			
-						CvPlot* pDestPlot = GC.getMap().plot(iDestX, iDestY);
-				
-						CvCity* pDestCity = NULL;
-						if(pDestPlot != NULL)
+						bool bInternational = false;
+						if (pTradeConnection->m_eConnectionType == TRADE_CONNECTION_INTERNATIONAL)
 						{
-							pDestCity = pDestPlot->getPlotCity();
+							bInternational = true;
 						}
-						if(pDestCity != NULL && pOriginCity != NULL)
+						m_pPlayer->doInstantYield(INSTANT_YIELD_TYPE_TR_END, false, NO_GREATPERSON, NO_BUILDING, 0, true, NO_PLAYER, NULL, false, pOriginCity, false, bInternational);
+						if (bInternational)
 						{
-							// Corporation expansion system
-							// Note: These functions will filter out if this is actually possible, so don't worry about it here
-							GET_PLAYER(pOriginCity->getOwner()).GetCorporations()->BuildFranchiseInCity(pOriginCity, pDestCity);
-							GET_PLAYER(pDestCity->getOwner()).GetCorporations()->BuildFranchiseInCity(pDestCity, pOriginCity);
+							CvPlot* pDestPlot = GC.getMap().plot(iDestX, iDestY);
 
-							//Tourism Bonus from Buildings
-							if(!GET_PLAYER(pDestCity->getOwner()).isMinorCiv())
+							CvCity* pDestCity = NULL;
+							if (pDestPlot != NULL)
 							{
-								if(pTradeConnection->m_eDomain == DOMAIN_LAND)
+								pDestCity = pDestPlot->getPlotCity();
+							}
+							if (pDestCity != NULL && pOriginCity != NULL)
+							{
+								// Corporation expansion system
+								// Note: These functions will filter out if this is actually possible, so don't worry about it here
+								GET_PLAYER(pOriginCity->getOwner()).GetCorporations()->BuildFranchiseInCity(pOriginCity, pDestCity);
+								GET_PLAYER(pDestCity->getOwner()).GetCorporations()->BuildFranchiseInCity(pDestCity, pOriginCity);
+
+								//Tourism Bonus from Buildings
+								if (!GET_PLAYER(pDestCity->getOwner()).isMinorCiv())
 								{
-									int iTourism = GET_PLAYER(pOriginCity->getOwner()).GetHistoricEventTourism(HISTORIC_EVENT_TRADE_LAND, pOriginCity);
-									if (iTourism > 0)
+									if (pTradeConnection->m_eDomain == DOMAIN_LAND)
 									{
-										GET_PLAYER(pOriginCity->getOwner()).GetCulture()->ChangeInfluenceOn(pDestCity->getOwner(), iTourism, true, true);
-
-										//store off this data
-										GET_PLAYER(pOriginCity->getOwner()).changeInstantYieldValue(YIELD_TOURISM, iTourism);
-
-										// Show tourism spread
-										if (pOriginCity->getOwner() == GC.getGame().getActivePlayer() && pDestCity->plot() != NULL && pDestCity->plot()->isRevealed(pOriginCity->getTeam()))
+										int iTourism = GET_PLAYER(pOriginCity->getOwner()).GetHistoricEventTourism(HISTORIC_EVENT_TRADE_LAND, pOriginCity);
+										if (iTourism > 0)
 										{
-											CvString strInfluenceText;
-											InfluenceLevelTypes eLevel = GET_PLAYER(pOriginCity->getOwner()).GetCulture()->GetInfluenceLevel(pDestCity->getOwner());
+											GET_PLAYER(pOriginCity->getOwner()).GetCulture()->ChangeInfluenceOn(pDestCity->getOwner(), iTourism, true, true);
 
-											if (eLevel == INFLUENCE_LEVEL_UNKNOWN)
-												strInfluenceText = GetLocalizedText( "TXT_KEY_CO_UNKNOWN" );
-											else if (eLevel == INFLUENCE_LEVEL_EXOTIC)
-												strInfluenceText = GetLocalizedText( "TXT_KEY_CO_EXOTIC");
-											else if (eLevel == INFLUENCE_LEVEL_FAMILIAR)
-												strInfluenceText = GetLocalizedText( "TXT_KEY_CO_FAMILIAR");
-											else if (eLevel == INFLUENCE_LEVEL_POPULAR)
-												strInfluenceText = GetLocalizedText( "TXT_KEY_CO_POPULAR");
-											else if (eLevel == INFLUENCE_LEVEL_INFLUENTIAL)
-												strInfluenceText = GetLocalizedText( "TXT_KEY_CO_INFLUENTIAL");
-											else if (eLevel == INFLUENCE_LEVEL_DOMINANT)
-												strInfluenceText = GetLocalizedText( "TXT_KEY_CO_DOMINANT");
+											//store off this data
+											GET_PLAYER(pOriginCity->getOwner()).changeInstantYieldValue(YIELD_TOURISM, iTourism);
 
- 											char text[256] = {0};
-											sprintf_s(text, "[COLOR_WHITE]+%d [ICON_TOURISM][ENDCOLOR]   %s", iTourism, strInfluenceText.c_str());
- 											float fDelay = 3.0f;
- 											DLLUI->AddPopupText(pDestCity->getX(), pDestCity->getY(), text, fDelay);
-											CvNotifications* pNotification = GET_PLAYER(pOriginCity->getOwner()).GetNotifications();
-											if(pNotification)
+											// Show tourism spread
+											if (pOriginCity->getOwner() == GC.getGame().getActivePlayer() && pDestCity->plot() != NULL && pDestCity->plot()->isRevealed(pOriginCity->getTeam()))
 											{
-												Localization::String strSummary;
-												Localization::String strMessage;
-												strMessage = Localization::Lookup("TXT_KEY_TOURISM_EVENT_TRADE_LAND");
-												strMessage << iTourism;
-												strMessage << GET_PLAYER(pDestCity->getOwner()).getCivilizationAdjectiveKey();
-												strMessage << pOriginCity->getNameKey();
-												strMessage << pDestCity->getNameKey();
-												strMessage << GET_PLAYER(pDestCity->getOwner()).getCivilizationShortDescriptionKey();
-												if(GC.getGame().isGameMultiPlayer() &&GET_PLAYER(pDestCity->getOwner()).isHuman())
+												CvString strInfluenceText;
+												InfluenceLevelTypes eLevel = GET_PLAYER(pOriginCity->getOwner()).GetCulture()->GetInfluenceLevel(pDestCity->getOwner());
+
+												if (eLevel == INFLUENCE_LEVEL_UNKNOWN)
+													strInfluenceText = GetLocalizedText("TXT_KEY_CO_UNKNOWN");
+												else if (eLevel == INFLUENCE_LEVEL_EXOTIC)
+													strInfluenceText = GetLocalizedText("TXT_KEY_CO_EXOTIC");
+												else if (eLevel == INFLUENCE_LEVEL_FAMILIAR)
+													strInfluenceText = GetLocalizedText("TXT_KEY_CO_FAMILIAR");
+												else if (eLevel == INFLUENCE_LEVEL_POPULAR)
+													strInfluenceText = GetLocalizedText("TXT_KEY_CO_POPULAR");
+												else if (eLevel == INFLUENCE_LEVEL_INFLUENTIAL)
+													strInfluenceText = GetLocalizedText("TXT_KEY_CO_INFLUENTIAL");
+												else if (eLevel == INFLUENCE_LEVEL_DOMINANT)
+													strInfluenceText = GetLocalizedText("TXT_KEY_CO_DOMINANT");
+
+												char text[256] = { 0 };
+												sprintf_s(text, "[COLOR_WHITE]+%d [ICON_TOURISM][ENDCOLOR]   %s", iTourism, strInfluenceText.c_str());
+												float fDelay = 3.0f;
+												DLLUI->AddPopupText(pDestCity->getX(), pDestCity->getY(), text, fDelay);
+												CvNotifications* pNotification = GET_PLAYER(pOriginCity->getOwner()).GetNotifications();
+												if (pNotification)
 												{
-													strMessage << GET_PLAYER(pDestCity->getOwner()).getNickName();
-												}
-												else
-												{
-													strMessage << GET_PLAYER(pDestCity->getOwner()).getNameKey();
-												}
-												strSummary = Localization::Lookup("TXT_KEY_TOURISM_EVENT_SUMMARY_TRADE");
-												pNotification->Add(NOTIFICATION_GENERIC, strMessage.toUTF8(), strSummary.toUTF8(), pOriginCity->getX(), pOriginCity->getY(), pOriginCity->getOwner());
-											}
- 										}
-									}
-								}
-								else if(pTradeConnection->m_eDomain == DOMAIN_SEA)
-								{
-									int iTourism = GET_PLAYER(pOriginCity->getOwner()).GetHistoricEventTourism(HISTORIC_EVENT_TRADE_SEA, pOriginCity);						
-									if (iTourism > 0)
-									{
-										GET_PLAYER(pOriginCity->getOwner()).GetCulture()->ChangeInfluenceOn(pDestCity->getOwner(), iTourism, true, true);
-
-										//store off this data
-										GET_PLAYER(pOriginCity->getOwner()).changeInstantYieldValue(YIELD_TOURISM, iTourism);
-
-										// Show tourism spread
-										if (pOriginCity->getOwner() == GC.getGame().getActivePlayer() && pDestCity->plot() != NULL && pDestCity->plot()->isRevealed(pOriginCity->getTeam()))
-										{
-											CvString strInfluenceText;
-											InfluenceLevelTypes eLevel = GET_PLAYER(pOriginCity->getOwner()).GetCulture()->GetInfluenceLevel(pDestCity->getOwner());
-
-											if (eLevel == INFLUENCE_LEVEL_UNKNOWN)
-												strInfluenceText = GetLocalizedText( "TXT_KEY_CO_UNKNOWN" );
-											else if (eLevel == INFLUENCE_LEVEL_EXOTIC)
-												strInfluenceText = GetLocalizedText( "TXT_KEY_CO_EXOTIC");
-											else if (eLevel == INFLUENCE_LEVEL_FAMILIAR)
-												strInfluenceText = GetLocalizedText( "TXT_KEY_CO_FAMILIAR");
-											else if (eLevel == INFLUENCE_LEVEL_POPULAR)
-												strInfluenceText = GetLocalizedText( "TXT_KEY_CO_POPULAR");
-											else if (eLevel == INFLUENCE_LEVEL_INFLUENTIAL)
-												strInfluenceText = GetLocalizedText( "TXT_KEY_CO_INFLUENTIAL");
-											else if (eLevel == INFLUENCE_LEVEL_DOMINANT)
-												strInfluenceText = GetLocalizedText( "TXT_KEY_CO_DOMINANT");
-
- 											char text[256] = {0};
-											sprintf_s(text, "[COLOR_WHITE]+%d [ICON_TOURISM][ENDCOLOR]   %s", iTourism, strInfluenceText.c_str());
- 											float fDelay = 4.0f;
- 											DLLUI->AddPopupText(pDestCity->getX(), pDestCity->getY(), text, fDelay);
-
-											CvNotifications* pNotification = GET_PLAYER(pOriginCity->getOwner()).GetNotifications();
-											if(pNotification)
-											{
-												Localization::String strSummary;
-												Localization::String strMessage;
-												strMessage = Localization::Lookup("TXT_KEY_TOURISM_EVENT_TRADE_SEA");
+													Localization::String strSummary;
+													Localization::String strMessage;
+													strMessage = Localization::Lookup("TXT_KEY_TOURISM_EVENT_TRADE_LAND");
 													strMessage << iTourism;
 													strMessage << GET_PLAYER(pDestCity->getOwner()).getCivilizationAdjectiveKey();
 													strMessage << pOriginCity->getNameKey();
 													strMessage << pDestCity->getNameKey();
 													strMessage << GET_PLAYER(pDestCity->getOwner()).getCivilizationShortDescriptionKey();
-												strSummary = Localization::Lookup("TXT_KEY_TOURISM_EVENT_SUMMARY_TRADE");
-												pNotification->Add(NOTIFICATION_GENERIC, strMessage.toUTF8(), strSummary.toUTF8(), pOriginCity->getX(), pOriginCity->getY(), pOriginCity->getOwner());
+													if (GC.getGame().isGameMultiPlayer() && GET_PLAYER(pDestCity->getOwner()).isHuman())
+													{
+														strMessage << GET_PLAYER(pDestCity->getOwner()).getNickName();
+													}
+													else
+													{
+														strMessage << GET_PLAYER(pDestCity->getOwner()).getNameKey();
+													}
+													strSummary = Localization::Lookup("TXT_KEY_TOURISM_EVENT_SUMMARY_TRADE");
+													pNotification->Add(NOTIFICATION_GENERIC, strMessage.toUTF8(), strSummary.toUTF8(), pOriginCity->getX(), pOriginCity->getY(), pOriginCity->getOwner());
+												}
 											}
 										}
 									}
-								}
-							}
-							else if(GET_PLAYER(pDestCity->getOwner()).isMinorCiv() && GET_PLAYER(pOriginCity->getOwner()).GetEventTourismCS() > 0)
-							{
-								int iTourism = GET_PLAYER(pOriginCity->getOwner()).GetHistoricEventTourism(HISTORIC_EVENT_TRADE_CS);
-								GET_PLAYER(pOriginCity->getOwner()).ChangeNumHistoricEvents(1);
-								if (iTourism > 0)
-								{
-									GET_PLAYER(pOriginCity->getOwner()).GetCulture()->AddTourismAllKnownCivsWithModifiers(iTourism);
-									CvNotifications* pNotification = GET_PLAYER(pOriginCity->getOwner()).GetNotifications();
-									if(pNotification)
+									else if (pTradeConnection->m_eDomain == DOMAIN_SEA)
 									{
-										Localization::String strSummary;
-										Localization::String strMessage;
-										strMessage = Localization::Lookup("TXT_KEY_TOURISM_EVENT_TRADE_CS_BONUS");
-										strMessage << iTourism;
-											strMessage << GET_PLAYER(pDestCity->getOwner()).getCivilizationShortDescriptionKey();
-										strSummary = Localization::Lookup("TXT_KEY_TOURISM_EVENT_SUMMARY_TRADE_CS");
-										pNotification->Add(NOTIFICATION_GENERIC, strMessage.toUTF8(), strSummary.toUTF8(), pOriginCity->getX(), pOriginCity->getY(), pOriginCity->getOwner());
-									}
-								}
-							}
-						}
-					}
-
-
-#if defined(MOD_CIV6_ROADS)
-					if (MOD_CIV6_ROADS)
-					{
-						//build land routes
-
-						// i didn't go by plot->changeBuildProgress to not fire unwanted things, like "BuildFinished".
-						// so it's mostly a copy-paste from the road section of this method
-						RouteTypes autoBuildRoadType = ROUTE_ROAD;
-						// check if the rairoad is unlocked (by tech and by era).
-						int minEra = GD_INT_GET(TRADE_ROUTE_CREATE_RAILROADS_ERA);
-						int iTech = GD_INT_GET(TRADE_ROUTE_CREATE_RAILROADS_TECH_ID);
-						if ((GET_PLAYER(pTradeConnection->m_eOriginOwner).GetCurrentEra() >= minEra)
-							&& (iTech >= 0 && iTech < GC.getNumTechInfos() && GET_TEAM(GET_PLAYER(pTradeConnection->m_eOriginOwner).getTeam()).GetTeamTechs()->HasTech((TechTypes)iTech)))
-						{
-							autoBuildRoadType = ROUTE_RAILROAD;
-						}
-
-						//iterate on plots
-						uint nbPLotsInTradeRoute = (uint)pTradeConnection->m_aPlotList.size();
-						for (uint ui = 0; ui < nbPLotsInTradeRoute; ui++){
-							CvPlot* pRoadToBuildPlot = GC.getMap().plot(pTradeConnection->m_aPlotList[ui].m_iX, pTradeConnection->m_aPlotList[ui].m_iY);
-
-							//don't build roads on sea
-							if (!pRoadToBuildPlot->IsPlotOcean())
-							{
-								
-								//don't build road / change nationality (for the moment) of roads if already built.
-								if (pRoadToBuildPlot->getRouteType() != autoBuildRoadType)
-								{
-									CvRouteInfo* pkRouteInfo = GC.getRouteInfo(autoBuildRoadType);
-									if (pkRouteInfo)
-									{
-										pRoadToBuildPlot->setRouteType(autoBuildRoadType);
-
-										// Unowned plot, someone has to foot the bill
-										if (pRoadToBuildPlot->getOwner() == NO_PLAYER)
+										int iTourism = GET_PLAYER(pOriginCity->getOwner()).GetHistoricEventTourism(HISTORIC_EVENT_TRADE_SEA, pOriginCity);
+										if (iTourism > 0)
 										{
-											if (pRoadToBuildPlot->MustPayMaintenanceHere(pTradeConnection->m_eOriginOwner))
+											GET_PLAYER(pOriginCity->getOwner()).GetCulture()->ChangeInfluenceOn(pDestCity->getOwner(), iTourism, true, true);
+
+											//store off this data
+											GET_PLAYER(pOriginCity->getOwner()).changeInstantYieldValue(YIELD_TOURISM, iTourism);
+
+											// Show tourism spread
+											if (pOriginCity->getOwner() == GC.getGame().getActivePlayer() && pDestCity->plot() != NULL && pDestCity->plot()->isRevealed(pOriginCity->getTeam()))
 											{
-												GET_PLAYER(pTradeConnection->m_eOriginOwner).GetTreasury()->ChangeBaseImprovementGoldMaintenance(pkRouteInfo->GetGoldMaintenance());
+												CvString strInfluenceText;
+												InfluenceLevelTypes eLevel = GET_PLAYER(pOriginCity->getOwner()).GetCulture()->GetInfluenceLevel(pDestCity->getOwner());
+
+												if (eLevel == INFLUENCE_LEVEL_UNKNOWN)
+													strInfluenceText = GetLocalizedText("TXT_KEY_CO_UNKNOWN");
+												else if (eLevel == INFLUENCE_LEVEL_EXOTIC)
+													strInfluenceText = GetLocalizedText("TXT_KEY_CO_EXOTIC");
+												else if (eLevel == INFLUENCE_LEVEL_FAMILIAR)
+													strInfluenceText = GetLocalizedText("TXT_KEY_CO_FAMILIAR");
+												else if (eLevel == INFLUENCE_LEVEL_POPULAR)
+													strInfluenceText = GetLocalizedText("TXT_KEY_CO_POPULAR");
+												else if (eLevel == INFLUENCE_LEVEL_INFLUENTIAL)
+													strInfluenceText = GetLocalizedText("TXT_KEY_CO_INFLUENTIAL");
+												else if (eLevel == INFLUENCE_LEVEL_DOMINANT)
+													strInfluenceText = GetLocalizedText("TXT_KEY_CO_DOMINANT");
+
+												char text[256] = { 0 };
+												sprintf_s(text, "[COLOR_WHITE]+%d [ICON_TOURISM][ENDCOLOR]   %s", iTourism, strInfluenceText.c_str());
+												float fDelay = 4.0f;
+												DLLUI->AddPopupText(pDestCity->getX(), pDestCity->getY(), text, fDelay);
+
+												CvNotifications* pNotification = GET_PLAYER(pOriginCity->getOwner()).GetNotifications();
+												if (pNotification)
+												{
+													Localization::String strSummary;
+													Localization::String strMessage;
+													strMessage = Localization::Lookup("TXT_KEY_TOURISM_EVENT_TRADE_SEA");
+													strMessage << iTourism;
+													strMessage << GET_PLAYER(pDestCity->getOwner()).getCivilizationAdjectiveKey();
+													strMessage << pOriginCity->getNameKey();
+													strMessage << pDestCity->getNameKey();
+													strMessage << GET_PLAYER(pDestCity->getOwner()).getCivilizationShortDescriptionKey();
+													strSummary = Localization::Lookup("TXT_KEY_TOURISM_EVENT_SUMMARY_TRADE");
+													pNotification->Add(NOTIFICATION_GENERIC, strMessage.toUTF8(), strSummary.toUTF8(), pOriginCity->getX(), pOriginCity->getY(), pOriginCity->getOwner());
+												}
 											}
-											pRoadToBuildPlot->SetPlayerResponsibleForRoute(pTradeConnection->m_eOriginOwner);
+										}
+									}
+								}
+								else if (GET_PLAYER(pDestCity->getOwner()).isMinorCiv() && GET_PLAYER(pOriginCity->getOwner()).GetEventTourismCS() > 0)
+								{
+									int iTourism = GET_PLAYER(pOriginCity->getOwner()).GetHistoricEventTourism(HISTORIC_EVENT_TRADE_CS);
+									GET_PLAYER(pOriginCity->getOwner()).ChangeNumHistoricEvents(HISTORIC_EVENT_TRADE_CS, 1);
+									if (iTourism > 0)
+									{
+										GET_PLAYER(pOriginCity->getOwner()).GetCulture()->AddTourismAllKnownCivsWithModifiers(iTourism);
+										CvNotifications* pNotification = GET_PLAYER(pOriginCity->getOwner()).GetNotifications();
+										if (pNotification)
+										{
+											Localization::String strSummary;
+											Localization::String strMessage;
+											strMessage = Localization::Lookup("TXT_KEY_TOURISM_EVENT_TRADE_CS_BONUS");
+											strMessage << iTourism;
+											strMessage << GET_PLAYER(pDestCity->getOwner()).getCivilizationShortDescriptionKey();
+											strSummary = Localization::Lookup("TXT_KEY_TOURISM_EVENT_SUMMARY_TRADE_CS");
+											pNotification->Add(NOTIFICATION_GENERIC, strMessage.toUTF8(), strSummary.toUTF8(), pOriginCity->getX(), pOriginCity->getY(), pOriginCity->getOwner());
 										}
 									}
 								}
 							}
 						}
 					}
-#endif
-
 				}	
 #endif
 #if defined(MOD_EVENTS_TRADE_ROUTES)
@@ -2642,7 +2658,7 @@ int CvPlayerTrade::GetTradeConnectionBaseValueTimes100(const TradeConnection& kT
 #endif
 
 					// Policy bump
-					int iPolicyBump = GET_PLAYER(kTradeConnection.m_eOriginOwner).GetExtraCultureandScienceTradeRoutes();
+					int iPolicyBump = GET_PLAYER(kTradeConnection.m_eDestOwner).isMinorCiv() ? 0 : GET_PLAYER(kTradeConnection.m_eOriginOwner).GetExtraCultureandScienceTradeRoutes();
 
 					iAdjustedTechDifference += iPolicyBump;
 
@@ -2650,7 +2666,8 @@ int CvPlayerTrade::GetTradeConnectionBaseValueTimes100(const TradeConnection& kT
 				// Cultural influence bump
 				int iInfluenceBoost = GET_PLAYER(kTradeConnection.m_eOriginOwner).GetCulture()->GetInfluenceTradeRouteScienceBonus(kTradeConnection.m_eDestOwner);
 
-				iAdjustedTechDifference += iInfluenceBoost;
+				if (iInfluenceBoost > 0)
+					iAdjustedTechDifference += iInfluenceBoost;
 
 				return iAdjustedTechDifference * 100;
 			}
@@ -2673,7 +2690,7 @@ int CvPlayerTrade::GetTradeConnectionBaseValueTimes100(const TradeConnection& kT
 					}
 #endif				
 					// Policy bump
-					int iPolicyBump = GET_PLAYER(kTradeConnection.m_eOriginOwner).GetExtraCultureandScienceTradeRoutes();
+					int iPolicyBump = GET_PLAYER(kTradeConnection.m_eDestOwner).isMinorCiv() ? 0 : GET_PLAYER(kTradeConnection.m_eOriginOwner).GetExtraCultureandScienceTradeRoutes();
 
 					iAdjustedCultureDifference += iPolicyBump;
 				}				
@@ -2815,38 +2832,83 @@ int CvPlayerTrade::GetTradeConnectionResourceValueTimes100(const TradeConnection
 				}
 
 				int iValue = 0;
-				for(int i = 0; i < GC.getNumResourceInfos(); i++)
-				{
-					ResourceTypes eResource = (ResourceTypes)i;
-					const CvResourceInfo* pkResourceInfo = GC.getResourceInfo(eResource);
-					if (pkResourceInfo)
-					{
-						if (pkResourceInfo->getResourceUsage() == RESOURCEUSAGE_LUXURY || pkResourceInfo->getResourceUsage() == RESOURCEUSAGE_STRATEGIC)
-						{
-							if (pOriginCity->IsHasResourceLocal(eResource, true) != pDestCity->IsHasResourceLocal(eResource, true))
-							{
-#if defined(MOD_TRADE_ROUTE_SCALING)
-								iValue += GD_INT_GET(TRADE_ROUTE_DIFFERENT_RESOURCE_VALUE);
-#else
-								iValue += 50;
-#endif
 #if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
-								if(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
-								{
-									if(GET_PLAYER(pOriginCity->getOwner()).HasGlobalMonopoly(eResource) || GET_PLAYER(pDestCity->getOwner()).HasGlobalMonopoly(eResource))
-									{
-										iValue += GD_INT_GET(TRADE_ROUTE_DIFFERENT_RESOURCE_VALUE);
-									}
-								}
+				if (MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
+				{
+					int iOurResources = 0;
+					int iTheirResources = 0;
+					for (int i = 0; i < GC.getNumResourceInfos(); i++)
+					{
+						ResourceTypes eResource = (ResourceTypes)i;
+						const CvResourceInfo* pkResourceInfo = GC.getResourceInfo(eResource);
+						if (pkResourceInfo)
+						{
+							bool bOurMonopoly = false;
+							bool bTheirMonopoly = false;
+							if (GET_PLAYER(pOriginCity->getOwner()).HasGlobalMonopoly(eResource))
+								bOurMonopoly = true;
+							if (GET_PLAYER(pDestCity->getOwner()).HasGlobalMonopoly(eResource))
+								bTheirMonopoly = true;
+
+							if (pkResourceInfo->getResourceUsage() == RESOURCEUSAGE_LUXURY)
+							{
+								iOurResources += bOurMonopoly ? pOriginCity->GetNumResourceLocal(eResource, true) * 2 : pOriginCity->GetNumResourceLocal(eResource, true);
+								iTheirResources += bTheirMonopoly ? pDestCity->GetNumResourceLocal(eResource, true) * 2 : pDestCity->GetNumResourceLocal(eResource, true);
+							}
+							if (pkResourceInfo->getResourceUsage() == RESOURCEUSAGE_STRATEGIC)
+							{
+								if (pOriginCity->GetNumResourceLocal(eResource, true) > 0)
+									iOurResources += bOurMonopoly ? 2 : 1;
+								if (pDestCity->GetNumResourceLocal(eResource, true) > 0)
+									iTheirResources += bTheirMonopoly ? 2 : 1;
+							}
+						}
+					}
+					int iDelta = iOurResources - iTheirResources;
+					iValue = GD_INT_GET(TRADE_ROUTE_DIFFERENT_RESOURCE_VALUE) * iDelta;
+
+					//Can't go above +100 or below -50
+					if (iValue > 100)
+						iValue = 100;
+					else if (iValue <= -50)
+						iValue = -50;
+				}
+				else
+				{
 #endif
+					for (int i = 0; i < GC.getNumResourceInfos(); i++)
+					{
+						ResourceTypes eResource = (ResourceTypes)i;
+						const CvResourceInfo* pkResourceInfo = GC.getResourceInfo(eResource);
+						if (pkResourceInfo)
+						{
+							if (pkResourceInfo->getResourceUsage() == RESOURCEUSAGE_LUXURY || pkResourceInfo->getResourceUsage() == RESOURCEUSAGE_STRATEGIC)
+							{
+								if (pOriginCity->IsHasResourceLocal(eResource, true) != pDestCity->IsHasResourceLocal(eResource, true))
+								{
+#if defined(MOD_TRADE_ROUTE_SCALING)
+									iValue += GD_INT_GET(TRADE_ROUTE_DIFFERENT_RESOURCE_VALUE);
+#else
+									iValue += 50;
+#endif
+								}
 							}
 						}
 					}
 				}
 
-				int iModifer = 100 + GET_PLAYER(kTradeConnection.m_eOriginOwner).GetPlayerTraits()->GetTradeRouteResourceModifier();
-				iValue *= iModifer;
-				iValue /= 100;
+				int iModifer = 100 + GET_PLAYER(kTradeConnection.m_eOriginOwner).GetPlayerTraits()->GetTradeRouteResourceModifier() + pOriginCity->GetResourceDiversityModifier();
+				if (iValue > 0)
+				{
+					iValue *= iModifer;
+					iValue /= 100;
+				}
+				else
+				{
+					iValue *= 100;
+					iValue /= max(1, iModifer);
+				}
+
 
 				return iValue;
 			}
@@ -3175,6 +3237,54 @@ int CvPlayerTrade::GetTradeConnectionDomainValueModifierTimes100(const TradeConn
 }
 
 //	--------------------------------------------------------------------------------
+int CvPlayerTrade::GetTradeConnectionDistanceValueModifierTimes100(const TradeConnection& kTradeConnection)
+{
+	if (!MOD_BALANCE_CORE_SCALING_TRADE_DISTANCE)
+		return 0;
+
+	if (m_pPlayer->GetPlayerTraits()->IsIgnoreTradeDistanceScaling())
+		return 0;
+
+	//distance scaling doesn't apply to internal trade
+	if (kTradeConnection.m_eDestOwner == kTradeConnection.m_eOriginOwner)
+		return 0;
+
+	CvCity* pOriginCity = NULL;
+	CvPlot* pStartPlot = GC.getMap().plot(kTradeConnection.m_iOriginX, kTradeConnection.m_iOriginY);
+	if (pStartPlot)
+	{
+		pOriginCity = pStartPlot->getPlotCity();
+	}
+
+	CvCity* pEndCity = NULL;
+	CvPlot* pEndPlot = GC.getMap().plot(kTradeConnection.m_iDestX, kTradeConnection.m_iDestY);
+	if (pEndPlot)
+	{
+		pEndCity = pEndPlot->getPlotCity();
+	}
+
+	if (pOriginCity == NULL || pEndCity == NULL)
+		return 0;
+
+	if (GET_PLAYER(pEndCity->getOwner()).isMajorCiv() && GET_PLAYER(pEndCity->getOwner()).GetPlayerTraits()->IsIgnoreTradeDistanceScaling())
+		return 0;
+
+	int iLength = GC.getGame().GetGameTrade()->GetValidTradeRoutePathLength(pOriginCity, pEndCity, kTradeConnection.m_eDomain);
+	if (iLength <= 0)
+		return 0;
+		
+	int iDistance = pOriginCity->GetLongestPotentialTradeRoute(kTradeConnection.m_eDomain);
+
+	iLength *= 100;
+	iLength /= max(1, iDistance);
+
+	int iReduction = 100 - iLength;
+
+	return max(0, min(50, iReduction));
+}
+
+
+//	--------------------------------------------------------------------------------
 int CvPlayerTrade::GetTradeConnectionRiverValueModifierTimes100(const TradeConnection& kTradeConnection, YieldTypes eYield, bool bAsOriginPlayer)
 {
 	// unnecessary code to make it compile for now
@@ -3383,6 +3493,7 @@ int CvPlayerTrade::GetTradeConnectionValueTimes100 (const TradeConnection& kTrad
 #endif
 
 					int iModifier = 100;
+					int iDistanceModifier = GetTradeConnectionDistanceValueModifierTimes100(kTradeConnection);
 					int iDomainModifier = GetTradeConnectionDomainValueModifierTimes100(kTradeConnection, eYield);
 					int iOriginRiverModifier = GetTradeConnectionRiverValueModifierTimes100(kTradeConnection, eYield, bAsOriginPlayer);
 #if defined(MOD_BALANCE_CORE)
@@ -3407,6 +3518,7 @@ int CvPlayerTrade::GetTradeConnectionValueTimes100 (const TradeConnection& kTrad
 					iValue += iInfluenceBoost;
 					iValue += iMinorCivGold;
 #endif
+					iModifier -= iDistanceModifier;
 					iModifier += iDomainModifier;
 					iModifier += iOriginRiverModifier;
 #if defined(MOD_BALANCE_CORE)
@@ -3463,6 +3575,8 @@ int CvPlayerTrade::GetTradeConnectionValueTimes100 (const TradeConnection& kTrad
 					int iModifier = 100;
 #if defined(MOD_BALANCE_CORE)
 					int iCorporationModifier = GetTradeConnectionCorporationModifierTimes100(kTradeConnection, eYield, bAsOriginPlayer);
+					int iDistanceModifier = GetTradeConnectionDistanceValueModifierTimes100(kTradeConnection);
+					iModifier -= iDistanceModifier;
 					iModifier += iCorporationModifier;
 #endif
 #if defined(HH_MOD_API_TRADEROUTE_MODIFIERS)
@@ -3494,7 +3608,7 @@ int CvPlayerTrade::GetTradeConnectionValueTimes100 (const TradeConnection& kTrad
 #if defined(MOD_BALANCE_CORE)
 			case YIELD_PRODUCTION:
 				{
-					if(GET_PLAYER(kTradeConnection.m_eDestOwner).isMinorCiv() && GET_PLAYER(kTradeConnection.m_eDestOwner).GetMinorCivAI()->IsSiphoned(kTradeConnection.m_eOriginOwner))
+					if(MOD_BALANCE_CORE_PORTUGAL_CHANGE && GET_PLAYER(kTradeConnection.m_eDestOwner).isMinorCiv() && GET_PLAYER(kTradeConnection.m_eDestOwner).GetMinorCivAI()->IsSiphoned(kTradeConnection.m_eOriginOwner))
 					{
 						int iBaseValue = GetTradeConnectionBaseValueTimes100(kTradeConnection, YIELD_GOLD, bAsOriginPlayer);
 						int iOriginPerTurnBonus = GetTradeConnectionGPTValueTimes100(kTradeConnection, YIELD_GOLD, bAsOriginPlayer, true);
@@ -3507,6 +3621,7 @@ int CvPlayerTrade::GetTradeConnectionValueTimes100 (const TradeConnection& kTrad
 						int iTraitBonus = GetTradeConnectionOtherTraitValueTimes100(kTradeConnection, YIELD_GOLD, bAsOriginPlayer);
 						int iInfluenceBoost = GET_PLAYER(kTradeConnection.m_eOriginOwner).GetCulture()->GetInfluenceTradeRouteGoldBonus(kTradeConnection.m_eDestOwner);
 						int iModifier = 100;
+						int iDistanceModifier = GetTradeConnectionDistanceValueModifierTimes100(kTradeConnection);
 						int iDomainModifier = GetTradeConnectionDomainValueModifierTimes100(kTradeConnection, YIELD_GOLD);
 						int iOriginRiverModifier = GetTradeConnectionRiverValueModifierTimes100(kTradeConnection, YIELD_GOLD, bAsOriginPlayer);
 						int iCorporationModifier = GetTradeConnectionCorporationModifierTimes100(kTradeConnection, YIELD_GOLD, bAsOriginPlayer);
@@ -3523,6 +3638,7 @@ int CvPlayerTrade::GetTradeConnectionValueTimes100 (const TradeConnection& kTrad
 						iValue += iTraitBonus;
 						iValue += iInfluenceBoost;
 
+						iModifier -= iDistanceModifier;
 						iModifier += iDomainModifier;
 						iModifier += iOriginRiverModifier;
 						iModifier += iCorporationModifier;
@@ -3559,7 +3675,7 @@ int CvPlayerTrade::GetTradeConnectionValueTimes100 (const TradeConnection& kTrad
 				break;
 			case YIELD_FOOD:
 				{
-					if(GET_PLAYER(kTradeConnection.m_eDestOwner).isMinorCiv() && GET_PLAYER(kTradeConnection.m_eDestOwner).GetMinorCivAI()->IsSiphoned(kTradeConnection.m_eOriginOwner))
+					if (MOD_BALANCE_CORE_PORTUGAL_CHANGE && GET_PLAYER(kTradeConnection.m_eDestOwner).isMinorCiv() && GET_PLAYER(kTradeConnection.m_eDestOwner).GetMinorCivAI()->IsSiphoned(kTradeConnection.m_eOriginOwner))
 					{
 						int iBaseValue = GetTradeConnectionBaseValueTimes100(kTradeConnection, YIELD_GOLD, bAsOriginPlayer);
 						int iOriginPerTurnBonus = GetTradeConnectionGPTValueTimes100(kTradeConnection, YIELD_GOLD, bAsOriginPlayer, true);
@@ -3572,6 +3688,7 @@ int CvPlayerTrade::GetTradeConnectionValueTimes100 (const TradeConnection& kTrad
 						int iTraitBonus = GetTradeConnectionOtherTraitValueTimes100(kTradeConnection, YIELD_GOLD, bAsOriginPlayer);
 
 						int iModifier = 100;
+						int iDistanceModifier = GetTradeConnectionDistanceValueModifierTimes100(kTradeConnection);
 						int iDomainModifier = GetTradeConnectionDomainValueModifierTimes100(kTradeConnection, YIELD_GOLD);
 						int iOriginRiverModifier = GetTradeConnectionRiverValueModifierTimes100(kTradeConnection, YIELD_GOLD, bAsOriginPlayer);
 						int iCorporationModifier = GetTradeConnectionCorporationModifierTimes100(kTradeConnection, YIELD_GOLD, bAsOriginPlayer);
@@ -3586,6 +3703,7 @@ int CvPlayerTrade::GetTradeConnectionValueTimes100 (const TradeConnection& kTrad
 						iValue += iResourceBonus;
 						iValue += iPolicyBonus;
 						iValue += iTraitBonus;
+						iModifier -= iDistanceModifier;
 						iModifier += iDomainModifier;
 						iModifier += iOriginRiverModifier;
 						iModifier += iCorporationModifier;
@@ -3644,6 +3762,7 @@ int CvPlayerTrade::GetTradeConnectionValueTimes100 (const TradeConnection& kTrad
 #endif
 
 						int iModifier = 100;
+						int iDistanceModifier = GetTradeConnectionDistanceValueModifierTimes100(kTradeConnection);
 						int iDomainModifier = GetTradeConnectionDomainValueModifierTimes100(kTradeConnection, eYield);
 						int iDestRiverModifier = GetTradeConnectionRiverValueModifierTimes100(kTradeConnection, eYield, false);
 						int iTraitBonus = GetTradeConnectionOtherTraitValueTimes100(kTradeConnection, eYield, false);
@@ -3661,6 +3780,7 @@ int CvPlayerTrade::GetTradeConnectionValueTimes100 (const TradeConnection& kTrad
 						iValue += iInfluenceBoost;
 #endif
 
+						iModifier -= iDistanceModifier;
 						iModifier += iDomainModifier;
 						iModifier += iDestRiverModifier;
 #if defined(HH_MOD_API_TRADEROUTE_MODIFIERS)
@@ -3690,7 +3810,9 @@ int CvPlayerTrade::GetTradeConnectionValueTimes100 (const TradeConnection& kTrad
 
 						int iModifier = 100;
 #if defined(HH_MOD_API_TRADEROUTE_MODIFIERS)
+						int iDistanceModifier = GetTradeConnectionDistanceValueModifierTimes100(kTradeConnection);
 						int iPolicyModifier = GetTradeConnectionPolicyModifierTimes100(kTradeConnection, eYield, false /*bAsOriginPlayer*/);
+						iModifier -= iDistanceModifier;
 						iModifier += iPolicyModifier;
 #endif
 
@@ -3763,7 +3885,9 @@ int CvPlayerTrade::GetTradeConnectionValueTimes100 (const TradeConnection& kTrad
 					}
 #endif
 					int iModifier = 100;
+					int iDistanceModifier = GetTradeConnectionDistanceValueModifierTimes100(kTradeConnection);
 					int iDomainModifier = GetTradeConnectionDomainValueModifierTimes100(kTradeConnection, eYield);
+					iModifier -= iDistanceModifier;
 					iModifier += iDomainModifier;
 					iModifier += GET_PLAYER(kTradeConnection.m_eDestOwner).GetPlayerPolicies()->GetNumericModifier(POLICYMOD_INTERNAL_TRADE_MODIFIER);
 #if defined(MOD_BALANCE_CORE)				
@@ -3822,7 +3946,9 @@ int CvPlayerTrade::GetTradeConnectionValueTimes100 (const TradeConnection& kTrad
 					}
 #endif
 					int iModifier = 100;
+					int iDistanceModifier = GetTradeConnectionDistanceValueModifierTimes100(kTradeConnection);
 					int iDomainModifier = GetTradeConnectionDomainValueModifierTimes100(kTradeConnection, eYield);
+					iModifier -= iDistanceModifier;
 					iModifier += iDomainModifier;
 					iModifier += GET_PLAYER(kTradeConnection.m_eDestOwner).GetPlayerPolicies()->GetNumericModifier(POLICYMOD_INTERNAL_TRADE_MODIFIER);
 #if defined(MOD_BALANCE_CORE)
@@ -4407,7 +4533,15 @@ std::vector<int> CvPlayerTrade::GetTradeUnitsAtPlot(const CvPlot* pPlot, bool bF
 
 		if (bOnlyWar && !GET_TEAM(eMyTeam).isAtWar(eOtherTeam))
 		{
-			bIgnore = true;
+			if (m_pPlayer->GetPlayerTraits()->IsCanPlunderWithoutWar())
+			{
+				if (pConnection->m_eDestOwner == m_pPlayer->GetID())
+					bIgnore = true;
+			}
+			else
+			{
+				bIgnore = true;
+			}
 		}
 
 		if (bIgnore)
@@ -4463,7 +4597,19 @@ std::vector<int> CvPlayerTrade::GetTradePlotsAtPlot(const CvPlot* pPlot, bool bF
 
 		if (bOnlyWar && !GET_TEAM(eMyTeam).isAtWar(eOtherTeam))
 		{
-			bIgnore = true;
+			if (m_pPlayer->GetPlayerTraits()->IsCanPlunderWithoutWar())
+			{
+				if (pConnection->m_eDestOwner == m_pPlayer->GetID())
+					bIgnore = true;
+				else if (!m_pPlayer->isHuman() && m_pPlayer->GetDiplomacyAI()->GetMajorCivOpinion(pConnection->m_eOriginOwner) >= MAJOR_CIV_OPINION_NEUTRAL)
+					bIgnore = true;
+				else if (!m_pPlayer->isHuman() && m_pPlayer->GetDiplomacyAI()->GetMajorCivApproach(pConnection->m_eOriginOwner, true) >= MAJOR_CIV_APPROACH_AFRAID)
+					bIgnore = true;
+			}
+			else
+			{
+				bIgnore = true;
+			}
 		}
 
 		if (bIgnore)
@@ -4632,7 +4778,7 @@ bool CvPlayerTrade::PlunderTradeRoute(int iTradeConnectionID)
 	iPlunderGoldValue /= 100;
 #if defined(MOD_BALANCE_CORE)
 	iPlunderGoldValue *= GC.getGame().getGameSpeedInfo().getTrainPercent();
-	if(pUnit && pUnit->isHighSeaRaider())
+	if(pUnit && pUnit->isHighSeaRaiderUnit())
 	{
 		iPlunderGoldValue *= 3;
 		for(int iJ = 0; iJ < GC.getNumPromotionInfos(); iJ++)
@@ -4714,6 +4860,10 @@ bool CvPlayerTrade::PlunderTradeRoute(int iTradeConnectionID)
 			GET_PLAYER(eOwningPlayer).GetDiplomacyAI()->ChangeWarValueLost(m_pPlayer->GetID(), iValue);
 		}
 	}
+	if (pPlunderPlot->isVisible(eOwningTeam) && m_pPlayer->GetPlayerTraits()->IsCanPlunderWithoutWar() && !GET_TEAM(m_pPlayer->getTeam()).isAtWar(GET_PLAYER(eOwningPlayer).getTeam()))
+	{
+		GET_PLAYER(eOwningPlayer).GetDiplomacyAI()->ChangeNumTimesRobbedBy(m_pPlayer->GetID(), 2);
+	}
 #endif
 	// do the notification stuff
 	if (pOriginCity && pDestCity)
@@ -4726,7 +4876,7 @@ bool CvPlayerTrade::PlunderTradeRoute(int iTradeConnectionID)
 			Localization::String strMessage;
 
 			strSummary = Localization::Lookup("TXT_KEY_NOTIFICATION_TRADE_UNIT_PLUNDERED_TRADER_SUMMARY");
-			if (m_pPlayer->isBarbarian())
+			if (m_pPlayer->isBarbarian() || (m_pPlayer->GetPlayerTraits()->IsCanPlunderWithoutWar() && !pPlunderPlot->isVisible(eOwningTeam)))
 			{
 				strMessage = Localization::Lookup("TXT_KEY_NOTIFICATION_TRADE_UNIT_PLUNDERED_TRADER_BARBARIAN");
 				strMessage << pOriginCity->getNameKey();
@@ -4859,15 +5009,38 @@ bool CvPlayerTrade::PlunderTradeRoute(int iTradeConnectionID)
 
 	return true;
 }
+void CvPlayerTrade::UpdateFurthestPossibleTradeRoute(DomainTypes eDomain, CvCity* pOriginCity, int iMaxRange)
+{
+	int iLongestRoute = 0;
+
+	// Check the route, but not the path
+	for (int iPlayer = 0; iPlayer < MAX_CIV_PLAYERS; ++iPlayer)
+	{
+		int iCity;
+		CvPlayer& kLoopPlayer = GET_PLAYER((PlayerTypes)iPlayer);
+		for (CvCity* pDestCity = kLoopPlayer.firstCity(&iCity); pDestCity != NULL; pDestCity = kLoopPlayer.nextCity(&iCity))
+		{
+			if (CanCreateTradeRoute(pOriginCity, pDestCity, eDomain, TRADE_CONNECTION_INTERNATIONAL, false, false))
+			{
+				int iLength = GC.getGame().GetGameTrade()->GetValidTradeRoutePathLength(pOriginCity, pDestCity, eDomain);
+				if (iLength <= 0)
+					continue;
+
+				if (iLength > iLongestRoute)
+				{
+					iLongestRoute = iLength;
+					if (iLongestRoute == iMaxRange)
+						break;
+				}
+			}
+		}
+	}
+	pOriginCity->SetLongestPotentialTradeRoute(iLongestRoute == 0 ? iMaxRange : iLongestRoute, eDomain);
+}
 //	--------------------------------------------------------------------------------
 int CvPlayerTrade::GetTradeRouteRange (DomainTypes eDomain, CvCity* pOriginCity)
 {
 	int iRange = 0;
-
-#if defined(MOD_TRADE_ROUTE_SCALING)
-	int iRouteModifier = GC.getMap().getWorldInfo().getTradeRouteDistanceMod();
-#endif
-
 	int iBaseRange = 0;
 	switch (eDomain)
 	{
@@ -4901,29 +5074,32 @@ int CvPlayerTrade::GetTradeRouteRange (DomainTypes eDomain, CvCity* pOriginCity)
 		// not implemented
 		iTraitRange = 0;
 #endif
-#if defined(MOD_BALANCE_CORE)
-		m_pPlayer->getTradeRouteSeaDistanceModifier();
-#endif
 		break;
 	case DOMAIN_LAND:
 		iTraitRange = m_pPlayer->GetPlayerTraits()->GetLandTradeRouteRangeBonus();
-#if defined(MOD_BALANCE_CORE)
-		m_pPlayer->getTradeRouteLandDistanceModifier();
-#endif
 		break;
 	}
 
 	int iExtendedRange = GET_TEAM(GET_PLAYER(m_pPlayer->GetID()).getTeam()).getTradeRouteDomainExtraRange(eDomain);
 
 	int iRangeModifier = 0;
-	switch (eDomain)
+	if (pOriginCity != NULL)
 	{
-	case DOMAIN_SEA:
-		iRangeModifier = pOriginCity->GetTradeRouteSeaDistanceModifier();
-		break;
-	case DOMAIN_LAND:
-		iRangeModifier = pOriginCity->GetTradeRouteLandDistanceModifier();
-		break;
+		switch (eDomain)
+		{
+		case DOMAIN_SEA:
+			iRangeModifier = pOriginCity->GetTradeRouteSeaDistanceModifier();
+#if defined(MOD_BALANCE_CORE)
+			iRangeModifier += m_pPlayer->getTradeRouteSeaDistanceModifier();
+#endif
+			break;
+		case DOMAIN_LAND:
+			iRangeModifier = pOriginCity->GetTradeRouteLandDistanceModifier();
+#if defined(MOD_BALANCE_CORE)
+			iRangeModifier += m_pPlayer->getTradeRouteLandDistanceModifier();
+#endif
+			break;
+		}
 	}
 
 #if defined(MOD_BALANCE_CORE)
@@ -4948,10 +5124,14 @@ int CvPlayerTrade::GetTradeRouteRange (DomainTypes eDomain, CvCity* pOriginCity)
 	iRange = iBaseRange;
 	iRange += iTraitRange;
 	iRange += iExtendedRange;
+
 #if defined(MOD_TRADE_ROUTE_SCALING)
-	iRange = (iRange * iRouteModifier) / 100;
+	int iRouteModifier = GC.getMap().getWorldInfo().getTradeRouteDistanceMod();
+#else
+	int iRouteModifier = 0;
 #endif
-	iRange = (iRange * (100 + iRangeModifier)) / 100;
+
+	iRange = (iRange * (iRouteModifier + iRangeModifier)) / 100;
 	return iRange;
 }
 
@@ -5838,7 +6018,18 @@ std::vector<int> CvTradeAI::ScoreInternationalTR(const TradeConnection& kTradeCo
 				//If our influence is pretty good, double the bonus. Not if we're already influential, though.
 				if(GET_PLAYER(kTradeConnection.m_eOriginOwner).GetCulture()->GetInfluenceLevel(kTradeConnection.m_eDestOwner) >= INFLUENCE_LEVEL_FAMILIAR && GET_PLAYER(kTradeConnection.m_eOriginOwner).GetCulture()->GetInfluenceLevel(kTradeConnection.m_eDestOwner) < INFLUENCE_LEVEL_INFLUENTIAL)
 				{
-					iGoldAmount += pFromCity->GetLandTourismBonus() * 25;
+					if (GET_PLAYER(kTradeConnection.m_eOriginOwner).GetCulture()->GetCivLowestInfluence(false) == kTradeConnection.m_eDestOwner)
+					{
+						iGoldAmount += pFromCity->GetLandTourismBonus() * 100;
+					}
+					else if (GET_PLAYER(kTradeConnection.m_eOriginOwner).GetCulture()->GetInfluenceTrend(kTradeConnection.m_eDestOwner) >= INFLUENCE_TREND_RISING)
+					{
+						iGoldAmount += pFromCity->GetLandTourismBonus() * 500;
+					}
+					else
+					{
+						iGoldAmount += pFromCity->GetLandTourismBonus() * 250;
+					}
 				}
 			}
 		}
@@ -5851,7 +6042,18 @@ std::vector<int> CvTradeAI::ScoreInternationalTR(const TradeConnection& kTradeCo
 				//If our influence is pretty good, double the bonus. Not if we're already influential, though.
 				if(GET_PLAYER(kTradeConnection.m_eOriginOwner).GetCulture()->GetInfluenceLevel(kTradeConnection.m_eDestOwner) >= INFLUENCE_LEVEL_FAMILIAR && GET_PLAYER(kTradeConnection.m_eOriginOwner).GetCulture()->GetInfluenceLevel(kTradeConnection.m_eDestOwner) < INFLUENCE_LEVEL_INFLUENTIAL)
 				{
-					iGoldAmount += pFromCity->GetSeaTourismBonus() * 25;
+					if (GET_PLAYER(kTradeConnection.m_eOriginOwner).GetCulture()->GetCivLowestInfluence(false) == kTradeConnection.m_eDestOwner)
+					{
+						iGoldAmount += pFromCity->GetSeaTourismBonus() * 1000;
+					}
+					else if (GET_PLAYER(kTradeConnection.m_eOriginOwner).GetCulture()->GetInfluenceTrend(kTradeConnection.m_eDestOwner) >= INFLUENCE_TREND_RISING)
+					{
+						iGoldAmount += pFromCity->GetSeaTourismBonus() * 500;
+					}
+					else
+					{
+						iGoldAmount += pFromCity->GetSeaTourismBonus() * 250;
+					}
 				}
 			}
 		}
@@ -5902,7 +6104,7 @@ std::vector<int> CvTradeAI::ScoreInternationalTR(const TradeConnection& kTradeCo
 #endif
 
 		// Policy bump
-		int iPolicyBump = GET_PLAYER(kTradeConnection.m_eOriginOwner).GetExtraCultureandScienceTradeRoutes();
+		int iPolicyBump = GET_PLAYER(kTradeConnection.m_eDestOwner).isMinorCiv() ? 0 : GET_PLAYER(kTradeConnection.m_eOriginOwner).GetExtraCultureandScienceTradeRoutes();
 
 		iAdjustedTechDifferenceP1fromP2 += iPolicyBump;
 	}
@@ -5934,7 +6136,7 @@ std::vector<int> CvTradeAI::ScoreInternationalTR(const TradeConnection& kTradeCo
 #endif
 
 		// Policy bump
-		int iPolicyBump = GET_PLAYER(kTradeConnection.m_eDestOwner).GetExtraCultureandScienceTradeRoutes();
+		int iPolicyBump = GET_PLAYER(kTradeConnection.m_eOriginOwner).isMinorCiv() ? 0 : GET_PLAYER(kTradeConnection.m_eDestOwner).GetExtraCultureandScienceTradeRoutes();
 
 		iAdjustedTechDifferenceP2fromP1 += iPolicyBump;
 	}
@@ -5971,7 +6173,7 @@ std::vector<int> CvTradeAI::ScoreInternationalTR(const TradeConnection& kTradeCo
 		}
 #endif				
 		// Policy bump
-		int iPolicyBump = GET_PLAYER(kTradeConnection.m_eOriginOwner).GetExtraCultureandScienceTradeRoutes();
+		int iPolicyBump = GET_PLAYER(kTradeConnection.m_eDestOwner).isMinorCiv() ? 0 : GET_PLAYER(kTradeConnection.m_eOriginOwner).GetExtraCultureandScienceTradeRoutes();
 
 		iAdjustedCultureDifferenceP1fromP2 += iPolicyBump;
 	}
@@ -6003,7 +6205,7 @@ std::vector<int> CvTradeAI::ScoreInternationalTR(const TradeConnection& kTradeCo
 		}
 #endif				
 		// Policy bump
-		int iPolicyBump = GET_PLAYER(kTradeConnection.m_eOriginOwner).GetExtraCultureandScienceTradeRoutes();
+		int iPolicyBump = GET_PLAYER(kTradeConnection.m_eDestOwner).isMinorCiv() ? 0 : GET_PLAYER(kTradeConnection.m_eOriginOwner).GetExtraCultureandScienceTradeRoutes();
 
 		iAdjustedCultureDifferenceP2fromP1 += iPolicyBump;
 	}
@@ -6088,6 +6290,11 @@ std::vector<int> CvTradeAI::ScoreInternationalTR(const TradeConnection& kTradeCo
 	int iReligionScore = (iReligionDelta *  (iFlavorReligion / 2));
 	iScore += iGoldScore + iScienceScore + iCultureScore + iReligionScore;
 
+	if (GET_PLAYER(kTradeConnection.m_eDestOwner).isMajorCiv() && GET_PLAYER(kTradeConnection.m_eDestOwner).GetPlayerTraits()->IsCanPlunderWithoutWar())
+	{
+		iScore *= 5;
+	}
+
 	//abort if we're negative
 	if(iScore <= 0)
 		return ValuesVector;
@@ -6127,7 +6334,7 @@ std::vector<int> CvTradeAI::ScoreInternationalTR(const TradeConnection& kTradeCo
 #endif
 #if defined(MOD_BALANCE_CORE)
 	//Let's encourage TRs to feitorias.
-	if(GET_PLAYER(kTradeConnection.m_eDestOwner).isMinorCiv() && GET_PLAYER(kTradeConnection.m_eDestOwner).GetMinorCivAI()->IsSiphoned(m_pPlayer->GetID()))
+	if (MOD_BALANCE_CORE_PORTUGAL_CHANGE && GET_PLAYER(kTradeConnection.m_eDestOwner).isMinorCiv() && GET_PLAYER(kTradeConnection.m_eDestOwner).GetMinorCivAI()->IsSiphoned(m_pPlayer->GetID()))
 	{
 		iScore *= 10;
 	}
@@ -6753,7 +6960,7 @@ void CvTradeAI::GetPrioritizedTradeRoutes(TradeConnectionList& aTradeConnectionL
 
 #if defined(MOD_BALANCE_CORE)
 	//precalculate this, it's expensive
-	bool bHaveTourism = (m_pPlayer->GetCulture()->GetTourism() > 0);
+	bool bHaveTourism = (m_pPlayer->GetCulture()->GetTourism() / 100 > 0);
 #endif
 
 	// GOLD GOLD GOLD GOLD
@@ -7003,4 +7210,15 @@ FDataStream& operator<<(FDataStream& saveTo, const CvTradeAI& readFrom)
 	saveTo << readFrom.m_iRemovableValue;
 
 	return saveTo;
+}
+
+int TradeConnection::GetMovementSpeed()
+{
+	if (m_eOriginOwner == NO_PLAYER)
+		return 0;
+
+	int iRawSpeed = GET_PLAYER(m_eOriginOwner).GetTrade()->GetTradeRouteSpeed(m_eDomain);
+
+	//unfortunately have to round the result to integer, so often the speed factor won't matter
+	return int(0.5f + m_iSpeedFactor*iRawSpeed / 100.f);
 }

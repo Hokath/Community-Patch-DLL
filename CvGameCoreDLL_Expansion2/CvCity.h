@@ -62,7 +62,7 @@ public:
 	void kill();
 	void PreKill();
 #endif
-	void PostKill(bool bCapital, CvPlot* pPlot, PlayerTypes eOwner);
+	void PostKill(bool bCapital, CvPlot* pPlot, int iWorkPlotDistance, PlayerTypes eOwner);
 
 #if defined(MOD_BALANCE_CORE)
 	CvPlayer* GetPlayer() const;
@@ -77,6 +77,7 @@ public:
 	void updateSelectedCity();
 #if defined(MOD_BALANCE_CORE)
 	void updateYield(bool bSkipCity = false);
+	void ResetGreatWorkYieldCache();
 #else
 	void updateYield();
 #endif
@@ -87,6 +88,9 @@ public:
 
 	void SetThreatRank(int iValue);
 	int GetThreatRank() const;
+
+	void SetCoastalThreatRank(int iValue);
+	int GetCoastalThreatRank() const;
 
 	void SetTradePriorityLand(int iValue);
 	int GetTradePriorityLand(void) const;
@@ -100,6 +104,9 @@ public:
 	void ChangeTradeRouteLandDistanceModifier(int iValue);
 	int GetTradeRouteLandDistanceModifier() const;
 
+	int GetLongestPotentialTradeRoute(DomainTypes eDomain) const;
+	void SetLongestPotentialTradeRoute(int iValue, DomainTypes eDomain);
+
 	bool AreOurBordersTouching(PlayerTypes ePlayer);
 #endif
 
@@ -109,7 +116,7 @@ public:
 	bool IsCityEventChoiceValid(CityEventChoiceTypes eEventChoice, CityEventTypes eParentEvent);
 	void DoCancelEventChoice(CityEventChoiceTypes eEventChoice);
 	void DoStartEvent(CityEventTypes eEvent);
-	void DoEventChoice(CityEventChoiceTypes eEventChoice, CityEventTypes eCityEvent = NO_EVENT_CITY);
+	void DoEventChoice(CityEventChoiceTypes eEventChoice, CityEventTypes eCityEvent = NO_EVENT_CITY, bool bSendMsg = true);
 	CvString GetScaledHelpText(CityEventChoiceTypes eEventChoice, bool bYieldsOnly);
 	CvString GetDisabledTooltip(CityEventChoiceTypes eEventChoice);
 
@@ -263,7 +270,11 @@ public:
 	int GetYieldPerXTerrainFromBuildingsTimes100(TerrainTypes eTerrain, YieldTypes eYield) const;
 	void ChangeYieldPerXTerrainFromBuildingsTimes100(TerrainTypes eTerrain, YieldTypes eYield, int iChange);
 
+	int GetYieldPerXFeatureFromBuildingsTimes100(FeatureTypes eFeature, YieldTypes eYield) const;
+	void ChangeYieldPerXFeatureFromBuildingsTimes100(FeatureTypes eFeature, YieldTypes eYield, int iChange);
+
 	void SetYieldPerXFeature(FeatureTypes eFeature, YieldTypes eYield, int iValue);
+	void SetYieldPerXFeatureFromReligion(FeatureTypes eFeature, YieldTypes eYield, int iValue);
 	void SetYieldPerXUnimprovedFeature(FeatureTypes eFeature, YieldTypes eYield, int iValue);
 
 	void UpdateYieldPerXFeature(YieldTypes eYield, FeatureTypes eFeature = NO_FEATURE);
@@ -287,9 +298,10 @@ public:
 #endif
 	bool IsHasResourceLocal(ResourceTypes eResource, bool bTestVisible) const;
 #if defined(MOD_API_EXTENSIONS) || defined(MOD_TRADE_WONDER_RESOURCE_ROUTES)
-	int GetNumResourceLocal(ResourceTypes eResource, bool bImproved = false, bool bNoImprovement = false);
+	int GetNumResourceLocal(ResourceTypes eResource, bool bImproved = false);
 #endif
-	void ChangeNumResourceLocal(ResourceTypes eResource, int iChange);
+	int GetNumTotalResource(ResourceTypes eResource) const;
+	void ChangeNumResourceLocal(ResourceTypes eResource, int iChange, bool bUnimproved = false);
 
 	bool IsBuildingLocalResourceValid(BuildingTypes eBuilding, bool bTestVisible, CvString* toolTipSink = NULL) const;
 #if defined(MOD_BALANCE_CORE_DEALS)
@@ -323,7 +335,7 @@ public:
 
 	bool canContinueProduction(OrderData order);
 	int getProductionExperience(UnitTypes eUnit = NO_UNIT);
-	void addProductionExperience(CvUnit* pUnit, bool bConscript = false);
+	void addProductionExperience(CvUnit* pUnit, bool bConscript = false, bool bGoldPurchase = false);
 
 	UnitTypes getProductionUnit() const;
 	UnitAITypes getProductionUnitAI() const;
@@ -469,6 +481,9 @@ public:
 	int GetUnitPurchaseCooldown(bool bCivilian = false) const;
 	void SetUnitPurchaseCooldown(bool bCivilian = false, int iValue = 0);
 	void ChangeUnitPurchaseCooldown(bool bCivilian = false, int iValue = 0);
+	int GetUnitFaithPurchaseCooldown(bool bCivilian = false) const;
+	void SetUnitFaithPurchaseCooldown(bool bCivilian = false, int iValue = 0);
+	void ChangeUnitFaithPurchaseCooldown(bool bCivilian = false, int iValue = 0);
 	int GetBuildingPurchaseCooldown() const;
 	void SetBuildingPurchaseCooldown(int iValue);
 	void ChangeBuildingPurchaseCooldown(int iValue);
@@ -476,6 +491,9 @@ public:
 	void DoSellBuilding();
 	void SetTraded(PlayerTypes ePlayer, bool bValue);
 	bool IsTraded(PlayerTypes ePlayer);
+#endif
+#if defined(MOD_API_EXTENSIONS)
+	int foodConsumptionSpecialistTimes100() const;
 #endif
 	int foodConsumption(bool bNoAngry = false, int iExtra = 0) const;
 	int foodDifference(bool bBottom = true) const;
@@ -645,6 +663,7 @@ public:
 
 #if defined(MOD_API_UNIFIED_YIELDS)
 	int GetYieldPerXFeature(FeatureTypes eFeature, YieldTypes eYield) const;
+	int GetYieldPerXFeatureFromReligion(FeatureTypes eFeature, YieldTypes eYield) const;
 	int GetYieldPerTurnFromUnimprovedFeatures(FeatureTypes eFeature, YieldTypes eYield) const;
 #else
 	int GetFaithPerTurnFromTraits() const;
@@ -1012,6 +1031,8 @@ public:
 	int GetBaseYieldRateFromMisc(YieldTypes eIndex) const;
 	void ChangeBaseYieldRateFromMisc(YieldTypes eIndex, int iChange);
 
+	int GetBaseYieldRateFromProcess(YieldTypes eIndex) const;
+
 #if defined(MOD_DIPLOMACY_CITYSTATES)
 	int GetBaseYieldRateFromLeague(YieldTypes eIndex) const;
 	void ChangeBaseYieldRateFromLeague(YieldTypes eIndex, int iChange);
@@ -1119,6 +1140,9 @@ public:
 	void ChangeBaseYieldRateFromCSFriendship(YieldTypes eIndex, int iChange);
 	void SetBaseYieldRateFromCSFriendship(YieldTypes eIndex, int iValue);
 
+	void SetYieldFromMinors(YieldTypes eYield, int iValue);
+	int GetYieldFromMinors(YieldTypes eYield) const;
+
 	int GetReligiousTradeModifier() const;
 	void ChangeReligiousTradeModifier(int iChange);
 	void SetReligiousTradeModifier(int iValue);
@@ -1163,6 +1187,9 @@ public:
 	int GetAlwaysHeal() const;
 	void ChangeAlwaysHeal(int iChange);
 	void SetAlwaysHeal(int iValue);
+
+	void ChangeResourceDiversityModifier(int iChange);
+	int GetResourceDiversityModifier() const;
 
 	bool IsBastion() const;
 	void SetBastion(bool bValue);
@@ -1227,6 +1254,9 @@ public:
 
 	int getLocalBuildingClassYield(BuildingClassTypes eIndex1, YieldTypes eIndex2)	const;
 	void changeLocalBuildingClassYield(BuildingClassTypes eIndex1, YieldTypes eIndex2, int iChange);
+
+	void ChangeGreatWorkYieldChange(YieldTypes eYield, int iValue);
+	int GetGreatWorkYieldChange(YieldTypes eYield) const;
 #endif
 
 	int getPowerYieldRateModifier(YieldTypes eIndex) const;
@@ -1348,8 +1378,8 @@ public:
 	CvUnit* rangedStrikeTarget(const CvPlot* pPlot) const;
 	bool canRangedStrikeTarget(const CvPlot& targetPlot) const;
 
-	int rangeCombatUnitDefense(_In_ const CvUnit* pDefender, const CvPlot* pInPlot = NULL) const;
-	int rangeCombatDamage(const CvUnit* pDefender, CvCity* pCity = NULL, bool bIncludeRand = true, const CvPlot* pInPlot = NULL) const;
+	int rangeCombatUnitDefense(_In_ const CvUnit* pDefender, const CvPlot* pInPlot = NULL, bool bQuickAndDirty = false) const;
+	int rangeCombatDamage(const CvUnit* pDefender, CvCity* pCity = NULL, bool bIncludeRand = true, const CvPlot* pInPlot = NULL, bool bQuickAndDirty = false) const;
 
 	int GetAirStrikeDefenseDamage(const CvUnit* pAttacker, bool bIncludeRand = true) const;
 
@@ -1378,6 +1408,7 @@ public:
 	int GetCheapestPlotInfluenceDistance() const;
 	void SetCheapestPlotInfluenceDistance(int iValue);
 	void DoUpdateCheapestPlotInfluenceDistance();
+	int calculateInfluenceDistance(CvPlot* pDest, int iMaxRange) const;
 
 	// End plot acquisition
 
@@ -1401,7 +1432,7 @@ public:
 	const OrderData* tailOrderQueueNode() const;
 	bool CleanUpQueue(void);  // remove items in the queue that are no longer valid
 
-	int CreateUnit(UnitTypes eUnitType, UnitAITypes eAIType = NO_UNITAI, bool bUseToSatisfyOperation=true);
+	int CreateUnit(UnitTypes eUnitType, UnitAITypes eAIType = NO_UNITAI, bool bUseToSatisfyOperation=true, bool bIsPurchase = false);
 	bool CreateBuilding(BuildingTypes eBuildType);
 	bool CreateProject(ProjectTypes eProjectType);
 
@@ -1520,13 +1551,13 @@ public:
 	bool IsAdjacentToTerrain(TerrainTypes iTerrainType) const;
 	bool IsWithinDistanceOfTerrain(TerrainTypes iTerrainType, int iDistance) const;
 	int CountNumWorkedFeature(FeatureTypes eFeature);
-	int CountNumWorkedImprovement(ImprovementTypes eImprovement);
+	int CountNumWorkedImprovement(ImprovementTypes eImprovement, bool IgnorePillaged = true);
 	int CountNumWorkedResource(ResourceTypes eResource);
 	int CountNumImprovement(ImprovementTypes eImprovement);
 	int CountNumWorkedRiverTiles(TerrainTypes eTerrain = NO_TERRAIN);
 	int CountFeature(FeatureTypes iFeatureType) const;
 	int CountWorkedFeature(FeatureTypes iFeatureType) const;
-	int CountImprovement(ImprovementTypes iImprovementType) const;
+	int CountImprovement(ImprovementTypes iImprovementType, bool bOnlyCreated = false) const;
 	int CountWorkedImprovement(ImprovementTypes iImprovementType) const;
 	int CountPlotType(PlotTypes iPlotType) const;
 	int CountWorkedPlotType(PlotTypes iPlotType) const;
@@ -1622,7 +1653,6 @@ public:
 protected:
 	FAutoArchiveClassContainer<CvCity> m_syncArchive;
 
-	FAutoVariable<CvString, CvCity> m_strNameIAmNotSupposedToBeUsedAnyMoreBecauseThisShouldNotBeCheckedAndWeNeedToPreserveSaveGameCompatibility;
 	FAutoVariable<PlayerTypes, CvCity> m_eOwner;
 	FAutoVariable<int, CvCity> m_iX;
 	FAutoVariable<int, CvCity> m_iY;
@@ -1758,6 +1788,7 @@ protected:
 	FAutoVariable<std::vector<int>, CvCity> m_aiChangeGrowthExtraYield;
 #endif
 #if defined(MOD_BALANCE_CORE)
+	FAutoVariable<std::vector<int>, CvCity> m_aiLongestPotentialTradeRoute;
 	FAutoVariable<std::vector<int>, CvCity> m_aiNumTimesAttackedThisTurn;
 	FAutoVariable<std::vector<int>, CvCity> m_aiYieldFromKnownPantheons;
 	FAutoVariable<std::vector<int>, CvCity> m_aiYieldFromVictory;
@@ -1783,11 +1814,14 @@ protected:
 	FAutoVariable<std::vector<int>, CvCity> m_aiNumTimesOwned;
 	FAutoVariable<std::vector<int>, CvCity> m_aiStaticCityYield;
 	FAutoVariable<int, CvCity> m_iThreatRank;
+	FAutoVariable<int, CvCity> m_iCoastalThreatRank;
 	FAutoVariable<int, CvCity> m_iTradePriorityLand;
 	FAutoVariable<int, CvCity> m_iTradePrioritySea;
 	FAutoVariable<int, CvCity> m_iDummy;
 	FAutoVariable<int, CvCity> m_iUnitPurchaseCooldown;
 	FAutoVariable<int, CvCity> m_iUnitPurchaseCooldownCivilian;
+	FAutoVariable<int, CvCity> m_iUnitFaithPurchaseCooldown;
+	FAutoVariable<int, CvCity> m_iUnitFaithPurchaseCooldownCivilian;
 	FAutoVariable<int, CvCity> m_iBuildingPurchaseCooldown;
 	FAutoVariable<int, CvCity> m_iReligiousTradeModifier;
 	FAutoVariable<int, CvCity> m_iCityAirStrikeDefense;
@@ -1822,12 +1856,15 @@ protected:
 #if defined(MOD_BALANCE_CORE)
 	FAutoVariable<std::vector<int>, CvCity> m_aiBaseYieldRateFromCSAlliance;
 	FAutoVariable<std::vector<int>, CvCity> m_aiBaseYieldRateFromCSFriendship;
+	FAutoVariable<std::vector<int>, CvCity> m_aiYieldFromMinors;
 	FAutoVariable<std::vector<int>, CvCity> m_aiResourceQuantityPerXFranchises;
 	FAutoVariable<std::vector<int>, CvCity> m_aiYieldChangeFromCorporationFranchises;
 	FAutoVariable<int, CvCity> m_iLandTourismBonus;
 	FAutoVariable<int, CvCity> m_iSeaTourismBonus;
 	FAutoVariable<int, CvCity> m_iAlwaysHeal;
+	FAutoVariable<int, CvCity> m_iResourceDiversityModifier;
 	FAutoVariable<bool, CvCity> m_bIsBastion;
+	FAutoVariable<std::vector<int>, CvCity> m_aiGreatWorkYieldChange;
 #endif
 	FAutoVariable<std::vector<int>, CvCity> m_aiYieldRateModifier;
 	FAutoVariable<std::vector<int>, CvCity> m_aiYieldPerPop;
@@ -1853,8 +1890,6 @@ protected:
 	FAutoVariable<std::vector<int>, CvCity> m_paiNumResourceWorked;
 	FAutoVariable<std::vector<int>, CvCity> m_paiNumImprovementWorked;
 #endif
-	FAutoVariable<std::vector<bool>, CvCity> m_abRevealed;
-
 	FAutoVariable<CvString, CvCity> m_strScriptData;
 
 #if defined(MOD_CORE_PER_TURN_DAMAGE)
@@ -1865,6 +1900,7 @@ protected:
 	FAutoVariable<std::vector<int>, CvCity> m_paiNoResource;
 	FAutoVariable<std::vector<int>, CvCity> m_paiFreeResource;
 	FAutoVariable<std::vector<int>, CvCity> m_paiNumResourcesLocal;
+	FAutoVariable<std::vector<int>, CvCity> m_paiNumUnimprovedResourcesLocal;
 	FAutoVariable<std::vector<int>, CvCity> m_paiProjectProduction;
 	FAutoVariable<std::vector<int>, CvCity> m_paiSpecialistProduction;
 	FAutoVariable<std::vector<int>, CvCity> m_paiUnitProduction;
@@ -1918,9 +1954,11 @@ protected:
 #if defined(MOD_API_UNIFIED_YIELDS) && defined(MOD_API_PLOT_YIELDS)
 	int** m_ppaiPlotYieldChange;
 	int** m_ppaiYieldPerXTerrainFromBuildings;
+	int** m_ppaiYieldPerXFeatureFromBuildings;
 	int** m_ppaiYieldPerXTerrainFromReligion;
 	int** m_ppaiYieldPerXTerrain;
 	int** m_ppaiYieldPerXFeature;
+	int** m_ppaiYieldPerXFeatureFromReligion;
 	int** m_ppaiYieldPerXUnimprovedFeature;
 #endif
 #if defined(MOD_API_UNIFIED_YIELDS) && defined(MOD_API_PLOT_YIELDS)
@@ -1991,6 +2029,9 @@ protected:
 	FAutoVariable<std::vector<bool>, CvCity> m_abUnitInvestment;
 	FAutoVariable<std::vector<bool>, CvCity> m_abBuildingConstructed;
 #endif
+
+	//cache for great work yields, they are need often during citizen re-assignment but they don't change
+	mutable vector<int> m_GwYieldCache; //not serialized
 
 	IDInfo m_combatUnit;		// The unit the city is in combat with
 

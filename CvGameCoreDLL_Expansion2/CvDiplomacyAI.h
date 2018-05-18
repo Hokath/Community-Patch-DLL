@@ -804,6 +804,7 @@ public:
 	bool IsDemandTooSoon(PlayerTypes ePlayer) const;
 	short GetDemandTooSoonNumTurns(PlayerTypes ePlayer) const;
 
+	int GetNumDemandEverMade(PlayerTypes ePlayer) const;
 	bool IsDemandEverMade(PlayerTypes ePlayer) const;
 
 	short GetDemandCounter(PlayerTypes ePlayer) const;
@@ -1111,6 +1112,9 @@ public:
 
 	void DoTestPromises();
 
+#if defined(MOD_BALANCE_CORE)
+	int GetPlayerMadeMilitaryPromise(PlayerTypes ePlayer);
+#endif
 	bool IsPlayerMadeMilitaryPromise(PlayerTypes ePlayer);
 	void SetPlayerMadeMilitaryPromise(PlayerTypes ePlayer, bool bValue);
 	bool IsPlayerBrokenMilitaryPromise(PlayerTypes ePlayer);
@@ -1152,7 +1156,7 @@ public:
 	void SetEverMadeBorderPromise(PlayerTypes ePlayer, bool bValue);
 	void SetDoFEverAsked(PlayerTypes ePlayer, bool bValue);
 	void SetHelpRequestEverMade(PlayerTypes ePlayer, bool bValue);
-	void SetDemandEverMade(PlayerTypes ePlayer, bool bValue);
+	void SetNumDemandEverMade(PlayerTypes ePlayer, int iValue);
 	void SetPlayerNoSettleRequestEverAsked(PlayerTypes ePlayer, bool bValue);
 	void SetPlayerStopSpyingRequestEverAsked(PlayerTypes ePlayer, bool bValue);
 #endif
@@ -1472,6 +1476,8 @@ private:
 #if defined(MOD_BALANCE_CORE)
 	void LogApproachValueDeltas(PlayerTypes ePlayer, const int* aiApproachValues, const int* aiScratchValues);
 #endif
+	void LogMajorCivWarmongerUpdate(PlayerTypes ePlayer, int iValue, bool bUpdateLogsSpecial);
+
 	void LogMajorCivApproachUpdate(PlayerTypes ePlayer, const int* aiApproachValues, MajorCivApproachTypes eNewMajorCivApproach, MajorCivApproachTypes eOldApproach, WarFaceTypes eNewWarFace);
 	void LogMinorCivApproachUpdate(PlayerTypes ePlayer, const int* aiApproachValues, MinorCivApproachTypes eNewMinorCivApproach, MinorCivApproachTypes eOldApproach);
 	void LogPersonality();
@@ -1643,7 +1649,7 @@ private:
 		bool m_abPlayerEverMadeExpansionPromise[MAX_MAJOR_CIVS];
 		bool m_abDoFEverAsked[MAX_MAJOR_CIVS];
 		bool m_abHelpRequestEverMade[MAX_MAJOR_CIVS];
-		bool m_abDemandEverMade[MAX_MAJOR_CIVS];
+		int m_aiDemandEverMade[MAX_MAJOR_CIVS];
 		bool m_abPlayerNoSettleRequestEverAsked[MAX_MAJOR_CIVS];
 		bool m_abPlayerStopSpyingRequestEverAsked[MAX_MAJOR_CIVS];
 		short m_aiNumLandmarksBuiltForMeTurn[MAX_MAJOR_CIVS];
@@ -2020,7 +2026,7 @@ private:
 	bool* m_pabPlayerEverMadeExpansionPromise;
 	bool* m_pabDoFEverAsked;
 	bool* m_pabHelpRequestEverMade;
-	bool* m_pabDemandEverMade;
+	int*  m_paiDemandEverMade;
 	bool* m_pabPlayerNoSettleRequestEverAsked;
 	bool* m_pabPlayerStopSpyingRequestEverAsked;
 #endif
@@ -2131,13 +2137,12 @@ private:
 namespace CvDiplomacyAIHelpers
 {
 #if defined(MOD_CONFIG_AI_IN_XML)
-	int GetWarmongerOffset(PlayerTypes eOriginalOwner, bool bIsCapital, CvCity* pCity = NULL, PlayerTypes eWarmonger = NO_PLAYER);
+	int GetWarmongerOffset(bool bIsCapital, CvCity* pCity = NULL, PlayerTypes eWarmonger = NO_PLAYER);
 	CvString GetWarmongerPreviewString(PlayerTypes eCurrentOwner = NO_PLAYER, bool bIsCapital = false, CvCity* pCity = NULL, PlayerTypes eActivePlayer = NO_PLAYER);
 	CvString GetLiberationPreviewString(PlayerTypes eOriginalOwner = NO_PLAYER, bool bIsCapital = false, CvCity* pCity = NULL, PlayerTypes eActivePlayer = NO_PLAYER);
 	void ApplyWarmongerPenalties(PlayerTypes eConqueror, PlayerTypes eConquered, bool bIsCapital, CvCity* pCity);
 	int GetPlayerCaresValue(PlayerTypes eConqueror, PlayerTypes eConquered, bool bIsCapital, CvCity* pCity, PlayerTypes eCaringPlayer, bool bLiberation = false);
 #else
-	int GetWarmongerOffset(int iNumCitiesRemaining, bool bIsMinor);
 	CvString GetWarmongerPreviewString(PlayerTypes eCurrentOwner);
 	CvString GetLiberationPreviewString(PlayerTypes eOriginalOwner);
 	void ApplyWarmongerPenalties(PlayerTypes eConqueror, PlayerTypes eConquered);

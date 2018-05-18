@@ -21,6 +21,16 @@ local g_iPortraitSize = Controls.UnitPortrait:GetSize().x;
 local g_bWorldMouseOver = true;
 local g_bShowPanel = false;
 
+-- fix for DB cache issue, by merill
+local DB_HandicapInfos = {};
+if Game then
+	for realHandicap in DB.Query("SELECT * FROM HandicapInfos") do
+		DB_HandicapInfos[realHandicap["ID"]] = {};
+		for key,val in pairs(realHandicap) do 
+			DB_HandicapInfos[realHandicap["ID"]][key] = val;
+		end
+	end
+end
 
 function SetName(name)
 	
@@ -302,6 +312,21 @@ function UpdateCombatOddsUnitVsCity(pMyUnit, pCity)
 		local pFromPlot = pMyUnit:GetPlot();
 		local pToPlot = pCity:Plot();
 		
+		--JFD begins
+		--Find actual attacking plot (pathfinding will fail for ranged units)
+		for _, v in pairs(pMyUnit:GeneratePath(pToPlot, 3)) do
+			local pPlot = Map.GetPlot(v.X,v.Y)
+			if pPlot ~= pToPlot then 
+				pFromPlot = pPlot
+			end
+		end
+		local hexID = ToHexFromGrid( Vector2( pFromPlot:GetX(), pFromPlot:GetY()) );
+		Events.SerialEventHexHighlight( hexID, true, Vector4( 0.7, 0, 0, 1 ), "ValidFireTargetBorder");
+		
+		local hexID = ToHexFromGrid( Vector2( pToPlot:GetX(), pToPlot:GetY()) );
+		Events.SerialEventHexHighlight( hexID, true, Vector4( 0.7, 0, 0, 1 ), "ValidFireTargetBorder");
+		--JFD ends
+		
 		-- Ranged Unit
 		if (pMyUnit:IsRangedSupportFire() == false and pMyUnit:GetBaseRangedCombatStrength() > 0) then
 			iMyStrength = pMyUnit:GetMaxRangedCombatStrength(nil, pCity, true, true);
@@ -467,14 +492,8 @@ function UpdateCombatOddsUnitVsCity(pMyUnit, pCity)
 			end
 			
 			-- Sapper unit modifier
-			if (pMyUnit:IsNearSapper(pCity)) then
-				iModifier = GameDefines["SAPPED_CITY_ATTACK_MODIFIER"];
-				controlTable = g_MyCombatDataIM:GetInstance();
-				controlTable.Text:LocalizeAndSetText( "TXT_KEY_EUPANEL_CITY_SAPPED" );
-				controlTable.Value:SetText( GetFormattedText(strText, iModifier, true, true) );
-			elseif(pMyUnit:IsHalfNearSapper(pCity)) then
-				iModifier = GameDefines["SAPPED_CITY_ATTACK_MODIFIER"];
-				iModifier = (iModifier / 2);
+			if (pMyUnit:GetSapperAreaEffectBonus(pCity) ~= 0) then
+				iModifier = pMyUnit:GetSapperAreaEffectBonus(pCity);
 				controlTable = g_MyCombatDataIM:GetInstance();
 				controlTable.Text:LocalizeAndSetText( "TXT_KEY_EUPANEL_CITY_SAPPED" );
 				controlTable.Value:SetText( GetFormattedText(strText, iModifier, true, true) );
@@ -587,10 +606,23 @@ function UpdateCombatOddsUnitVsCity(pMyUnit, pCity)
 				controlTable.Text:LocalizeAndSetText( "TXT_KEY_EUPANEL_ATTACK_MOD_BONUS" );
 				controlTable.Value:SetText( GetFormattedText(strText, iModifier, true, true) );
 			end
-			
+			--NearbyPromtoion Unit that Gives a Combat bonus
+			if (pMyUnit:GetGiveCombatModToUnit() ~= 0) then
+				iModifier = pMyUnit:GetGiveCombatModToUnit();
+				controlTable = g_MyCombatDataIM:GetInstance();
+				controlTable.Text:LocalizeAndSetText( "TXT_KEY_EUPANEL_NEARBYPROMOTION_COMBAT_BONUS" );
+				controlTable.Value:SetText( GetFormattedText(strText, iModifier, true, true) );
+			end
+			--NearbyPromtoion Unit that gets a bonus near cities?
+			if (pMyUnit:GetNearbyCityBonusCombatMod() ~= 0) then
+				iModifier = pMyUnit:GetNearbyCityBonusCombatMod();
+				controlTable = g_MyCombatDataIM:GetInstance();
+				controlTable.Text:LocalizeAndSetText( "TXT_KEY_EUPANEL_NEARBYPROMOTION_CITY_COMBAT_BONUS" );
+				controlTable.Value:SetText( GetFormattedText(strText, iModifier, true, true) );
+			end
 			-- Great General bonus
 			if (pMyUnit:IsNearGreatGeneral()) then
-				iModifier = pMyPlayer:GetGreatGeneralCombatBonus();
+				iModifier = pMyPlayer:GetGreatGeneralCombatBonus() + pMyUnit:GetGreatGeneralAuraBonus();
 				iModifier = iModifier + pMyPlayer:GetTraitGreatGeneralExtraBonus();
 				controlTable = g_MyCombatDataIM:GetInstance();
 				if (pMyUnit:GetDomainType() == DomainTypes.DOMAIN_LAND) then
@@ -670,6 +702,17 @@ function UpdateCombatOddsUnitVsCity(pMyUnit, pCity)
 					controlTable.Value:SetText( GetFormattedText(strText, iModifier, true, true) );
 				end
 			end
+
+-- CBP
+			-- PerAdjacentUnitCombatModifier
+			iModifier = pMyUnit:PerAdjacentUnitCombatModifier() + pMyUnit:PerAdjacentUnitCombatAttackMod();
+			if (iModifier ~= 0) then
+				controlTable = g_MyCombatDataIM:GetInstance();
+				--local unitClassType = Locale.ConvertTextKey(GameInfo.UnitClasses[pTheirUnit:GetUnitClassType()].Description);
+				controlTable.Text:LocalizeAndSetText( "TXT_KEY_EUPANEL_BONUS_PER_ADJACENT_UNIT_COMBAT" );
+				controlTable.Value:SetText( GetFormattedText(strText, iModifier, true, true) );
+			end
+-- END
 			
 			-- Policy Attack bonus
 			local iTurns = pMyPlayer:GetAttackBonusTurns();
@@ -731,6 +774,21 @@ function UpdateCombatOddsUnitVsUnit(pMyUnit, pTheirUnit)
 		local pFromPlot = pMyUnit:GetPlot();
 		local pToPlot = pTheirUnit:GetPlot();
 		
+		--JFD begins
+		--Find actual attacking plot (pathfinding will fail for ranged units) 
+		for _, v in pairs(pMyUnit:GeneratePath(pToPlot, 3)) do
+			local pPlot = Map.GetPlot(v.X,v.Y)
+			if pPlot ~= pToPlot then 
+				pFromPlot = pPlot
+			end
+		end
+		local hexID = ToHexFromGrid( Vector2( pFromPlot:GetX(), pFromPlot:GetY()) );
+		Events.SerialEventHexHighlight( hexID, true, Vector4( 0.7, 0, 0, 1 ), "ValidFireTargetBorder");
+		
+		local hexID = ToHexFromGrid( Vector2( pToPlot:GetX(), pToPlot:GetY()) );
+		Events.SerialEventHexHighlight( hexID, true, Vector4( 0.7, 0, 0, 1 ), "ValidFireTargetBorder");
+		--JFD ends
+		
 		-- Ranged Unit
 		if (pMyUnit:GetBaseRangedCombatStrength() > 0) then
 			iMyStrength = pMyUnit:GetMaxRangedCombatStrength(pTheirUnit, nil, true, true);
@@ -764,8 +822,13 @@ function UpdateCombatOddsUnitVsUnit(pMyUnit, pTheirUnit)
 				end
 				
 				if (pMyUnit:GetDomainType() == DomainTypes.DOMAIN_AIR) then
-					iTheirDamageInflicted = pTheirUnit:GetAirStrikeDefenseDamage(pMyUnit, false);				
-					iTheirStrength = iTheirDamageInflicted;
+					if (pMyUnit:GetUnitAIType() ~= 30) then
+						-- regular air attack
+						iTheirDamageInflicted = pTheirUnit:GetAirStrikeDefenseDamage(pMyUnit, false);
+					else
+						-- suicide missile attack
+						iTheirDamageInflicted = pMyUnit:GetCurrHitPoints();
+					end
 					iNumVisibleAAUnits = pMyUnit:GetInterceptorCount(pToPlot, pTheirUnit, true, true);		
 					bInterceptPossible = true;
 				end
@@ -933,10 +996,23 @@ function UpdateCombatOddsUnitVsUnit(pMyUnit, pTheirUnit)
 				end
 				
 			end
-			
+			-- NearbyPromotion Unit Bonus
+			if (pMyUnit:GetGiveCombatModToUnit() ~= 0) then
+				iModifier = pMyUnit:GetGiveCombatModToUnit();
+				controlTable = g_MyCombatDataIM:GetInstance();
+				controlTable.Text:LocalizeAndSetText( "TXT_KEY_EUPANEL_NEARBYPROMOTION_COMBAT_BONUS" );
+				controlTable.Value:SetText( GetFormattedText(strText, iModifier, true, true) );
+			end
+			--NearbyPromtoion Unit that gets a bonus near cities?
+			if (pMyUnit:GetNearbyCityBonusCombatMod() ~= 0) then
+				iModifier = pMyUnit:GetNearbyCityBonusCombatMod();
+				controlTable = g_MyCombatDataIM:GetInstance();
+				controlTable.Text:LocalizeAndSetText( "TXT_KEY_EUPANEL_NEARBYPROMOTION_CITY_COMBAT_BONUS" );
+				controlTable.Value:SetText( GetFormattedText(strText, iModifier, true, true) );
+			end
 			-- Great General bonus
 			if (pMyUnit:IsNearGreatGeneral()) then
-				iModifier = pMyPlayer:GetGreatGeneralCombatBonus();
+				iModifier = pMyPlayer:GetGreatGeneralCombatBonus() + pMyUnit:GetGreatGeneralAuraBonus();
 				iModifier = iModifier + pMyPlayer:GetTraitGreatGeneralExtraBonus();
 				controlTable = g_MyCombatDataIM:GetInstance();
 				if (pMyUnit:GetDomainType() == DomainTypes.DOMAIN_LAND) then
@@ -1266,6 +1342,17 @@ function UpdateCombatOddsUnitVsUnit(pMyUnit, pTheirUnit)
 				end
 			end
 
+-- CBP
+			-- PerAdjacentUnitCombatModifier
+			iModifier = pMyUnit:PerAdjacentUnitCombatModifier() + pMyUnit:PerAdjacentUnitCombatAttackMod();
+			if (iModifier ~= 0) then
+				controlTable = g_MyCombatDataIM:GetInstance();
+				--local unitClassType = Locale.ConvertTextKey(GameInfo.UnitClasses[pTheirUnit:GetUnitClassType()].Description);
+				controlTable.Text:LocalizeAndSetText( "TXT_KEY_EUPANEL_BONUS_PER_ADJACENT_UNIT_COMBAT" );
+				controlTable.Value:SetText( GetFormattedText(strText, iModifier, true, true) );
+			end
+-- END
+	
 			-- DomainModifier
 			iModifier = pMyUnit:DomainModifier(pTheirUnit:GetDomainType());
 			if (iModifier ~= 0) then
@@ -1425,8 +1512,9 @@ function UpdateCombatOddsUnitVsUnit(pMyUnit, pTheirUnit)
 			
 			-- BarbarianBonuses
 			if (pTheirUnit:IsBarbarian()) then
-				iModifier = GameInfo.HandicapInfos[Game:GetHandicapType()].BarbarianBonus;
+				--iModifier = GameInfo.HandicapInfos[Game:GetHandicapType()].BarbarianBonus;
 				
+				iModifier = DB_HandicapInfos[Game:GetHandicapType()].BarbarianBonus;
 				iModifier = iModifier + Players[pMyUnit:GetOwner()]:GetBarbarianCombatBonus();
 
 				iModifier = iModifier + pMyUnit:BarbarianCombatBonus();
@@ -1585,10 +1673,23 @@ function UpdateCombatOddsUnitVsUnit(pMyUnit, pTheirUnit)
 					controlTable.Value:SetText( GetFormattedText(strText, iModifier, false, true) );
 	--				strString.append(GetLocalizedText("TXT_KEY_COMBAT_PLOT_FORTIFY_MOD", iModifier));
 				end
-				
+				-- NearbyPromotion Unit Bonus
+				if (pTheirUnit:GetGiveCombatModToUnit() ~= 0) then
+					iModifier = pTheirUnit:GetGiveCombatModToUnit();
+					controlTable = g_MyCombatDataIM:GetInstance();
+					controlTable.Text:LocalizeAndSetText( "TXT_KEY_EUPANEL_NEARBYPROMOTION_COMBAT_BONUS" );
+					controlTable.Value:SetText( GetFormattedText(strText, iModifier, true, true) );
+				end
+				--NearbyPromtoion Unit that gets a bonus near cities?
+				if (pTheirUnit:GetNearbyCityBonusCombatMod() ~= 0) then
+					iModifier = pTheirUnit:GetNearbyCityBonusCombatMod();
+					controlTable = g_MyCombatDataIM:GetInstance();
+					controlTable.Text:LocalizeAndSetText( "TXT_KEY_EUPANEL_NEARBYPROMOTION_CITY_COMBAT_BONUS" );
+					controlTable.Value:SetText( GetFormattedText(strText, iModifier, true, true) );
+				end
 				-- Great General bonus
 				if (pTheirUnit:IsNearGreatGeneral()) then
-					iModifier = pTheirPlayer:GetGreatGeneralCombatBonus();
+					iModifier = pTheirPlayer:GetGreatGeneralCombatBonus() + pTheirUnit:GetGreatGeneralAuraBonus();
 					iModifier = iModifier + pTheirPlayer:GetTraitGreatGeneralExtraBonus();
 					controlTable = g_TheirCombatDataIM:GetInstance();
 					if (pTheirUnit:GetDomainType() == DomainTypes.DOMAIN_LAND) then
@@ -1760,6 +1861,17 @@ function UpdateCombatOddsUnitVsUnit(pMyUnit, pTheirUnit)
 						--strString.append(GetLocalizedText("TXT_KEY_COMBAT_PLOT_MOD_VS_TYPE", iModifier, GC.getUnitCombatClassInfo(pMyUnit:getUnitCombatType()).GetTextKey()));
 					--end
 				--end
+
+-- CBP
+				-- PerAdjacentUnitCombatModifier
+				iModifier = pTheirUnit:PerAdjacentUnitCombatModifier() + pTheirUnit:PerAdjacentUnitCombatDefenseMod();
+				if (iModifier ~= 0) then
+					controlTable = g_TheirCombatDataIM:GetInstance();
+					--local unitClassType = Locale.ConvertTextKey(GameInfo.UnitClasses[pTheirUnit:GetUnitClassType()].Description);
+					controlTable.Text:LocalizeAndSetText( "TXT_KEY_EUPANEL_BONUS_PER_ADJACENT_UNIT_COMBAT" );
+					controlTable.Value:SetText( GetFormattedText(strText, iModifier, false, true) );
+				end
+-- END
 
 				-- DomainModifier
 				iModifier = pTheirUnit:DomainModifier(pMyUnit:GetDomainType());
@@ -2073,6 +2185,16 @@ function UpdateCombatOddsCityVsUnit(myCity, theirUnit)
 				controlTable.Value:SetText( GetFormattedText(strText, iModifier, false, true) );
 			end
 		end
+
+-- CBP
+		-- PerAdjacentUnitCombatModifier
+		iModifier = theirUnit:PerAdjacentUnitCombatModifier() + theirUnit:PerAdjacentUnitCombatDefenseMod();
+		if (iModifier ~= 0) then
+			controlTable = g_TheirCombatDataIM:GetInstance();
+			controlTable.Text:LocalizeAndSetText( "TXT_KEY_EUPANEL_BONUS_PER_ADJACENT_UNIT_COMBAT" );
+			controlTable.Value:SetText( GetFormattedText(strText, iModifier, false, true) );
+		end
+-- END
 		
 		-- Plot Defense
 		iModifier = theirPlot:DefenseModifier(theirUnit:GetTeam(), false, false);
@@ -2095,7 +2217,7 @@ function UpdateCombatOddsCityVsUnit(myCity, theirUnit)
 		
 		-- Great General bonus
 		if (theirUnit:IsNearGreatGeneral()) then
-			iModifier = theirPlayer:GetGreatGeneralCombatBonus();
+			iModifier = theirPlayer:GetGreatGeneralCombatBonus() + theirUnit:GetGreatGeneralAuraBonus();
 			iModifier = iModifier + theirPlayer:GetTraitGreatGeneralExtraBonus();
 			controlTable = g_TheirCombatDataIM:GetInstance();
 			if (theirUnit:GetDomainType() == DomainTypes.DOMAIN_LAND) then
@@ -2268,8 +2390,9 @@ function UpdateCombatOddsCityVsUnit(myCity, theirUnit)
 		
 		-- BarbarianBonuses
 		if (theirUnit:IsBarbarian()) then
-			iModifier = GameInfo.HandicapInfos[Game:GetHandicapType()].BarbarianBonus;
+			--iModifier = GameInfo.HandicapInfos[Game:GetHandicapType()].BarbarianBonus;
 			
+			iModifier = DB_HandicapInfos[Game:GetHandicapType()].BarbarianBonus;
 			iModifier = iModifier + myPlayer:GetBarbarianCombatBonus();
 
 			if (iModifier ~= 0) then
@@ -2315,14 +2438,8 @@ function UpdateCombatOddsCityVsUnit(myCity, theirUnit)
 		end
 		
 		-- Sapper unit modifier
-		if (theirUnit:IsNearSapper(myCity)) then
-			iModifier = GameDefines["SAPPED_CITY_ATTACK_MODIFIER"];
-			controlTable = g_TheirCombatDataIM:GetInstance();
-			controlTable.Text:LocalizeAndSetText( "TXT_KEY_EUPANEL_CITY_SAPPED" );
-			controlTable.Value:SetText( GetFormattedText(strText, iModifier, false, true) );
-		elseif (theirUnit:IsHalfNearSapper(myCity)) then
-			iModifier = GameDefines["SAPPED_CITY_ATTACK_MODIFIER"];
-			iModifier = (iModifier / 2);
+		if (theirUnit:GetSapperAreaEffectBonus(myCity) ~= 0) then
+			iModifier = theirUnit:GetSapperAreaEffectBonus(myCity);
 			controlTable = g_TheirCombatDataIM:GetInstance();
 			controlTable.Text:LocalizeAndSetText( "TXT_KEY_EUPANEL_CITY_SAPPED" );
 			controlTable.Value:SetText( GetFormattedText(strText, iModifier, false, true) );
@@ -2477,6 +2594,7 @@ function OnMouseOverHex( hexX, hexY )
 	
 	Controls.MyCombatResultsStack:SetHide(true);
 	Controls.TheirCombatResultsStack:SetHide(true);
+	Events.ClearHexHighlightStyle("ValidFireTargetBorder") --JFD
 	
 	local pPlot = Map.GetPlot( hexX, hexY );
 	
@@ -2486,6 +2604,7 @@ function OnMouseOverHex( hexX, hexY )
 				
 		if (pHeadUnit ~= nil) then
 			
+			-- melee attack
 			if (pHeadUnit:IsCombatUnit() and (pHeadUnit:IsRanged() and pHeadUnit:IsEmbarked()) == false) and ((pHeadUnit:IsRanged() and pHeadUnit:IsRangeAttackOnlyInDomain() and not pPlot:IsWater()) == false) then
 				
 				local iTeam = Game.GetActiveTeam()
@@ -2559,8 +2678,8 @@ function OnMouseOverHex( hexX, hexY )
 				-- Don't show info for stuff we can't see
 				if (pPlot:IsRevealed(iTeam, false)) then
 					
-					-- City
-					if (pPlot:IsCity()) then
+					-- City and not a missile attack (30 is unitai_missile_air)
+					if (pPlot:IsCity() and pHeadUnit:GetUnitAIType() ~= 30) then
 						
 						local pCity = pPlot:GetPlotCity();
 						

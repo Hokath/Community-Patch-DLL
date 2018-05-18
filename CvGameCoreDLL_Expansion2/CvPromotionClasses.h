@@ -1,5 +1,5 @@
-/*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+ï»¿/*	-------------------------------------------------------------------------------------------------------
+	ï¿½ 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -66,6 +66,9 @@ public:
 	int  GetAirSweepCombatModifier() const;
 	int  GetInterceptChanceChange() const;
 	int  GetNumInterceptionChange() const;
+#if defined(MOD_BALANCE_CORE)
+	int  GetAirInterceptRangeChange() const; // JJ: This is new
+#endif
 	int  GetEvasionChange() const;
 	int  GetCargoChange() const;
 	int  GetEnemyHealChange() const;
@@ -103,6 +106,8 @@ public:
 #if defined(MOD_PROMOTIONS_AURA_CHANGE)
 	int GetAuraRangeChange() const;
 	int GetAuraEffectChange() const;
+	int GetNumRepairCharges() const;
+	int GetMilitaryCapChange() const;
 #endif
 	int  GetGreatGeneralModifier() const;
 	bool IsGreatGeneralReceivesMovement() const;
@@ -162,6 +167,7 @@ public:
 	bool IsBarbarianOnly() const;
 	int GetMoraleBreakChance() const;
 	int GetDamageAoEFortified() const;
+	int GetWorkRateMod() const;
 	UnitClassTypes GetCombatBonusFromNearbyUnitClass() const;
 	int GetNearbyUnitClassBonusRange() const;
 	int GetNearbyUnitClassBonus() const;
@@ -169,6 +175,7 @@ public:
 	bool IsStrongerDamaged() const;
 	bool IsMountainsDoubleMove() const;
 	int GetAOEDamageOnKill() const;
+	int GetAoEDamageOnMove() const;
 	int GetSplashDamage() const;
 	int GetMinRange() const;
 	int GetMaxRange() const;
@@ -246,25 +253,37 @@ public:
 	bool IsIgnoreZOC() const;
 	bool IsSapper() const;
 #if defined(MOD_BALANCE_CORE)
-	bool IsNearbyCityPromotion() const;
-	bool IsNearbyFriendlyCityPromotion() const;
-	bool IsNearbyEnemyCityPromotion() const;
+	int GetNearbyCityCombatMod() const;
+	int GetNearbyFriendlyCityCombatMod() const;
+	int GetNearbyEnemyCityCombatMod() const;
 	bool IsNearbyPromotion() const;
 	bool IsFriendlyLands() const;
-	bool IsEnemyLands() const;
 	int GetNearbyRange() const;
 	UnitTypes getRequiredUnit() const;
-	UnitTypes GetConvertDomainUnit() const;
-	DomainTypes GetConvertDomain() const;
-	PromotionTypes AddedFromNearbyPromotion() const;
+	bool IsConvertEnemyUnitToBarbarian() const;
+	bool IsConvertOnFullHP() const;
+	bool IsConvertOnDamage() const;
+	int GetDamageThreshold() const;
+	int GetConvertDamageOrFullHPUnit() const;
+	bool IsConvertUnit() const;
+	int GetConvertDomainUnit() const;
+	int GetConvertDomain() const;
 	int GetStackedGreatGeneralExperience() const;
 	int GetPillageBonusStrengthPercent() const;
 	int GetReligiousPressureModifier() const;
 	int GetAdjacentCityDefenseMod() const;
 	int GetNearbyEnemyDamage() const;
-	PromotionTypes GetAdjacentSameType() const;
 	int GetMilitaryProductionModifier() const;
 	bool IsHighSeaRaider() const;
+	int GetGeneralGoldenAgeExpPercent() const;
+	int GetGiveCombatMod() const;
+	int GetGiveHPIfEnemyKilled() const;
+	int GetGiveExperiencePercent() const;
+	int GetGiveOutsideFriendlyLandsModifier() const;
+	DomainTypes GetGiveDomain() const;
+	int GetGiveExtraAttacks() const;
+	int GetGiveDefenseMod() const;
+	bool IsGiveInvisibility() const;
 #endif
 	bool IsCanHeavyCharge() const;
 	bool HasPostCombatPromotions() const;
@@ -281,6 +300,7 @@ public:
 #if defined(MOD_BALANCE_CORE)
 	int GetYieldFromScouting(int i) const;
 	int GetYieldModifier(int i) const;
+	int GetYieldChange(int i) const;
 #endif
 #if defined(MOD_API_UNIFIED_YIELDS)
 	int GetYieldFromKills(int i) const;
@@ -293,6 +313,12 @@ public:
 	int GetFeaturePassableTech(int i) const;
 	int GetUnitClassAttackModifier(int i) const;
 	int GetUnitClassDefenseModifier(int i) const;
+
+#if defined(MOD_BALANCE_CORE)
+	int GetCombatModPerAdjacentUnitCombatModifierPercent(int i) const;
+	int GetCombatModPerAdjacentUnitCombatAttackModifier(int i) const;
+	int GetCombatModPerAdjacentUnitCombatDefenseModifier(int i) const;
+#endif
 
 	bool GetTerrainDoubleMove(int i) const;
 	bool GetFeatureDoubleMove(int i) const;
@@ -344,6 +370,9 @@ protected:
 	int m_iAirSweepCombatModifier;
 	int m_iInterceptChanceChange;
 	int m_iNumInterceptionChange;
+#if defined(MOD_BALANCE_CORE)
+	int m_iAirInterceptRangeChange; // JJ: This is new
+#endif
 	int m_iEvasionChange;
 	int m_iCargoChange;
 	int m_iEnemyHealChange;
@@ -381,6 +410,8 @@ protected:
 #if defined(MOD_PROMOTIONS_AURA_CHANGE)
 	int m_iAuraRangeChange;
 	int m_iAuraEffectChange;
+	int m_iNumRepairCharges;
+	int m_iMilitaryCapChange;
 #endif
 	int m_iGreatGeneralModifier;
 	bool m_bGreatGeneralReceivesMovement;
@@ -432,6 +463,7 @@ protected:
 	int m_iPromotionDuration;
 	int m_iMoraleBreakChance;
 	int m_iDamageAoEFortified;
+	int m_iWorkRateMod;
 	bool m_bIsLostOnMove;
 	bool m_bCityStateOnly;
 	bool m_bBarbarianOnly;
@@ -470,6 +502,7 @@ protected:
 	UnitClassTypes m_iCombatBonusFromNearbyUnitClass;
 	int m_iWonderProductionModifier;
 	int m_iAOEDamageOnKill;
+	int m_iAoEDamageOnMove;
 	int m_iSplashDamage;
 	int m_iMinRange;
 	int m_iMaxRange;
@@ -522,25 +555,37 @@ protected:
 	bool m_bPostCombatPromotionsExclusive;
 	bool m_bSapper;
 #if defined(MOD_BALANCE_CORE)
-	bool m_bIsNearbyCityPromotion;
-	bool m_bIsNearbyFriendlyCityPromotion;
-	bool m_bIsNearbyEnemyCityPromotion;
+	int m_iNearbyCityCombatMod;
+	int m_iNearbyFriendlyCityCombatMod;
+	int m_iNearbyEnemyCityCombatMod;
 	bool m_bIsNearbyPromotion;
 	bool m_bIsFriendlyLands;
-	bool m_bEnemyLands;
 	int m_iNearbyRange;
-	PromotionTypes m_eAddedFromNearbyPromotion;
 	UnitTypes m_eRequiredUnit;
-	UnitTypes m_eConvertDomainUnit;
-	DomainTypes m_eConvertDomain;
+	int m_iConvertDomainUnit;
+	int m_iConvertDomain;
+	bool m_bIsConvertUnit;
+	bool m_bIsConvertEnemyUnitToBarbarian;
+	bool m_bIsConvertOnFullHP;
+	bool m_bIsConvertOnDamage;
+	int m_iDamageThreshold;
+	int m_iConvertDamageOrFullHPUnit;
 	int m_iStackedGreatGeneralExperience;
 	int m_iPillageBonusStrength;
 	int m_iReligiousPressureModifier;
 	int m_iAdjacentCityDefesneMod;
 	int m_iNearbyEnemyDamage;
-	PromotionTypes m_eAdjacentSameType;
 	int m_iMilitaryProductionModifier;
 	bool m_bHighSeaRaider;
+	int m_iGeneralGoldenAgeExpPercent;
+	int m_iGiveCombatMod;
+	int m_iGiveHPHealedIfEnemyKilled;
+	int m_iGiveExperiencePercent;
+	int m_iGiveOutsideFriendlyLandsModifier;
+	DomainTypes m_eGiveDomain;
+	int m_iGiveExtraAttacks;
+	int m_iGiveDefenseMod;
+	bool m_bGiveInvisibility;
 #endif
 	bool m_bCanHeavyCharge;
 
@@ -554,6 +599,7 @@ protected:
 #if defined(MOD_BALANCE_CORE)
 	int* m_piYieldFromScouting;
 	int* m_piYieldModifier;
+	int* m_piYieldChange;
 #endif
 #if defined(MOD_API_UNIFIED_YIELDS)
 	int* m_piYieldFromKills;
@@ -566,6 +612,12 @@ protected:
 
 	int* m_piUnitClassAttackModifier;
 	int* m_piUnitClassDefenseModifier;
+
+#if defined(MOD_BALANCE_CORE)
+	int* m_piCombatModPerAdjacentUnitCombatModifierPercent;
+	int* m_piCombatModPerAdjacentUnitCombatAttackModifier;
+	int* m_piCombatModPerAdjacentUnitCombatDefenseModifier;
+#endif
 
 	int* m_piTerrainPassableTech;
 	int* m_piFeaturePassableTech;

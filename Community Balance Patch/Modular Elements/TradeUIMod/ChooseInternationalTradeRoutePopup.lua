@@ -165,7 +165,12 @@ function RefreshData()
 				strTraitText = " (" .. Locale.Lookup("TXT_KEY_CITY_STATE_RELIGIOUS_ADJECTIVE") .. ") ";
 			end
 		end
-		tradeRoute.CityName = (pTargetCity:GetName() .. strTraitText);
+	
+		local iDistance = pPlayer:GetTradeConnectionDistance(pOriginCity, pTargetCity, eDomain);
+		local CityNameString = Locale.ConvertTextKey("TXT_KEY_TRO_DISTANCE_VALUE",  iDistance);
+		local iTurns = pPlayer:GetTradeRouteTurns(pOriginCity, pTargetCity, eDomain);
+		if iTurns > 0 then CityNameString = CityNameString.." [ICON_SWAP]"..iTurns; end
+		tradeRoute.CityName = (pTargetCity:GetName() .. CityNameString .. strTraitText);
 --END		
 --EDITED		tradeRoute.CityName = pTargetCity:GetName();
 
@@ -209,7 +214,7 @@ function RefreshData()
 --			end
 -- CBP
 			elseif (iYield == YieldTypes.YIELD_CULTURE) then
-				tradeRoute.Culture = u.Theirs;
+				tradeRoute.Culture = u.Mine;
 				tradeRoute.CultureDelta = u.Mine - u.Theirs;
 			elseif (iYield == YieldTypes.YIELD_PRODUCTION) then
 				tradeRoute.Production = u.Theirs;

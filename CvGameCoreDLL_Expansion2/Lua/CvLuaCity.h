@@ -180,6 +180,7 @@ protected:
 	static int lIsCoastal(lua_State* L);
 #if defined(MOD_API_LUA_EXTENSIONS)
 	LUAAPIEXTN(IsAddsFreshWater, bool);
+	LUAAPIEXTN(FoodConsumptionSpecialistTimes100, int);
 #endif
 
 	static int lFoodConsumption(lua_State* L);
@@ -265,6 +266,7 @@ protected:
 	static int lGetJONSCulturePerTurnFromTraits(lua_State* L);
 #if defined(MOD_BALANCE_CORE)
 	static int lGetYieldPerTurnFromTraits(lua_State* L);
+	static int lGetYieldFromUnitsInCity(lua_State* L);
 #endif
 	static int lGetJONSCulturePerTurnFromReligion(lua_State* L);
 	static int lChangeJONSCulturePerTurnFromReligion(lua_State* L);
@@ -285,6 +287,8 @@ protected:
 	static int lGetNumGreatWorkSlots(lua_State* L);
 	static int lGetBaseTourism(lua_State* L);
 #if defined(MOD_BALANCE_CORE)
+	static int lGetNumGreatWorksFilled(lua_State* L);
+	static int lGetNumAvailableGreatWorkSlots(lua_State* L);
 	static int lRefreshTourism(lua_State* L);
 #endif
 	static int lGetTourismMultiplier(lua_State* L);
@@ -305,6 +309,8 @@ protected:
 	static int lGetFaithPerTurnFromReligion(lua_State* L);
 	static int lChangeFaithPerTurnFromReligion(lua_State* L);
 
+
+	static int lHasConvertedToReligionEver(lua_State* L);
 	static int lIsReligionInCity(lua_State* L);
 	static int lIsHolyCityForReligion(lua_State* L);
 	static int lIsHolyCityAnyReligion(lua_State* L);
@@ -454,6 +460,10 @@ protected:
 	static int lGetBaseYieldRateFromMisc(lua_State* L);
 	static int lChangeBaseYieldRateFromMisc(lua_State* L);
 
+#if defined(MOD_API_LUA_EXTENSIONS)
+	static int lGetBaseYieldRateFromProcess(lua_State* L);
+	static int lGetBaseYieldRateFromTradeRoutes(lua_State* L);
+#endif
 #if defined(MOD_API_LUA_EXTENSIONS) && defined(MOD_DIPLOMACY_CITYSTATES)
 	LUAAPIEXTN(GetBaseYieldRateFromLeague, int, iYield);
 #endif
@@ -575,6 +585,8 @@ protected:
 	LUAAPIEXTN(GetBuildingClassCultureChange, int);
 	LUAAPIEXTN(GetReligionYieldRateModifier, int);
 	LUAAPIEXTN(GetReligionBuildingYieldRateModifier, int);
+	LUAAPIEXTN(SetYieldPerTurnFromMinors, int);
+	LUAAPIEXTN(GetYieldPerTurnFromMinors, int);
 #endif
 #if defined(MOD_API_LUA_EXTENSIONS) && defined(MOD_BALANCE_CORE)
 	LUAAPIEXTN(GetBaseYieldRateFromCSAlliance, int);

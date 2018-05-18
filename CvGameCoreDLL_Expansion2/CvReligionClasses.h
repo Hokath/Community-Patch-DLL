@@ -170,6 +170,7 @@ public:
 	bool IsCityConnectedToCity(ReligionTypes eReligion, CvCity* pLoopCity, CvCity* pCity, bool& bConnectedWithTrade, int& iApparentDistance, int& iMaxDistance);
 	bool IsValidTarget(ReligionTypes eReligion, CvCity* pFromCity, CvCity* pToCity);
 	// Functions invoked each player turn
+	EraTypes GetFaithPurchaseGreatPeopleEra(CvPlayer* pPlayer);
 	void DoPlayerTurn(CvPlayer& kPlayer);
 	FOUNDING_RESULT CanCreatePantheon(PlayerTypes ePlayer, bool bCheckFaithTotal);
 	FOUNDING_RESULT CanFoundReligion(PlayerTypes ePlayer, ReligionTypes eReligion, const char* szCustomName, BeliefTypes eBelief1, BeliefTypes eBelief2, BeliefTypes eBelief3, BeliefTypes eBelief4, CvCity* pkHolyCity);
@@ -631,7 +632,7 @@ public:
 	int GetNumCitiesWithReligionCalculator(ReligionTypes eReligion = NO_RELIGION);
 #endif
 	CvCity* ChooseMissionaryTargetCity(CvUnit* pUnit, const vector<int>& vIgnoreTargets, int* piTurns = NULL);
-	CvCity* ChooseInquisitorTargetCity(CvUnit* pUnit, int* piTurns = NULL);
+	CvCity* ChooseInquisitorTargetCity(CvUnit* pUnit, const vector<int>& vIgnoreTargets, int* piTurns = NULL);
 	CvCity *ChooseProphetConversionCity(bool bOnlyBetterThanEnhancingReligion, CvUnit* pUnit = NULL, int* piTurns = NULL) const;
 
 	CvPlayer* GetPlayer();
@@ -652,10 +653,10 @@ private:
 	bool BuyAnyAvailableNonFaithBuilding();
 	bool BuyAnyAvailableFaithBuilding();
 
-	int ScoreBelief(CvBeliefEntry* pEntry);
+	int ScoreBelief(CvBeliefEntry* pEntry, bool bForBonus = false);
 	int ScoreBeliefAtPlot(CvBeliefEntry* pEntry, CvPlot* pPlot);
 	int ScoreBeliefAtCity(CvBeliefEntry* pEntry, CvCity* pCity);
-	int ScoreBeliefForPlayer(CvBeliefEntry* pEntry);
+	int ScoreBeliefForPlayer(CvBeliefEntry* pEntry, bool bReturnConquest = false, bool bReturnCulture = false, bool bReturnScience = false, bool bReturnDiplo = false);
 	int GetValidPlotYield(CvBeliefEntry* pEntry, CvPlot* pPlot, YieldTypes eYield);
 
 	int ScoreCityForMissionary(CvCity* pCity, CvUnit* pUnit);

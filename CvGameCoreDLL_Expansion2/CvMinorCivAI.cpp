@@ -367,467 +367,230 @@ void CvMinorCivQuest::DoRewards(PlayerTypes ePlayer)
 	if(IsPartialQuest())
 	{
 		SetInfluence(GetInfluence() / 2);
-		if(GetInfluence() > 0)
-		{
-			GET_PLAYER(m_eMinor).GetMinorCivAI()->ChangeFriendshipWithMajor(m_eAssignedPlayer, GetInfluence(), /*bFromQuest*/ true);
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_INFLUENCE]", GetInfluence());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
-		}
 		SetAdmiralPoints(GetAdmiralPoints() / 2);
-		if(GetAdmiralPoints() > 0)
-		{
-#if defined(MOD_UNITS_XP_TIMES_100)
-			kPlayer.changeNavalCombatExperienceTimes100(GetAdmiralPoints() * 100);
-#else
-			kPlayer.changeNavalCombatExperience(GetAdmiralPoints());
-#endif
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_GREAT_ADMIRAL]", GetAdmiralPoints());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
-		}
 		SetGeneralPoints(GetGeneralPoints() / 2);
-		if(GetGeneralPoints() > 0)
-		{
-#if defined(MOD_UNITS_XP_TIMES_100)
-			kPlayer.changeCombatExperienceTimes100(GetGeneralPoints() * 100);
-#else
-			kPlayer.changeCombatExperience(GetGeneralPoints());
-#endif
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_GREAT_GENERAL]", GetGeneralPoints());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
-		}
 		SetCulture(GetCulture() / 2);
-		if(GetCulture() > 0)
-		{
-			kPlayer.changeJONSCulture(GetCulture());
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_MAGENTA]+%d[ENDCOLOR][ICON_CULTURE]", GetCulture());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
-		}
 		SetExperience(GetExperience() / 2);
-		if(GetExperience() > 0)
-		{
-			int iLoop;
-			for(CvUnit* pLoopUnit = kPlayer.firstUnit(&iLoop); NULL != pLoopUnit; pLoopUnit = kPlayer.nextUnit(&iLoop))
-			{
-				if(pLoopUnit && pLoopUnit->IsCombatUnit())
-				{
-#if defined(MOD_UNITS_XP_TIMES_100)
-					pLoopUnit->changeExperienceTimes100(GetExperience() * 100);
-#else
-					pLoopUnit->changeExperience(GetExperience());
-#endif
-				}
-			}
-		}
 		SetFaith(GetFaith() / 2);
-		if(GetFaith() > 0)
-		{
-			kPlayer.ChangeFaith(GetFaith());
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_PEACE]", GetFaith());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
-		}
 		SetFood(GetFood() / 2);
-		if(GetFood() > 0)
-		{
-			kPlayer.getCapitalCity()->changeFood(GetFood());
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_GREEN]+%d[ENDCOLOR][ICON_FOOD]", GetFood());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
-		}
 		SetGoldenAgePoints(GetGoldenAgePoints() / 2);
-		if(GetGoldenAgePoints() > 0)
-		{
-			kPlayer.ChangeGoldenAgeProgressMeter(GetGoldenAgePoints());
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_GOLDEN_AGE]", GetGoldenAgePoints());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
-		}
 		SetGold(GetGold() / 2);
-		if(GetGold() > 0)
-		{
-			kPlayer.GetTreasury()->ChangeGold(GetGold());
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_YELLOW]+%d[ENDCOLOR][ICON_GOLD]", GetGold());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
-		}
 		SetGP(GetGP() / 2);
-		if(GetGP() > 0)
-		{
-			SpecialistTypes eBestSpecialist = NO_SPECIALIST;
-			for(int iSpecialistLoop = 0; iSpecialistLoop < GC.getNumSpecialistInfos(); iSpecialistLoop++)
-			{
-				const SpecialistTypes eSpecialist = static_cast<SpecialistTypes>(iSpecialistLoop);
-				CvSpecialistInfo* pkSpecialistInfo = GC.getSpecialistInfo(eSpecialist);
-				if(pkSpecialistInfo)
-				{
-					// Does this Specialist spawn a GP?
-					if(pkSpecialistInfo->getGreatPeopleUnitClass() != NO_UNITCLASS)
-					{				
-						kPlayer.getCapitalCity()->GetCityCitizens()->ChangeSpecialistGreatPersonProgressTimes100(eBestSpecialist, GetGP() * 100, true);
-					}
-				}
-			}
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_GREAT_PEOPLE]", GetGP());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
-		}
 		SetGPGlobal(GetGPGlobal() / 2);
-		if(GetGPGlobal() > 0)
-		{
-			CvCity* pLoopCity;
-			int iLoop;
-			// Find the closest City to us
-			for (pLoopCity = kPlayer.firstCity(&iLoop); pLoopCity != NULL; pLoopCity = kPlayer.nextCity(&iLoop))
-			{
-				if(pLoopCity != NULL)
-				{
-					SpecialistTypes eBestSpecialist = NO_SPECIALIST;
-					for(int iSpecialistLoop = 0; iSpecialistLoop < GC.getNumSpecialistInfos(); iSpecialistLoop++)
-					{
-						const SpecialistTypes eSpecialist = static_cast<SpecialistTypes>(iSpecialistLoop);
-						CvSpecialistInfo* pkSpecialistInfo = GC.getSpecialistInfo(eSpecialist);
-						if(pkSpecialistInfo)
-						{
-							// Does this Specialist spawn a GP?
-							if(pkSpecialistInfo->getGreatPeopleUnitClass() != NO_UNITCLASS)
-							{				
-								pLoopCity->GetCityCitizens()->ChangeSpecialistGreatPersonProgressTimes100(eBestSpecialist, GetGPGlobal() * 100, true);
-							}
-						}
-					}
-				}
-			}
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_GREAT_PEOPLE]", GetGPGlobal());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
-		}
 		SetHappiness(GetHappiness() / 2);
-		if(GetHappiness() > 0)
-		{
-			kPlayer.getCapitalCity()->ChangeUnmoddedHappinessFromBuildings(GetHappiness());
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_HAPPINESS_1]", GetHappiness());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
-		}
 		SetTourism(GetTourism() / 2);
-		if(GetTourism() > 0)
-		{
-			int iTourism = GetTourism();
-			kPlayer.GetCulture()->AddTourismAllKnownCivsWithModifiers(iTourism);
-			if(m_eAssignedPlayer == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				float fDelay = 0.5f;
-				sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_TOURISM]", iTourism);
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(),kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
-		}
 		SetProduction(GetProduction() / 2);
-		if(GetProduction() > 0)
-		{
-			kPlayer.getCapitalCity()->changeProduction(GetProduction());
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_YELLOW]+%d[ENDCOLOR][ICON_PRODUCTION]", GetProduction());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
-		}
 		SetScience(GetScience() / 2);
-		if(GetScience() > 0)
+	}
+
+	if (GetInfluence() > 0)
+	{
+		kPlayer.doInstantYield(INSTANT_YIELD_TYPE_MINOR_QUEST_REWARD, false, NO_GREATPERSON, NO_BUILDING, GetInfluence(), false, NO_PLAYER, NULL, false, kPlayer.getCapitalCity(), false, true, false, YIELD_JFD_LOYALTY, NULL, NO_TERRAIN, this);
+		GET_PLAYER(m_eMinor).GetMinorCivAI()->ChangeFriendshipWithMajor(m_eAssignedPlayer, GetInfluence(), /*bFromQuest*/ true);
+		if (kPlayer.GetID() == GC.getGame().getActivePlayer())
 		{
-			TechTypes eCurrentTech = kPlayer.GetPlayerTechs()->GetCurrentResearch();
-			if(eCurrentTech == NO_TECH)
+			char text[256] = { 0 };
+			fDelay += 0.5f;
+			sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_INFLUENCE]", GetInfluence());
+			DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
+		}
+	}
+	if (GetAdmiralPoints() > 0)
+	{
+		kPlayer.doInstantYield(INSTANT_YIELD_TYPE_MINOR_QUEST_REWARD, false, NO_GREATPERSON, NO_BUILDING, GetAdmiralPoints(), false, NO_PLAYER, NULL, false, kPlayer.getCapitalCity(), false, true, false, YIELD_GREAT_ADMIRAL_POINTS, NULL, NO_TERRAIN, this);
+		if (kPlayer.GetID() == GC.getGame().getActivePlayer())
+		{
+			char text[256] = { 0 };
+			fDelay += 0.5f;
+			sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_GREAT_ADMIRAL]", GetAdmiralPoints());
+			DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
+		}
+	}
+	if (GetGeneralPoints() > 0)
+	{
+		kPlayer.doInstantYield(INSTANT_YIELD_TYPE_MINOR_QUEST_REWARD, false, NO_GREATPERSON, NO_BUILDING, GetGeneralPoints(), false, NO_PLAYER, NULL, false, kPlayer.getCapitalCity(), false, true, false, YIELD_GREAT_GENERAL_POINTS, NULL, NO_TERRAIN, this);
+		if (kPlayer.GetID() == GC.getGame().getActivePlayer())
+		{
+			char text[256] = { 0 };
+			fDelay += 0.5f;
+			sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_GREAT_GENERAL]", GetGeneralPoints());
+			DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
+		}
+	}
+	if (GetCulture() > 0)
+	{
+		kPlayer.doInstantYield(INSTANT_YIELD_TYPE_MINOR_QUEST_REWARD, false, NO_GREATPERSON, NO_BUILDING, GetCulture(), false, NO_PLAYER, NULL, false, kPlayer.getCapitalCity(), false, true, false, YIELD_CULTURE, NULL, NO_TERRAIN, this);
+		if (kPlayer.GetID() == GC.getGame().getActivePlayer())
+		{
+			char text[256] = { 0 };
+			fDelay += 0.5f;
+			sprintf_s(text, "[COLOR_MAGENTA]+%d[ENDCOLOR][ICON_CULTURE]", GetCulture());
+			DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
+		}
+	}
+	if (GetExperience() > 0)
+	{
+		kPlayer.doInstantYield(INSTANT_YIELD_TYPE_MINOR_QUEST_REWARD, false, NO_GREATPERSON, NO_BUILDING, GetExperience(), false, NO_PLAYER, NULL, false, kPlayer.getCapitalCity(), false, true, false, YIELD_JFD_SOVEREIGNTY, NULL, NO_TERRAIN, this);
+		int iLoop;
+		for (CvUnit* pLoopUnit = kPlayer.firstUnit(&iLoop); NULL != pLoopUnit; pLoopUnit = kPlayer.nextUnit(&iLoop))
+		{
+			if (pLoopUnit && pLoopUnit->IsCombatUnit())
 			{
-				kPlayer.changeOverflowResearch(GetScience());
-			}
-			else
-			{
-				GET_TEAM(kPlayer.getTeam()).GetTeamTechs()->ChangeResearchProgress(eCurrentTech, GetScience(), ePlayer);
-			}
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_BLUE]+%d[ENDCOLOR][ICON_RESEARCH]", GetScience());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
+#if defined(MOD_UNITS_XP_TIMES_100)
+				pLoopUnit->changeExperienceTimes100(GetExperience() * 100);
+#else
+				pLoopUnit->changeExperience(GetExperience());
+#endif
 			}
 		}
 	}
-	else
+	if (GetFaith() > 0)
 	{
-		if(GetInfluence() > 0)
+		kPlayer.doInstantYield(INSTANT_YIELD_TYPE_MINOR_QUEST_REWARD, false, NO_GREATPERSON, NO_BUILDING, GetFaith(), false, NO_PLAYER, NULL, false, kPlayer.getCapitalCity(), false, true, false, YIELD_FAITH, NULL, NO_TERRAIN, this);
+		if (kPlayer.GetID() == GC.getGame().getActivePlayer())
 		{
-			GET_PLAYER(m_eMinor).GetMinorCivAI()->ChangeFriendshipWithMajor(m_eAssignedPlayer, GetInfluence(), /*bFromQuest*/ true);
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_INFLUENCE]", GetInfluence());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
+			char text[256] = { 0 };
+			fDelay += 0.5f;
+			sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_PEACE]", GetFaith());
+			DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
 		}
-		if(GetAdmiralPoints() > 0)
+	}
+	if (GetFood() > 0)
+	{
+		kPlayer.doInstantYield(INSTANT_YIELD_TYPE_MINOR_QUEST_REWARD, false, NO_GREATPERSON, NO_BUILDING, GetFood(), false, NO_PLAYER, NULL, false, kPlayer.getCapitalCity(), false, true, false, YIELD_FOOD, NULL, NO_TERRAIN, this);
+		if (kPlayer.GetID() == GC.getGame().getActivePlayer())
 		{
-#if defined(MOD_UNITS_XP_TIMES_100)
-			kPlayer.changeNavalCombatExperienceTimes100(GetAdmiralPoints() * 100);
-#else
-			kPlayer.changeNavalCombatExperience(GetAdmiralPoints());
-#endif
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_GREAT_ADMIRAL]", GetAdmiralPoints());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
+			char text[256] = { 0 };
+			fDelay += 0.5f;
+			sprintf_s(text, "[COLOR_GREEN]+%d[ENDCOLOR][ICON_FOOD]", GetFood());
+			DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
 		}
-		if(GetGeneralPoints() > 0)
+	}
+	if (GetGoldenAgePoints() > 0)
+	{
+		kPlayer.doInstantYield(INSTANT_YIELD_TYPE_MINOR_QUEST_REWARD, false, NO_GREATPERSON, NO_BUILDING, GetGoldenAgePoints(), false, NO_PLAYER, NULL, false, kPlayer.getCapitalCity(), false, true, false, YIELD_GOLDEN_AGE_POINTS, NULL, NO_TERRAIN, this);
+		kPlayer.ChangeGoldenAgeProgressMeter(GetGoldenAgePoints());
+		if (kPlayer.GetID() == GC.getGame().getActivePlayer())
 		{
-#if defined(MOD_UNITS_XP_TIMES_100)
-			kPlayer.changeCombatExperienceTimes100(GetGeneralPoints() * 100);
-#else
-			kPlayer.changeCombatExperience(GetGeneralPoints());
-#endif
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_GREAT_GENERAL]", GetGeneralPoints());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
+			char text[256] = { 0 };
+			fDelay += 0.5f;
+			sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_GOLDEN_AGE]", GetGoldenAgePoints());
+			DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
 		}
-		if(GetCulture() > 0)
+	}
+	if (GetGold() > 0)
+	{
+		kPlayer.doInstantYield(INSTANT_YIELD_TYPE_MINOR_QUEST_REWARD, false, NO_GREATPERSON, NO_BUILDING, GetGold(), false, NO_PLAYER, NULL, false, kPlayer.getCapitalCity(), false, true, false, YIELD_GOLD, NULL, NO_TERRAIN, this);
+		if (kPlayer.GetID() == GC.getGame().getActivePlayer())
 		{
-			kPlayer.changeJONSCulture(GetCulture());
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_MAGENTA]+%d[ENDCOLOR][ICON_CULTURE]", GetCulture());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
+			char text[256] = { 0 };
+			fDelay += 0.5f;
+			sprintf_s(text, "[COLOR_YELLOW]+%d[ENDCOLOR][ICON_GOLD]", GetGold());
+			DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
 		}
-		if(GetExperience() > 0)
+	}
+	if (GetGP() > 0)
+	{
+		for (int iSpecialistLoop = 0; iSpecialistLoop < GC.getNumSpecialistInfos(); iSpecialistLoop++)
 		{
-			int iLoop;
-			for(CvUnit* pLoopUnit = kPlayer.firstUnit(&iLoop); NULL != pLoopUnit; pLoopUnit = kPlayer.nextUnit(&iLoop))
+			const SpecialistTypes eSpecialist = static_cast<SpecialistTypes>(iSpecialistLoop);
+			CvSpecialistInfo* pkSpecialistInfo = GC.getSpecialistInfo(eSpecialist);
+			if (pkSpecialistInfo)
 			{
-				if(pLoopUnit && pLoopUnit->IsCombatUnit())
+				// Does this Specialist spawn a GP?
+				if (pkSpecialistInfo->getGreatPeopleUnitClass() != NO_UNITCLASS)
 				{
-#if defined(MOD_UNITS_XP_TIMES_100)				
-					pLoopUnit->changeExperienceTimes100(GetExperience() * 100);
-#else
-					pLoopUnit->changeExperience(GetExperience());
-#endif
+					kPlayer.getCapitalCity()->GetCityCitizens()->ChangeSpecialistGreatPersonProgressTimes100(eSpecialist, GetGP() * 100, true);
 				}
 			}
 		}
-		if(GetFaith() > 0)
+		kPlayer.doInstantYield(INSTANT_YIELD_TYPE_MINOR_QUEST_REWARD, false, NO_GREATPERSON, NO_BUILDING, GetGP(), false, NO_PLAYER, NULL, false, kPlayer.getCapitalCity(), false, true, false, YIELD_JFD_HEALTH, NULL, NO_TERRAIN, this);
+		if (kPlayer.GetID() == GC.getGame().getActivePlayer())
 		{
-			kPlayer.ChangeFaith(GetFaith());
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_PEACE]", GetFaith());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
-		}		
-		if(GetFood() > 0)
-		{
-			kPlayer.getCapitalCity()->changeFood(GetFood());
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_GREEN]+%d[ENDCOLOR][ICON_FOOD]", GetFood());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
+			char text[256] = { 0 };
+			fDelay += 0.5f;
+			sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_GREAT_PEOPLE]", GetGP());
+			DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
 		}
-	
-		if(GetGoldenAgePoints() > 0)
+	}
+	if (GetGPGlobal() > 0)
+	{
+		CvCity* pLoopCity;
+		int iLoop;
+		// Find the closest City to us
+		for (pLoopCity = kPlayer.firstCity(&iLoop); pLoopCity != NULL; pLoopCity = kPlayer.nextCity(&iLoop))
 		{
-			kPlayer.ChangeGoldenAgeProgressMeter(GetGoldenAgePoints());
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
+			if (pLoopCity != NULL)
 			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_GOLDEN_AGE]", GetGoldenAgePoints());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
-		}
-		if(GetGold() > 0)
-		{
-			kPlayer.GetTreasury()->ChangeGold(GetGold());
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_YELLOW]+%d[ENDCOLOR][ICON_GOLD]", GetGold());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
-		}
-		if(GetGP() > 0)
-		{
-			SpecialistTypes eBestSpecialist = NO_SPECIALIST;
-			for(int iSpecialistLoop = 0; iSpecialistLoop < GC.getNumSpecialistInfos(); iSpecialistLoop++)
-			{
-				const SpecialistTypes eSpecialist = static_cast<SpecialistTypes>(iSpecialistLoop);
-				CvSpecialistInfo* pkSpecialistInfo = GC.getSpecialistInfo(eSpecialist);
-				if(pkSpecialistInfo)
+				for (int iSpecialistLoop = 0; iSpecialistLoop < GC.getNumSpecialistInfos(); iSpecialistLoop++)
 				{
-					// Does this Specialist spawn a GP?
-					if(pkSpecialistInfo->getGreatPeopleUnitClass() != NO_UNITCLASS)
-					{				
-						kPlayer.getCapitalCity()->GetCityCitizens()->ChangeSpecialistGreatPersonProgressTimes100(eBestSpecialist, GetGP() * 100, true);
-					}
-				}
-			}
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_GREAT_PEOPLE]", GetGP());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
-		}
-		if(GetGPGlobal() > 0)
-		{
-			CvCity* pLoopCity;
-			int iLoop;
-			// Find the closest City to us
-			for (pLoopCity = kPlayer.firstCity(&iLoop); pLoopCity != NULL; pLoopCity = kPlayer.nextCity(&iLoop))
-			{
-				if(pLoopCity != NULL)
-				{
-					SpecialistTypes eBestSpecialist = NO_SPECIALIST;
-					for(int iSpecialistLoop = 0; iSpecialistLoop < GC.getNumSpecialistInfos(); iSpecialistLoop++)
+					const SpecialistTypes eSpecialist = static_cast<SpecialistTypes>(iSpecialistLoop);
+					CvSpecialistInfo* pkSpecialistInfo = GC.getSpecialistInfo(eSpecialist);
+					if (pkSpecialistInfo)
 					{
-						const SpecialistTypes eSpecialist = static_cast<SpecialistTypes>(iSpecialistLoop);
-						CvSpecialistInfo* pkSpecialistInfo = GC.getSpecialistInfo(eSpecialist);
-						if(pkSpecialistInfo)
+						// Does this Specialist spawn a GP?
+						if (pkSpecialistInfo->getGreatPeopleUnitClass() != NO_UNITCLASS)
 						{
-							// Does this Specialist spawn a GP?
-							if(pkSpecialistInfo->getGreatPeopleUnitClass() != NO_UNITCLASS)
-							{				
-								pLoopCity->GetCityCitizens()->ChangeSpecialistGreatPersonProgressTimes100(eBestSpecialist, GetGPGlobal() * 100, true);
-							}
+							pLoopCity->GetCityCitizens()->ChangeSpecialistGreatPersonProgressTimes100(eSpecialist, GetGPGlobal() * 100, true);
 						}
 					}
 				}
 			}
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_GREAT_PEOPLE]", GetGPGlobal());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
 		}
-		if(GetHappiness() > 0)
+		kPlayer.doInstantYield(INSTANT_YIELD_TYPE_MINOR_QUEST_REWARD, false, NO_GREATPERSON, NO_BUILDING, GetGPGlobal(), false, NO_PLAYER, NULL, false, NULL, false, true, false, YIELD_JFD_HEALTH, NULL, NO_TERRAIN, this);
+		if (kPlayer.GetID() == GC.getGame().getActivePlayer())
 		{
-			kPlayer.getCapitalCity()->ChangeUnmoddedHappinessFromBuildings(GetHappiness());
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_HAPPINESS_1]", GetHappiness());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
-		}
-		if(GetTourism() > 0)
-		{
-			int iTourism = GetTourism();
-			kPlayer.GetCulture()->AddTourismAllKnownCivsWithModifiers(iTourism);
-			if(m_eAssignedPlayer == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				float fDelay = 0.5f;
-				sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_TOURISM]", iTourism);
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(),kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
-		}
-		if(GetProduction() > 0)
-		{
-			kPlayer.getCapitalCity()->changeProduction(GetProduction());
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_YELLOW]+%d[ENDCOLOR][ICON_PRODUCTION]", GetProduction());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
-		}
-		if(GetScience() > 0)
-		{
-			TechTypes eCurrentTech = kPlayer.GetPlayerTechs()->GetCurrentResearch();
-			if(eCurrentTech == NO_TECH)
-			{
-				kPlayer.changeOverflowResearch(GetScience());
-			}
-			else
-			{
-				GET_TEAM(kPlayer.getTeam()).GetTeamTechs()->ChangeResearchProgress(eCurrentTech, GetScience(), ePlayer);
-			}
-			if(kPlayer.GetID() == GC.getGame().getActivePlayer())
-			{
-				char text[256] = {0};
-				fDelay += 0.5f;
-				sprintf_s(text, "[COLOR_BLUE]+%d[ENDCOLOR][ICON_RESEARCH]", GetScience());
-				DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
-			}
+			char text[256] = { 0 };
+			fDelay += 0.5f;
+			sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_GREAT_PEOPLE]", GetGPGlobal());
+			DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
 		}
 	}
+	if (GetHappiness() > 0)
+	{
+		kPlayer.doInstantYield(INSTANT_YIELD_TYPE_MINOR_QUEST_REWARD, false, NO_GREATPERSON, NO_BUILDING, GetHappiness(), false, NO_PLAYER, NULL, false, kPlayer.getCapitalCity(), false, true, false, YIELD_CULTURE_LOCAL, NULL, NO_TERRAIN, this);
+		if (kPlayer.GetID() == GC.getGame().getActivePlayer())
+		{
+			char text[256] = { 0 };
+			fDelay += 0.5f;
+			sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_HAPPINESS_1]", GetHappiness());
+			DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
+		}
+	}
+	if (GetTourism() > 0)
+	{
+		kPlayer.doInstantYield(INSTANT_YIELD_TYPE_MINOR_QUEST_REWARD, false, NO_GREATPERSON, NO_BUILDING, GetTourism(), false, NO_PLAYER, NULL, false, kPlayer.getCapitalCity(), false, true, false, YIELD_TOURISM, NULL, NO_TERRAIN, this);
+		if (m_eAssignedPlayer == GC.getGame().getActivePlayer())
+		{
+			char text[256] = { 0 };
+			float fDelay = 0.5f;
+			sprintf_s(text, "[COLOR_WHITE]+%d[ENDCOLOR][ICON_TOURISM]", GetTourism());
+			DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
+		}
+	}
+	if (GetProduction() > 0)
+	{
+		kPlayer.doInstantYield(INSTANT_YIELD_TYPE_MINOR_QUEST_REWARD, false, NO_GREATPERSON, NO_BUILDING, GetProduction(), false, NO_PLAYER, NULL, false, kPlayer.getCapitalCity(), false, true, false, YIELD_PRODUCTION, NULL, NO_TERRAIN, this);
+		if (kPlayer.GetID() == GC.getGame().getActivePlayer())
+		{
+			char text[256] = { 0 };
+			fDelay += 0.5f;
+			sprintf_s(text, "[COLOR_YELLOW]+%d[ENDCOLOR][ICON_PRODUCTION]", GetProduction());
+			DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
+		}
+	}
+	if (GetScience() > 0)
+	{
+		kPlayer.doInstantYield(INSTANT_YIELD_TYPE_MINOR_QUEST_REWARD, false, NO_GREATPERSON, NO_BUILDING, GetScience(), false, NO_PLAYER, NULL, false, kPlayer.getCapitalCity(), false, true, false, YIELD_SCIENCE, NULL, NO_TERRAIN, this);
+		if (kPlayer.GetID() == GC.getGame().getActivePlayer())
+		{
+			char text[256] = { 0 };
+			fDelay += 0.5f;
+			sprintf_s(text, "[COLOR_BLUE]+%d[ENDCOLOR][ICON_RESEARCH]", GetScience());
+			DLLUI->AddPopupText(kPlayer.getCapitalCity()->getX(), kPlayer.getCapitalCity()->getY(), text, fDelay);
+		}
+	}
+
 }
 void CvMinorCivQuest:: SetInfluence(int iValue)
 {
@@ -1002,12 +765,12 @@ void CvMinorCivQuest::CalculateRewards(PlayerTypes ePlayer)
 			iBonus *= iEra;
 			if(ePersonality == MINOR_CIV_PERSONALITY_IRRATIONAL)
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
-				iBonus -= GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight()+1) * 2;
+				iBonus -= GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight()-1) * 2;
 			}
 			else
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight()) * 2;
 			}
 			if(GET_PLAYER(m_eAssignedPlayer).GetIncreasedQuestInfluence() > 0)
 			{
@@ -1034,8 +797,8 @@ void CvMinorCivQuest::CalculateRewards(PlayerTypes ePlayer)
 				iBonus *= 75;
 				iBonus /= 100;
 			}
-			iBonus *= GC.getGame().getGameSpeedInfo().getTrainPercent();
-			iBonus /= 100;
+			iBonus *= GC.getGame().getGameSpeedInfo().getTrainPercent() * 7;
+			iBonus /= max(1, GC.getGame().getGameSpeedInfo().getTrainPercent() * 10);
 			SetInfluence(iBonus);
 		}
 		if(pkSmallAwardInfo->GetAdmiralPoints() > 0)
@@ -1044,12 +807,12 @@ void CvMinorCivQuest::CalculateRewards(PlayerTypes ePlayer)
 			iBonus *= iEra;
 			if(ePersonality == MINOR_CIV_PERSONALITY_IRRATIONAL)
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
-				iBonus -= GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() + 1) * 2;
+				iBonus -= GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() - 1) * 2;
 			}
 			else
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight()) * 2;
 			}
 			if(GET_PLAYER(m_eAssignedPlayer).GetIncreasedQuestInfluence() > 0)
 			{
@@ -1098,12 +861,12 @@ void CvMinorCivQuest::CalculateRewards(PlayerTypes ePlayer)
 			iBonus *= iEra;
 			if(ePersonality == MINOR_CIV_PERSONALITY_IRRATIONAL)
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
-				iBonus -= GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() + 1) * 2;
+				iBonus -= GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() - 1) * 2;
 			}
 			else
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight()) * 2;
 			}
 			if(GET_PLAYER(m_eAssignedPlayer).GetIncreasedQuestInfluence() > 0)
 			{
@@ -1150,12 +913,12 @@ void CvMinorCivQuest::CalculateRewards(PlayerTypes ePlayer)
 			int iBonus = iEra * pkSmallAwardInfo->GetCulture();
 			if(ePersonality == MINOR_CIV_PERSONALITY_IRRATIONAL)
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
-				iBonus -= GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() + 1) * 2;
+				iBonus -= GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() - 1) * 2;
 			}
 			else
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight()) * 2;
 			}
 			if(GET_PLAYER(m_eAssignedPlayer).GetIncreasedQuestInfluence() > 0)
 			{
@@ -1196,12 +959,12 @@ void CvMinorCivQuest::CalculateRewards(PlayerTypes ePlayer)
 			int iBonus = pkSmallAwardInfo->GetExperience();
 			if(ePersonality == MINOR_CIV_PERSONALITY_IRRATIONAL)
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
-				iBonus -= GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() + 1) * 2;
+				iBonus -= GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() - 1) * 2;
 			}
 			else
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight()) * 2;
 			}
 			if(GET_PLAYER(m_eAssignedPlayer).GetIncreasedQuestInfluence() > 0)
 			{
@@ -1247,12 +1010,12 @@ void CvMinorCivQuest::CalculateRewards(PlayerTypes ePlayer)
 			int iBonus = iEra * pkSmallAwardInfo->GetFaith();
 			if(ePersonality == MINOR_CIV_PERSONALITY_IRRATIONAL)
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
-				iBonus -= GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() + 1) * 2;
+				iBonus -= GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() - 1) * 2;
 			}
 			else
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight()) * 2;
 			}
 			if(GET_PLAYER(m_eAssignedPlayer).GetIncreasedQuestInfluence() > 0)
 			{
@@ -1293,12 +1056,12 @@ void CvMinorCivQuest::CalculateRewards(PlayerTypes ePlayer)
 			int iBonus = iEra * pkSmallAwardInfo->GetFood();
 			if(ePersonality == MINOR_CIV_PERSONALITY_IRRATIONAL)
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
-				iBonus -= GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() + 1) * 2;
+				iBonus -= GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() - 1) * 2;
 			}
 			else
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight()) * 2;
 			}
 			if(GET_PLAYER(m_eAssignedPlayer).GetIncreasedQuestInfluence() > 0)
 			{
@@ -1344,12 +1107,12 @@ void CvMinorCivQuest::CalculateRewards(PlayerTypes ePlayer)
 			int iBonus = iEra * pkSmallAwardInfo->GetGAP();
 			if(ePersonality == MINOR_CIV_PERSONALITY_IRRATIONAL)
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
-				iBonus -= GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() + 1) * 2;
+				iBonus -= GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() - 1) * 2;
 			}
 			else
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight()) * 2;
 			}
 			if(GET_PLAYER(m_eAssignedPlayer).GetIncreasedQuestInfluence() > 0)
 			{
@@ -1395,12 +1158,12 @@ void CvMinorCivQuest::CalculateRewards(PlayerTypes ePlayer)
 			int iBonus = iEra * pkSmallAwardInfo->GetGold();
 			if(ePersonality == MINOR_CIV_PERSONALITY_IRRATIONAL)
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
-				iBonus -= GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() + 1) * 2;
+				iBonus -= GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() - 1) * 2;
 			}
 			else
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight()) * 2;
 			}
 			if(GET_PLAYER(m_eAssignedPlayer).GetIncreasedQuestInfluence() > 0)
 			{
@@ -1441,12 +1204,12 @@ void CvMinorCivQuest::CalculateRewards(PlayerTypes ePlayer)
 			int iBonus = iEra * pkSmallAwardInfo->GetGPPoints();
 			if(ePersonality == MINOR_CIV_PERSONALITY_IRRATIONAL)
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
-				iBonus -= GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() + 1) * 2;
+				iBonus -= GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() - 1) * 2;
 			}
 			else
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight()) * 2;
 			}
 			if(GET_PLAYER(m_eAssignedPlayer).GetIncreasedQuestInfluence() > 0)
 			{
@@ -1482,15 +1245,15 @@ void CvMinorCivQuest::CalculateRewards(PlayerTypes ePlayer)
 		}
 		if(pkSmallAwardInfo->GetGPPointsGlobal() > 0)
 		{
-			int iBonus = iEra * pkSmallAwardInfo->GetGPPointsGlobal();
+			int iBonus = pkSmallAwardInfo->GetGPPointsGlobal();
 			if(ePersonality == MINOR_CIV_PERSONALITY_IRRATIONAL)
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
-				iBonus -= GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() + 1) * 2;
+				iBonus -= GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() - 1) * 2;
 			}
 			else
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight()) * 2;
 			}
 			if(GET_PLAYER(m_eAssignedPlayer).GetIncreasedQuestInfluence() > 0)
 			{
@@ -1529,12 +1292,12 @@ void CvMinorCivQuest::CalculateRewards(PlayerTypes ePlayer)
 			int iBonus = iEra * pkSmallAwardInfo->GetHappiness();
 			if(ePersonality == MINOR_CIV_PERSONALITY_IRRATIONAL)
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
-				iBonus -= GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() + 1) * 2;
+				iBonus -= GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() - 1) * 2;
 			}
 			else
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight()) * 2;
 			}
 			if(GET_PLAYER(m_eAssignedPlayer).GetIncreasedQuestInfluence() > 0)
 			{
@@ -1566,11 +1329,8 @@ void CvMinorCivQuest::CalculateRewards(PlayerTypes ePlayer)
 				iBonus *= 150;
 				iBonus /= 100;
 			}
-			//Cap it to keep things under control.
-			if(iBonus > pkSmallAwardInfo->GetHappiness() * 4)
-			{
-				iBonus = pkSmallAwardInfo->GetHappiness() * 4;
-			}
+			//Cap it both sides to keep things under control.
+			iBonus = min( max(iBonus, pkSmallAwardInfo->GetHappiness()), 4*pkSmallAwardInfo->GetHappiness());
 			SetHappiness(iBonus);
 		}
 		if(pkSmallAwardInfo->GetTourism() > 0)
@@ -1578,12 +1338,12 @@ void CvMinorCivQuest::CalculateRewards(PlayerTypes ePlayer)
 			int iBonus = iEra * pkSmallAwardInfo->GetTourism();
 			if(ePersonality == MINOR_CIV_PERSONALITY_IRRATIONAL)
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
-				iBonus -= GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() + 1) * 2;
+				iBonus -= GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() - 1) * 2;
 			}
 			else
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight()) * 2;
 			}
 			if(GET_PLAYER(m_eAssignedPlayer).GetIncreasedQuestInfluence() > 0)
 			{
@@ -1630,12 +1390,12 @@ void CvMinorCivQuest::CalculateRewards(PlayerTypes ePlayer)
 			int iBonus = iEra * pkSmallAwardInfo->GetProduction();
 			if(ePersonality == MINOR_CIV_PERSONALITY_IRRATIONAL)
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
-				iBonus -= GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() + 1) * 2;
+				iBonus -= GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() - 1) * 2;
 			}
 			else
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight()) * 2;
 			}
 			if(GET_PLAYER(m_eAssignedPlayer).GetIncreasedQuestInfluence() > 0)
 			{
@@ -1673,15 +1433,15 @@ void CvMinorCivQuest::CalculateRewards(PlayerTypes ePlayer)
 		}
 		if(pkSmallAwardInfo->GetScience() > 0)
 		{
-			int iBonus = iEra * pkSmallAwardInfo->GetProduction();
+			int iBonus = iEra * pkSmallAwardInfo->GetScience();
 			if(ePersonality == MINOR_CIV_PERSONALITY_IRRATIONAL)
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
-				iBonus -= GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() + 1) * 2;
+				iBonus -= GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight() - 1) * 2;
 			}
 			else
 			{
-				iBonus += GC.getGame().getJonRandNum(pkSmallAwardInfo->GetRandom(), "MINOR CIV AI: Adding random bonus to quest.");
+				iBonus += GC.getGame().getSmallFakeRandNum(pkSmallAwardInfo->GetRandom(), kPlayer.GetEconomicMight()) * 2;
 			}
 			if(GET_PLAYER(m_eAssignedPlayer).GetIncreasedQuestInfluence() > 0)
 			{
@@ -1936,9 +1696,24 @@ int CvMinorCivQuest::GetContestValueForPlayer(PlayerTypes ePlayer)
 	}
 	else if(eType == MINOR_CIV_QUEST_CONTEST_FAITH)
 	{
-		int iStartFaith = pMinor->GetMinorCivAI()->GetQuestData1(ePlayer, eType);
-		int iEndFaith = GET_PLAYER(ePlayer).GetFaithEverGenerated();
-		iValue = iEndFaith - iStartFaith;
+		ReligionTypes eReligion = GET_PLAYER(ePlayer).GetReligions()->GetCurrentReligion();
+		if (eReligion == NO_RELIGION)
+			eReligion = GET_PLAYER(ePlayer).GetReligions()->GetReligionInMostCities();
+		if (MOD_BALANCE_CORE_QUEST_CHANGES)
+		{
+			if (eReligion != NO_RELIGION)
+			{
+				int iStartFollowers = pMinor->GetMinorCivAI()->GetQuestData1(ePlayer, eType);
+				int iEndFollowers = GC.getGame().GetGameReligions()->GetNumFollowers(eReligion);
+				iValue = iEndFollowers - iStartFollowers;
+			}
+		}
+		else
+		{
+			int iStartFaith = pMinor->GetMinorCivAI()->GetQuestData1(ePlayer, eType);
+			int iEndFaith = GET_PLAYER(ePlayer).GetFaithEverGenerated();
+			iValue = iEndFaith - iStartFaith;
+		}
 	}
 	else if(eType == MINOR_CIV_QUEST_CONTEST_TECHS)
 	{
@@ -1949,7 +1724,7 @@ int CvMinorCivQuest::GetContestValueForPlayer(PlayerTypes ePlayer)
 #if defined(MOD_DIPLOMACY_CITYSTATES_QUESTS)
 	else if(eType == MINOR_CIV_QUEST_CONTEST_TOURISM)
 	{
-		iValue = GET_PLAYER(ePlayer).GetCulture()->GetTourism();
+		iValue = GET_PLAYER(ePlayer).GetCulture()->GetTourism() / 100;
 	}
 #endif
 
@@ -3228,9 +3003,22 @@ void CvMinorCivQuest::DoStartQuest(int iStartTurn)
 	// Faith contest
 	else if(m_eType == MINOR_CIV_QUEST_CONTEST_FAITH)
 	{
-		int iStartingFaith = pAssignedPlayer->GetFaithEverGenerated();
-
-		m_iData1 = iStartingFaith;
+		ReligionTypes eReligion = pAssignedPlayer->GetReligions()->GetCurrentReligion();
+		if (eReligion == NO_RELIGION)
+			eReligion = pAssignedPlayer->GetReligions()->GetReligionInMostCities();
+		if (MOD_BALANCE_CORE_QUEST_CHANGES)
+		{
+			if (eReligion != NO_RELIGION)
+			{
+				int iStartFollowers = GC.getGame().GetGameReligions()->GetNumFollowers(eReligion);
+				m_iData1 = iStartFollowers;
+			}
+		}
+		else
+		{
+			int iStartingFaith = pAssignedPlayer->GetFaithEverGenerated();
+			m_iData1 = iStartingFaith;
+		}
 
 		int iTurnsRemaining = GetEndTurn() - GC.getGame().getGameTurn();
 		int iTurnsDuration = GetEndTurn() - GetStartTurn();
@@ -3426,7 +3214,7 @@ void CvMinorCivQuest::DoStartQuest(int iStartTurn)
 	// Tourism
 	else if(m_eType == MINOR_CIV_QUEST_CONTEST_TOURISM)
 	{
-		int iValue = pAssignedPlayer->GetCulture()->GetTourism();
+		int iValue = pAssignedPlayer->GetCulture()->GetTourism() / 100;
 		m_iData1 = iValue;
 
 		int iTurnsRemaining = GetEndTurn() - GC.getGame().getGameTurn();
@@ -3661,7 +3449,7 @@ void CvMinorCivQuest::DoStartQuest(int iStartTurn)
 
 		FAssertMsg(eBuilding != NO_BUILDING, "MINOR CIV AI: For some reason we got NO_BUILDING when starting a quest for a major to find a Wonder.");
 
-		int iActionAmount = 1 + GC.getGame().getJonRandNum(GET_PLAYER(m_eAssignedPlayer).getNumCities(), "Minor Civ AI: Number of Actions");
+		int iActionAmount = 1 + GC.getGame().getSmallFakeRandNum(GET_PLAYER(m_eAssignedPlayer).getNumCities(), GET_PLAYER(m_eAssignedPlayer).getNumCities());
 		if(iActionAmount > GET_PLAYER(m_eAssignedPlayer).getNumCities())
 		{
 			iActionAmount = GET_PLAYER(m_eAssignedPlayer).getNumCities();
@@ -3685,7 +3473,7 @@ void CvMinorCivQuest::DoStartQuest(int iStartTurn)
 
 		if (!pCity)
 			return;
-		int iActionAmount = GC.getGame().getJonRandNum(4, "Minor Civ AI: Number of Actions");
+		int iActionAmount = GC.getGame().getSmallFakeRandNum(4, *pCity->plot());
 		if(iActionAmount <= 0)
 		{
 			iActionAmount = 1;
@@ -5192,11 +4980,7 @@ CvPlayer* CvMinorCivAI::GetPlayer()
 MinorCivTypes CvMinorCivAI::GetMinorCivType() const
 {
 	//	return m_minorCivType;
-#if defined(MOD_GLOBAL_MAX_MAJOR_CIVS)
-	return CvPreGame::minorCivType((PlayerTypes) (m_pPlayer->GetID() + (MAX_PREGAME_MAJOR_CIVS - MAX_MAJOR_CIVS)));
-#else
 	return CvPreGame::minorCivType(m_pPlayer->GetID());
-#endif
 }
 
 /// What is the personality of this Minor
@@ -5266,7 +5050,9 @@ void CvMinorCivAI::DoPickPersonality()
 	CvFlavorManager* pFlavorManager = m_pPlayer->GetFlavorManager();
 	int* pFlavors = pFlavorManager->GetAllPersonalityFlavors();
 
-	MinorCivPersonalityTypes eRandPersonality = (MinorCivPersonalityTypes) GC.getGame().getJonRandNum(NUM_MINOR_CIV_PERSONALITY_TYPES, "Minor Civ AI: Picking Personality for this Game (should happen only once per player)");
+	MinorCivPersonalityTypes eRandPersonality = (MinorCivPersonalityTypes)GC.getGame().getSmallFakeRandNum(NUM_MINOR_CIV_PERSONALITY_TYPES-1, m_pPlayer->GetID());
+	if (eRandPersonality == NO_MINOR_CIV_PERSONALITY_TYPE)
+		eRandPersonality = MINOR_CIV_PERSONALITY_FRIENDLY;
 #if defined(MOD_API_EXTENSIONS)
 	SetPersonality(eRandPersonality);
 #else
@@ -5667,8 +5453,7 @@ void CvMinorCivAI::DoFirstContactWithMajor(TeamTypes eTeam, bool bSuppressMessag
 		// Ideally we want the actual meeting player, but we'll have to settle for the lead player of the team
 		// most of the time they will be one and the same
 		PlayerTypes eMeetingPlayer = GET_TEAM(eTeam).getLeaderID();
-		CvPlayer* pMeetingPlayer = &GET_PLAYER(eMeetingPlayer);
-		if (!(pMeetingPlayer->isMinorCiv() || pMeetingPlayer->isBarbarian()) && pMeetingPlayer->isAlive())
+		if (!GET_TEAM(eTeam).isMinorCiv() && !GET_TEAM(eTeam).isBarbarian() && eMeetingPlayer != NO_PLAYER && GET_PLAYER(eMeetingPlayer).isAlive())
 		{
 			MinorCivTraitTypes eTrait = GetTrait();
 			MinorCivPersonalityTypes eRealPersonality = GetPersonality();
@@ -5764,7 +5549,7 @@ void CvMinorCivAI::DoFirstContactWithMajor(TeamTypes eTeam, bool bSuppressMessag
 				if (MOD_GLOBAL_CS_GIFTS) {
 					if (eRealPersonality == MINOR_CIV_PERSONALITY_IRRATIONAL) {
 						// Assumes MINOR_CIV_PERSONALITY_IRRATIONAL is the last entry in the enum
-						eFakePersonality = (MinorCivPersonalityTypes) GC.getGame().getJonRandNum(NUM_MINOR_CIV_PERSONALITY_TYPES-1, "Minor Civ AI: Picking fake personality for irrational CS");
+						eFakePersonality = (MinorCivPersonalityTypes)GC.getGame().getSmallFakeRandNum(NUM_MINOR_CIV_PERSONALITY_TYPES - 1, m_pPlayer->GetEconomicMight());
 					}
 					
 		 			// Personality modifiers - friendly = x1.5, hostile = x0.5
@@ -5881,11 +5666,11 @@ void CvMinorCivAI::DoFirstContactWithMajor(TeamTypes eTeam, bool bSuppressMessag
 							CvPlayer* pPlayer = &GET_PLAYER(ePlayer);
 							if (eTrait == MINOR_CIV_TRAIT_MILITARISTIC) {
 								if (iUnitGift > 0) {
-									if (GC.getGame().getJonRandNum(100, "Minor Civ AI: Decide if we give a unit to the meeting player") < iUnitGift) {
+									if (GC.getGame().getSmallFakeRandNum(10, pPlayer->GetEconomicMight()) * 10 < iUnitGift) {
 										CvUnit* pUnit = DoSpawnUnit(ePlayer, true, true);
 										if (pUnit != NULL) {
 #if defined(MOD_UNITS_XP_TIMES_100)
-											pUnit->changeExperienceTimes100(100 * (pPlayer->GetCurrentEra() * GC.getMINOR_CIV_FIRST_CONTACT_XP_PER_ERA() + GC.getGame().getJonRandNum(GC.getMINOR_CIV_FIRST_CONTACT_XP_RANDOM(), "Minor Civ AI: Random XP for unit")));
+											pUnit->changeExperienceTimes100(100 * (pPlayer->GetCurrentEra() * GC.getMINOR_CIV_FIRST_CONTACT_XP_PER_ERA() + GC.getGame().getSmallFakeRandNum(GC.getMINOR_CIV_FIRST_CONTACT_XP_RANDOM(), pPlayer->GetEconomicMight())));
 #else
 											pUnit->changeExperience(pPlayer->GetCurrentEra() * GC.getMINOR_CIV_FIRST_CONTACT_XP_PER_ERA() + GC.getGame().getJonRandNum(GC.getMINOR_CIV_FIRST_CONTACT_XP_RANDOM(), "Minor Civ AI: Random XP for unit"));
 #endif
@@ -6426,7 +6211,7 @@ void CvMinorCivAI::DoAddStartingResources(CvPlot* pCityPlot)
 			pCityPlot->setResourceType(NO_RESOURCE, 0, true);
 			if (veUniqueLuxuries.size() > 0)
 			{
-				int iRoll = GC.getGame().getJonRandNum(veUniqueLuxuries.size(), "Rolling for Mercantile city-state special luxury"); // range = [0, size - 1]
+				int iRoll = GC.getGame().getSmallFakeRandNum(veUniqueLuxuries.size(), *pCityPlot); // range = [0, size - 1]
 				int iQuantity = GC.getMINOR_CIV_MERCANTILE_RESOURCES_QUANTITY();
 				ResourceTypes eSpecialLuxury = veUniqueLuxuries[iRoll];
 
@@ -6996,7 +6781,7 @@ void CvMinorCivAI::DoTestStartGlobalQuest()
 	}
 
 	// There are valid quests, so pick one at random
-	int iRandIndex = GC.getGame().getJonRandNum(veValidQuests.size(), "Picking random global quest for Minor to give to players.");
+	int iRandIndex = GC.getGame().getSmallFakeRandNum(veValidQuests.size(), m_pPlayer->GetEconomicMight());
 	eQuest = veValidQuests[iRandIndex];
 
 	// Give out the quest
@@ -7059,7 +6844,7 @@ void CvMinorCivAI::DoTestStartPersonalQuest(PlayerTypes ePlayer)
 		return;
 	}
 
-	int iRandIndex = GC.getGame().getJonRandNum(veValidQuests.size(), "Picking random quest for Minor to give to a player.");
+	int iRandIndex = GC.getGame().getSmallFakeRandNum(veValidQuests.size(), m_pPlayer->GetEconomicMight());
 	eQuest = veValidQuests[iRandIndex];
 
 	AddQuestForPlayer(ePlayer, eQuest, GC.getGame().getGameTurn());
@@ -7411,8 +7196,8 @@ bool CvMinorCivAI::PlayerHasTarget(PlayerTypes ePlayer, MinorCivQuestTypes eQues
 	CvAssertMsg(ePlayer < MAX_MAJOR_CIVS, "ePlayer is expected to be within maximum bounds (invalid Index)");
 	if(ePlayer < 0 || ePlayer >= MAX_MAJOR_CIVS) return false;
 
-	CvAssertMsg(eType >= NO_MINOR_CIV_QUEST_TYPE, "eType is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eType < NUM_MINOR_CIV_QUEST_TYPES, "eType is expected to be within maximum bounds (invalid Index)");
+	CvAssertMsg(eQuest >= NO_MINOR_CIV_QUEST_TYPE, "eType is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eQuest < NUM_MINOR_CIV_QUEST_TYPES, "eType is expected to be within maximum bounds (invalid Index)");
 	if(eQuest < NO_MINOR_CIV_QUEST_TYPE || eQuest >= NUM_MINOR_CIV_QUEST_TYPES) return false;
 
 	if(IsTargetQuest(eQuest))
@@ -7692,7 +7477,7 @@ bool CvMinorCivAI::IsValidQuestForPlayer(PlayerTypes ePlayer, MinorCivQuestTypes
 		return false;
 
 	// BUILD A ROUTE
-	if(eQuest == MINOR_CIV_QUEST_ROUTE)
+	if (eQuest == MINOR_CIV_QUEST_ROUTE)
 	{
 		// This player must not have bullied us recently
 		if(IsRecentlyBulliedByMajor(ePlayer))
@@ -7711,7 +7496,7 @@ bool CvMinorCivAI::IsValidQuestForPlayer(PlayerTypes ePlayer, MinorCivQuestTypes
 			return false;
 
 		// Must have a city close to the minor in the same Area
-		const int iMaxRouteDistance = 8; //antonjs: todo: xml
+		const int iMaxRouteDistance = 12; //antonjs: todo: xml
 		CvPlot* pMinorsPlot = pMinorsCapital->plot();
 		if(pMinorsPlot == NULL)
 			return false;
@@ -7721,6 +7506,9 @@ bool CvMinorCivAI::IsValidQuestForPlayer(PlayerTypes ePlayer, MinorCivQuestTypes
 		bool bInRange = false;
 		for(pLoopCity = GET_PLAYER(ePlayer).firstCity(&iLoop); pLoopCity != NULL; pLoopCity = GET_PLAYER(ePlayer).nextCity(&iLoop))
 		{
+			if (bInRange)
+				break;
+
 			if(pMinorsPlot->getArea() != pLoopCity->getArea())
 				continue;
 			int iDistance = plotDistance(pMinorsPlot->getX(), pMinorsPlot->getY(), pLoopCity->getX(), pLoopCity->getY());
@@ -7905,8 +7693,17 @@ bool CvMinorCivAI::IsValidQuestForPlayer(PlayerTypes ePlayer, MinorCivQuestTypes
 		EraTypes eCurrentEra= GET_TEAM(GET_PLAYER(ePlayer).getTeam()).GetCurrentEra();	
 		EraTypes eMedieval = (EraTypes) GC.getInfoTypeForString("ERA_MEDIEVAL", true);
 
+		int NumReligions = GC.getGame().GetGameReligions()->GetNumReligionsFounded(true);
+
+		ReligionTypes eReligion = GET_PLAYER(ePlayer).GetReligions()->GetCurrentReligion();
+		if (eReligion == NO_RELIGION)
+			eReligion = GET_PLAYER(ePlayer).GetReligions()->GetReligionInMostCities();
+
+		if (MOD_BALANCE_CORE_QUEST_CHANGES && eReligion == NO_RELIGION)
+			return false;
+
 		// Renaissance era or Later
-		if(eCurrentEra < eMedieval)
+		if (eCurrentEra < eMedieval || NumReligions <= 1)
 		{
 			return false;
 		}
@@ -8148,7 +7945,7 @@ bool CvMinorCivAI::IsValidQuestForPlayer(PlayerTypes ePlayer, MinorCivQuestTypes
 		}
 
 		//Give this quest out once the player can cross oceans.
-		if(!GET_PLAYER(ePlayer).CanCrossOcean())
+		if (!GET_TEAM(GET_PLAYER(ePlayer).getTeam()).GetTeamTechs()->HasTech(GC.getGame().getOceanPassableTech()))
 		{
 			return false;
 		}
@@ -8527,7 +8324,7 @@ int CvMinorCivAI::GetPersonalityQuestBias(MinorCivQuestTypes eQuest)
 	// ******************
 
 	// ROUTE
-	if(eQuest == MINOR_CIV_QUEST_ROUTE)
+	if (eQuest == MINOR_CIV_QUEST_ROUTE)
 	{
 		if(ePersonality == MINOR_CIV_PERSONALITY_FRIENDLY)		// Friendly
 		{
@@ -9248,7 +9045,7 @@ void CvMinorCivAI::DoTestSeedGlobalQuestCountdown(bool bForceSeed)
 	if(GC.getGame().getElapsedGameTurns() == GetFirstPossibleTurnForGlobalQuests())
 	{
 		int iRand = /*20*/ GC.getMINOR_CIV_GLOBAL_QUEST_FIRST_POSSIBLE_TURN_RAND();
-		iNumTurns += GC.getGame().getJonRandNum(iRand, "Random # of turns for Minor Civ global quest counter - first time.");
+		iNumTurns += GC.getGame().getSmallFakeRandNum(iRand, m_pPlayer->GetEconomicMight()) * 2;
 	}
 	else
 	{
@@ -9260,7 +9057,7 @@ void CvMinorCivAI::DoTestSeedGlobalQuestCountdown(bool bForceSeed)
 			iRand *= /*200*/ GC.getMINOR_CIV_GLOBAL_QUEST_RAND_TURNS_BETWEEN_HOSTILE_MULTIPLIER();
 			iRand /= 100;
 		}
-		iNumTurns += GC.getGame().getJonRandNum(iRand, "Random # of turns for Minor Civ global quest counter.");
+		iNumTurns += GC.getGame().getSmallFakeRandNum(iRand, m_pPlayer->GetEconomicMight()) * 5;
 	}
 
 	// Modify for Game Speed
@@ -9308,7 +9105,7 @@ void CvMinorCivAI::DoTestSeedQuestCountdownForPlayer(PlayerTypes ePlayer, bool b
 	// Quests are now available for the first time?
 	if(GC.getGame().getElapsedGameTurns() == GetFirstPossibleTurnForPersonalQuests())
 	{
-		iNumTurns += GC.getGame().getSmallFakeRandNum(GC.getMINOR_CIV_PERSONAL_QUEST_FIRST_POSSIBLE_TURN_RAND(), GC.getGame().getElapsedGameTurns());
+		iNumTurns += GC.getGame().getSmallFakeRandNum(GC.getMINOR_CIV_PERSONAL_QUEST_FIRST_POSSIBLE_TURN_RAND(), m_pPlayer->GetEconomicMight());
 	}
 	else
 	{
@@ -9320,7 +9117,7 @@ void CvMinorCivAI::DoTestSeedQuestCountdownForPlayer(PlayerTypes ePlayer, bool b
 			iRand *= /*200*/ GC.getMINOR_CIV_PERSONAL_QUEST_RAND_TURNS_BETWEEN_HOSTILE_MULTIPLIER();
 			iRand /= 100;
 		}
-		iNumTurns += GC.getGame().getSmallFakeRandNum((iRand / 3), GC.getGame().getElapsedGameTurns()) * 4;
+		iNumTurns += GC.getGame().getSmallFakeRandNum((iRand / 3), m_pPlayer->GetEconomicMight()) * 4;
 	}
 
 	// Modify for Game Speed
@@ -9779,19 +9576,15 @@ PlayerTypes CvMinorCivAI::SpawnHorde()
 	
 	for (int iMinorLoop = MAX_MAJOR_CIVS; iMinorLoop < MAX_CIV_PLAYERS; iMinorLoop++)
 	{
-		
 		PlayerTypes eMinorLoop = (PlayerTypes) iMinorLoop;
 		if(eMinorLoop != NO_PLAYER)
 		{
 			CvPlayer* pMinorLoop = &GET_PLAYER(eMinorLoop);
-
 			CvCity* pCity = pMinorLoop->getCapitalCity();
-			
-			//Let's see if our CS is juicy and vulnerable.
-			if(pMinorLoop->isAlive() && pMinorLoop->getStartingPlot()->getOwner() == eMinorLoop && pMinorLoop->isMinorCiv())
-			{
-				CvPlot* pPlot;
 
+			//Let's see if our CS is juicy and vulnerable.
+			if(pMinorLoop->isAlive() && pMinorLoop->isMinorCiv() && pCity)
+			{
 				CvCityCitizens* pCitizens = pCity->GetCityCitizens();
 
 				int iPlots = 0;
@@ -9799,10 +9592,9 @@ PlayerTypes CvMinorCivAI::SpawnHorde()
 				int iImpassable = 0;
 
 				// How easy to access is this minor? We'll ignore island/mountainous CSs for this quest, to help the AI.
-
 				for(int iPlotLoop = 1; iPlotLoop < pCity->GetNumWorkablePlots(); iPlotLoop++)
 				{
-					pPlot = pCitizens->GetCityPlotFromIndex(iPlotLoop);
+					CvPlot* pPlot = pCitizens->GetCityPlotFromIndex(iPlotLoop);
 
 					if(pPlot)
 					{
@@ -9949,7 +9741,7 @@ PlayerTypes CvMinorCivAI::SpawnRebels()
 			iRebelBuildUp += iWar;
 		}
 
-		iRebelBuildUp += GC.getGame().getJonRandNum(GC.getGame().getCurrentEra(), "Rebel possibility rand roll");
+		iRebelBuildUp += GC.getGame().getSmallFakeRandNum(GC.getGame().getCurrentEra(), m_pPlayer->GetEconomicMight());
 
 		if(iRebelBuildUp >= iRebelBoilPoint)
 		{
@@ -10006,9 +9798,8 @@ void CvMinorCivAI::DoRebellion()
 {
 	// In hundreds
 	int iNumRebels = (GetPlayer()->getNumMilitaryUnits() * 60); //Based on number of military units of CS.
-	int iExtraRoll = 100; //1+ Rebels maximum
-	iExtraRoll += (GC.getGame().getCurrentEra() * 40); //Increase possible rebel spawns as game continues.
-	iNumRebels += GC.getGame().getJonRandNum(iExtraRoll, "Rebel count rand roll");
+	int iExtraRoll = GC.getGame().getCurrentEra(); //Increase possible rebel spawns as game continues.
+	iNumRebels += GC.getGame().getSmallFakeRandNum(iExtraRoll, m_pPlayer->GetEconomicMight()) * 300;
 	iNumRebels /= 100;
 
 	// Find a city to pop up a bad man
@@ -10194,7 +9985,7 @@ ResourceTypes CvMinorCivAI::GetNearbyResourceForQuest(PlayerTypes ePlayer)
 			return NO_RESOURCE;
 		}
 
-		int iRandIndex = GC.getGame().getJonRandNum(veValidResources.size(), "Finding random Resource for Minor to give out a quest to connect.");
+		int iRandIndex = GC.getGame().getSmallFakeRandNum(veValidResources.size(), m_pPlayer->GetEconomicMight());
 		eBestResource = veValidResources[iRandIndex];
 	}
 
@@ -10279,7 +10070,7 @@ BuildingTypes CvMinorCivAI::GetBestWonderForQuest(PlayerTypes ePlayer)
 		return NO_BUILDING;
 	}
 
-	int iRandIndex = GC.getGame().getJonRandNum(veValidBuildings.size(), "Finding random Wonder for Minor to give out a quest to construct.");
+	int iRandIndex = GC.getGame().getSmallFakeRandNum(veValidBuildings.size(), m_pPlayer->GetEconomicMight());
 	eBestWonder = veValidBuildings[iRandIndex];
 
 	return eBestWonder;
@@ -10372,7 +10163,7 @@ BuildingTypes CvMinorCivAI::GetBestNationalWonderForQuest(PlayerTypes ePlayer)
 		return NO_BUILDING;
 	}
 
-	int iRandIndex = GC.getGame().getJonRandNum(veValidBuildings.size(), "Finding random Wonder for Minor to give out a quest to construct.");
+	int iRandIndex = GC.getGame().getSmallFakeRandNum(veValidBuildings.size(), m_pPlayer->GetEconomicMight());
 	eBestNationalWonder = veValidBuildings[iRandIndex];
 
 	return eBestNationalWonder;
@@ -10494,7 +10285,7 @@ PlayerTypes CvMinorCivAI::GetBestCityStateLiberate(PlayerTypes eForPlayer)
 	if(veValidTargets.size() == 0)
 		return NO_PLAYER;
 
-	int iRandIndex = GC.getGame().getJonRandNum(veValidTargets.size(), "Finding random City State Target for Minor to give out a quest to liberate.");
+	int iRandIndex = GC.getGame().getSmallFakeRandNum(veValidTargets.size(), m_pPlayer->GetEconomicMight());
 	eBestCityStateLiberate = veValidTargets[iRandIndex];
 
 	return eBestCityStateLiberate;
@@ -10610,7 +10401,7 @@ UnitTypes CvMinorCivAI::GetBestGreatPersonForQuest(PlayerTypes ePlayer)
 		return NO_UNIT;
 	}
 
-	int iRandIndex = GC.getGame().getJonRandNum(veValidUnits.size(), "Finding random Great Person for Minor to give out a quest to spawn.");
+	int iRandIndex = GC.getGame().getSmallFakeRandNum(veValidUnits.size(), m_pPlayer->GetEconomicMight());
 	eBestUnit = veValidUnits[iRandIndex];
 
 	return eBestUnit;
@@ -10733,7 +10524,7 @@ PlayerTypes CvMinorCivAI::GetBestCityStateTarget(PlayerTypes eForPlayer, bool bN
 
 	if(!bNoRandom)
 	{
-		int iRandIndex = GC.getGame().getJonRandNum(veValidTargets.size(), "Finding random City State Target for Minor to give out a quest to kill.");
+		int iRandIndex = GC.getGame().getSmallFakeRandNum(veValidTargets.size(), m_pPlayer->GetEconomicMight());
 		eBestCityStateTarget = veValidTargets.GetElement(iRandIndex);
 	}
 	else
@@ -10833,7 +10624,7 @@ CvCity* CvMinorCivAI::GetBestCityForQuest(PlayerTypes ePlayer)
 					iValue += pLoopCity->getNumWorldWonders();
 					iValue += pLoopCity->getBaseYieldRate(YIELD_GOLD);
 					iValue += pLoopCity->getBaseYieldRate(YIELD_SCIENCE);
-					iValue += GC.getGame().getJonRandNum(100, "MINOR CIV AI: Random Quest Target.");
+					iValue += GC.getGame().getSmallFakeRandNum(10, m_pPlayer->GetEconomicMight() + iLoopCity) * 10;
 					iValue -= pLoopCity->getStrengthValue() / 100;
 					if(iValue <= 0)
 					{
@@ -10871,6 +10662,9 @@ BuildingTypes CvMinorCivAI::GetBestBuildingForQuest(PlayerTypes ePlayer)
 
 		//Skip if NULL
 		if(pkBuildingInfo == NULL)
+			continue;
+
+		if (pkBuildingInfo->IsDummy())
 			continue;
 
 		CvBuildingClassInfo* pkBuildingClassInfo = GC.getBuildingClassInfo((BuildingClassTypes)pkBuildingInfo->GetBuildingClassType());
@@ -10918,7 +10712,7 @@ BuildingTypes CvMinorCivAI::GetBestBuildingForQuest(PlayerTypes ePlayer)
 		return NO_BUILDING;
 	}
 
-	int iRandIndex = GC.getGame().getJonRandNum(veValidBuildings.size(), "Finding random Wonder for Minor to give out a quest to construct.");
+	int iRandIndex = GC.getGame().getSmallFakeRandNum(veValidBuildings.size(), m_pPlayer->GetEconomicMight());
 	eBestBuilding = veValidBuildings[iRandIndex];
 
 	return eBestBuilding;
@@ -11255,11 +11049,7 @@ CvPlot* CvMinorCivAI::GetTargetPlot(PlayerTypes ePlayer)
 				{
 					continue;
 				}
-#if defined(MOD_PSEUDO_NATURAL_WONDER)
-				if(pPlot->IsNaturalWonder(true))
-#else
 				if(pPlot->IsNaturalWonder())
-#endif
 				{
 					iValue += 33;
 				}
@@ -11404,7 +11194,7 @@ PlayerTypes CvMinorCivAI::GetBestPlayerToFind(PlayerTypes ePlayer)
 		return NO_PLAYER;
 	}
 
-	int iRandIndex = GC.getGame().getJonRandNum(veValidTargets.size(), "Finding random Major player Target for Minor to give out a quest to find.");
+	int iRandIndex = GC.getGame().getSmallFakeRandNum(veValidTargets.size(), m_pPlayer->GetEconomicMight());
 	eBestTargetPlayer = veValidTargets[iRandIndex];
 
 	return eBestTargetPlayer;
@@ -11509,7 +11299,7 @@ PlayerTypes CvMinorCivAI::GetBestCityStateMeetTarget(PlayerTypes eForPlayer)
 	if(veValidTargets.size() == 0)
 		return NO_PLAYER;
 
-	int iRandIndex = GC.getGame().getJonRandNum(veValidTargets.size(), "Finding random City State Target for Minor to give out a quest to kill.");
+	int iRandIndex = GC.getGame().getSmallFakeRandNum(veValidTargets.size(), m_pPlayer->GetEconomicMight());
 	eBestCityStateTarget = veValidTargets[iRandIndex];
 
 	return eBestCityStateTarget;
@@ -11713,13 +11503,12 @@ int CvMinorCivAI::GetFriendshipChangePerTurnTimes100(PlayerTypes ePlayer)
 			iChangeThisTurn += /*-100*/ GC.getMINOR_FRIENDSHIP_DROP_PER_TURN();
 
 		//Influence decay increases the higher your influence over 100;
-		if (MOD_DIPLOMACY_CITYSTATES_QUESTS &&  iBaseFriendship > 1000)
+		if (MOD_DIPLOMACY_CITYSTATES_QUESTS &&  iBaseFriendship > 100)
 		{
-			int iInfluenceTotal = iBaseFriendship * -1;
-			iInfluenceTotal /= 10;
+			float iInfluenceTotal = GetBaseFriendshipWithMajorTimes100(ePlayer) * .001f;
 
-			if (iInfluenceTotal < 0)
-				iChangeThisTurn += iInfluenceTotal;
+			if (iInfluenceTotal != 0)
+				iChangeThisTurn += (int)iInfluenceTotal*-1;
 		}
 		// Decay modified (Trait, policies, shared religion, etc.)
 		int iDecayMod = 100;
@@ -12033,6 +11822,13 @@ void CvMinorCivAI::DoUpdateAlliesResourceBonus(PlayerTypes eNewAlly, PlayerTypes
 	ResourceTypes eResource;
 	ResourceUsageTypes eUsage;
 	int iResourceQuantity;
+
+	PlayerTypes TechTestPlayer = NO_PLAYER;
+	if (eNewAlly != NO_PLAYER)
+		TechTestPlayer = eNewAlly;
+	else if (eOldAlly != NO_PLAYER)
+		TechTestPlayer = eOldAlly;
+
 	for(int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
 	{
 		eResource = (ResourceTypes) iResourceLoop;
@@ -12041,31 +11837,45 @@ void CvMinorCivAI::DoUpdateAlliesResourceBonus(PlayerTypes eNewAlly, PlayerTypes
 		if (pkResourceInfo == NULL)
 			continue;
 
+		if (TechTestPlayer != NO_PLAYER && (TechTypes)pkResourceInfo->getTechReveal() != NO_TECH && !GET_TEAM(GET_PLAYER(TechTestPlayer).getTeam()).GetTeamTechs()->HasTech((TechTypes)pkResourceInfo->getTechReveal()))
+			continue;
+
 		eUsage = pkResourceInfo->getResourceUsage();
 
 		if(eUsage == RESOURCEUSAGE_STRATEGIC || eUsage == RESOURCEUSAGE_LUXURY)
 		{
-			// Someone is losing the bonus :(
-			if(eOldAlly != NO_PLAYER)
+			bool bNeedsUpdate = true;
+			if (eOldAlly == eNewAlly)
 			{
-				iResourceQuantity = GetPlayer()->getResourceExport(eResource);
-
-				if(iResourceQuantity > 0)
-				{
-					GET_PLAYER(eOldAlly).changeResourceFromMinors(eResource, -iResourceQuantity);
-					GetPlayer()->changeResourceExport(eResource, -iResourceQuantity);
-				}
+				int iResourceQuantityNew = GetPlayer()->getNumResourceTotal(eResource);
+				if (iResourceQuantityNew == 0)
+					bNeedsUpdate = false;
 			}
-
-			// Someone new is getting the bonus :D
-			if(eNewAlly != NO_PLAYER)
+			
+			if (bNeedsUpdate)
 			{
-				iResourceQuantity = GetPlayer()->getNumResourceTotal(eResource);
-
-				if(iResourceQuantity > 0)
+				// Someone is losing the bonus :(
+				if (eOldAlly != NO_PLAYER)
 				{
-					GET_PLAYER(eNewAlly).changeResourceFromMinors(eResource, iResourceQuantity);
-					GetPlayer()->changeResourceExport(eResource, iResourceQuantity);
+					iResourceQuantity = GetPlayer()->getResourceExport(eResource);
+
+					if (iResourceQuantity > 0)
+					{
+						GET_PLAYER(eOldAlly).changeResourceFromMinors(eResource, -iResourceQuantity);
+						GetPlayer()->changeResourceExport(eResource, -iResourceQuantity);
+					}
+				}
+
+				// Someone new is getting the bonus :D
+				if (eNewAlly != NO_PLAYER)
+				{
+					iResourceQuantity = GetPlayer()->getNumResourceTotal(eResource);
+
+					if (iResourceQuantity > 0)
+					{
+						GET_PLAYER(eNewAlly).changeResourceFromMinors(eResource, iResourceQuantity);
+						GetPlayer()->changeResourceExport(eResource, iResourceQuantity);
+					}
 				}
 			}
 		}
@@ -15175,7 +14985,7 @@ void CvMinorCivAI::DoSeedUnitSpawnCounter(PlayerTypes ePlayer, bool bBias)
 
 	// Add some randomness
 	int iRand = /*3*/ GC.getFRIENDS_RAND_TURNS_UNIT_SPAWN();
-	iNumTurns += GC.getGame().getJonRandNum(iRand, "Rand turns for Friendly Minor unit spawn");
+	iNumTurns += GC.getGame().getSmallFakeRandNum(iRand, m_pPlayer->GetEconomicMight());
 
 	// If we're biasing the result then decrease the number of turns
 	if(bBias)
@@ -15484,7 +15294,15 @@ void CvMinorCivAI::DoUnitSpawnTurn()
 			// Time to spawn!
 			if(GetUnitSpawnCounter(eMajor) == 0)
 			{
+#if defined(MOD_EVENTS_MINORS_GIFTS)
+				CvUnit* pSpawnUnit = DoSpawnUnit(eMajor);
+				// Send an event with the details
+				if (MOD_EVENTS_MINORS_GIFTS && pSpawnUnit != NULL)
+					// GameEvents.MinorGiftUnit.Add(function(iMinor, iMajor, iUnitType) end)
+					GAMEEVENTINVOKE_HOOK(GAMEEVENT_MinorGiftUnit, GetPlayer()->GetID(), eMajor, pSpawnUnit->getUnitType());
+#else
 				DoSpawnUnit(eMajor);
+#endif
 			}
 		}
 	}
@@ -15622,7 +15440,7 @@ void CvMinorCivAI::DoMarriage(PlayerTypes eMajor)
 	GET_PLAYER(eMajor).GetDiplomacyAI()->LogMinorCivBuyout(GetPlayer()->GetID(), iBuyoutCost, /*bSaving*/ false);
 
 	// Show special notifications
-	int iCoinToss = GC.getGame().getJonRandNum(2, "Coin toss roll to determine flavor message for minor civ buyout notification.");
+	int iCoinToss = GC.getGame().getSmallFakeRandNum(2, m_pPlayer->GetEconomicMight());
 	Localization::String strMessage = Localization::Lookup("TXT_KEY_NOTIFICATION_MINOR_MARRIAGE_TT_1");
 	if (iCoinToss == 0) // Is it a boy or a girl?
 		strMessage = Localization::Lookup("TXT_KEY_NOTIFICATION_MINOR_MARRIAGE_TT_2");
@@ -15813,7 +15631,7 @@ void CvMinorCivAI::DoBuyout(PlayerTypes eMajor)
 	GET_PLAYER(eMajor).GetDiplomacyAI()->LogMinorCivBuyout(GetPlayer()->GetID(), iBuyoutCost, /*bSaving*/ false);
 
 	// Show special notifications
-	int iCoinToss = GC.getGame().getJonRandNum(2, "Coin toss roll to determine flavor message for minor civ buyout notification.");
+	int iCoinToss = GC.getGame().getSmallFakeRandNum(2, m_pPlayer->GetEconomicMight());
 	Localization::String strMessage = Localization::Lookup("TXT_KEY_NOTIFICATION_MINOR_BUYOUT_TT_1");
 	if (iCoinToss == 0) // Is it a boy or a girl?
 		strMessage = Localization::Lookup("TXT_KEY_NOTIFICATION_MINOR_BUYOUT_TT_2");
@@ -15946,22 +15764,22 @@ int CvMinorCivAI::CalculateBullyMetric(PlayerTypes eBullyPlayer, bool bForUnit, 
 
 	int iScore = 0;
 #if defined(MOD_BALANCE_CORE_MINORS)
-	const int iFailScore = -1000;
+	const int iFailScore = -50000;
 #else
 	const int iFailScore = -300;
 #endif
 
 	CvAssertMsg(GetPlayer()->GetID() != eBullyPlayer, "Minor civ and bully civ not expected to have the same ID!");
-	if(GetPlayer()->GetID() == eBullyPlayer)
+	if (GetPlayer()->GetID() == eBullyPlayer)
 		return iFailScore;
 
 	CvAssertMsg(eBullyPlayer >= 0, "eBullyPlayer is expected to be non-negative (invalid Index)");
 	CvAssertMsg(eBullyPlayer < MAX_MAJOR_CIVS, "eBullyPlayer is expected to be within maximum bounds (invalid Index)");
-	if(eBullyPlayer < 0 || eBullyPlayer >= MAX_MAJOR_CIVS)
+	if (eBullyPlayer < 0 || eBullyPlayer >= MAX_MAJOR_CIVS)
 		return iFailScore;
 
 	// Can't bully the dead
-	if(!GetPlayer()->isAlive())
+	if (!GetPlayer()->isAlive())
 		return iFailScore;
 
 	// **************************
@@ -15972,38 +15790,34 @@ int CvMinorCivAI::CalculateBullyMetric(PlayerTypes eBullyPlayer, bool bForUnit, 
 	CvWeightedVector<PlayerTypes, MAX_MAJOR_CIVS, true> veMilitaryRankings;
 	PlayerTypes eMajorLoop;
 	int iGlobalMilitaryScore = 0;
-	for(int iMajorLoop = 0; iMajorLoop < MAX_MAJOR_CIVS; iMajorLoop++)
+	for (int iMajorLoop = 0; iMajorLoop < MAX_MAJOR_CIVS; iMajorLoop++)
 	{
-		eMajorLoop = (PlayerTypes) iMajorLoop;
-		if(GET_PLAYER(eMajorLoop).isAlive() && !GET_PLAYER(eMajorLoop).isMinorCiv())
+		eMajorLoop = (PlayerTypes)iMajorLoop;
+		if (GET_PLAYER(eMajorLoop).isAlive() && !GET_PLAYER(eMajorLoop).isMinorCiv())
 		{
 			veMilitaryRankings.push_back(eMajorLoop, GET_PLAYER(eMajorLoop).GetMilitaryMight(true)); // Don't recalculate within a turn, can cause inconsistency
 		}
 	}
 	CvAssertMsg(veMilitaryRankings.size() > 0, "WeightedVector of military might rankings not expected to be size 0");
 	veMilitaryRankings.SortItems();
-	for(int iRanking = 0; iRanking < veMilitaryRankings.size(); iRanking++)
+	for (int iRanking = 0; iRanking < veMilitaryRankings.size(); iRanking++)
 	{
-		if(veMilitaryRankings.GetElement(iRanking) == eBullyPlayer)
+		if (veMilitaryRankings.GetElement(iRanking) == eBullyPlayer)
 		{
 			float fRankRatio = (float)(veMilitaryRankings.size() - iRanking) / (float)(veMilitaryRankings.size());
 #if defined(MOD_BALANCE_CORE_MINORS)
-			if(MOD_BALANCE_CORE_MINORS)
+			int iValue = 75;
+			if (MOD_BALANCE_CORE_MINORS)
 			{
-				iGlobalMilitaryScore = (int)(fRankRatio * 110); // A score between 50*(1 / num majors alive) and 110, with the highest rank major getting 110
-			}
-			else
-			{
-#endif
-			iGlobalMilitaryScore = (int)(fRankRatio * 75); // A score between 75*(1 / num majors alive) and 75, with the highest rank major getting 75
-#if defined(MOD_BALANCE_CORE_MINORS)
+				iValue -= GET_PLAYER(eBullyPlayer).GetCurrentEra() * 5;
 			}
 #endif
+			iGlobalMilitaryScore = (int)(fRankRatio * iValue); // A score between 75*(1 / num majors alive) and 75, with the highest rank major getting 75
 			iScore += iGlobalMilitaryScore;
 			break;
 		}
 	}
-	
+
 	if (sTooltipSink)
 	{
 		Localization::String strPositiveFactor = Localization::Lookup("TXT_KEY_POP_CSTATE_BULLY_FACTOR_POSITIVE");
@@ -16017,7 +15831,19 @@ int CvMinorCivAI::CalculateBullyMetric(PlayerTypes eBullyPlayer, bool bForUnit, 
 	//
 	// +0 ~ +125
 	// **************************
-	int iComparisonRadius = std::max(GC.getMap().getGridWidth() / 10, 5);
+	int iComparisonRadius = 0;
+	if (MOD_BALANCE_CORE_MINORS)
+	{
+		iComparisonRadius = 6;
+		if (!GET_PLAYER(eBullyPlayer).isHuman())
+		{
+			iComparisonRadius += (GC.getGame().getHandicapInfo().getAIDifficultyBonusBase() / 2);
+		}
+	}
+	else
+	{
+		iComparisonRadius = std::max(GC.getMap().getGridWidth() / 15, 4);
+	}
 	CvCity* pMinorCapital = GetPlayer()->getCapitalCity();
 	if(pMinorCapital == NULL)
 		return iFailScore;
@@ -16071,48 +15897,21 @@ int CvMinorCivAI::CalculateBullyMetric(PlayerTypes eBullyPlayer, bool bForUnit, 
 			}
 		}
 	}
-
-	float fLocalPowerRatio = (float)iBullyLocalPower / (float)iMinorLocalPower;
-	int iLocalPowerScore = 0;
 #if defined(MOD_BALANCE_CORE_MINORS)
-	if(MOD_BALANCE_CORE_MINORS)
+	float fLocalPowerRatio = 0;
+	int iLocalPowerScore = 0;
+	if (MOD_BALANCE_CORE_MINORS)
 	{
-		if(fLocalPowerRatio >= 4.0)
-		{
-			iLocalPowerScore += 150;
-		}
-		if(fLocalPowerRatio >= 3.5)
-		{
-			iLocalPowerScore += 130;
-		}
-		if(fLocalPowerRatio >= 3.0)
-		{
-			iLocalPowerScore += 110;
-		}
-		if(fLocalPowerRatio >= 2.5)
-		{
-			iLocalPowerScore += 90;
-		}
-		if(fLocalPowerRatio >= 2.0)
-		{
-			iLocalPowerScore += 70;
-		}
-		if(fLocalPowerRatio >= 1.5)
-		{
-			iLocalPowerScore += 50;
-		}
-		if(fLocalPowerRatio >= 1.0)
-		{
-			iLocalPowerScore += 30;
-		}
-		if(fLocalPowerRatio >= 0.5)
-		{
-			iLocalPowerScore += 10;
-		}
+		fLocalPowerRatio = (float)iBullyLocalPower * 100 / (float)iMinorLocalPower;
+
+		iLocalPowerScore += (int)fLocalPowerRatio;
 	}
 	else
 	{
 #endif
+
+	fLocalPowerRatio = (float)iBullyLocalPower / (float)iMinorLocalPower;
+
 	if(fLocalPowerRatio >= 3.0)
 	{
 		iLocalPowerScore += 125;
@@ -16267,7 +16066,18 @@ int CvMinorCivAI::CalculateBullyMetric(PlayerTypes eBullyPlayer, bool bForUnit, 
 
 	if(iLastBullyTurn >= 0)
 	{
-		if(iLastBullyTurn + 10 >= GC.getGame().getGameTurn())
+		if (iLastBullyTurn == GC.getGame().getGameTurn())
+		{
+			iScore += iFailScore * 2;
+			if (sTooltipSink)
+			{
+				Localization::String strNegativeFactor = Localization::Lookup("TXT_KEY_POP_CSTATE_BULLY_FACTOR_NEGATIVE");
+				strNegativeFactor << iFailScore;
+				strNegativeFactor << "TXT_KEY_POP_CSTATE_BULLY_FACTOR_BULLIED_VERY_RECENTLY";
+				sFactors += strNegativeFactor.toUTF8();
+			}
+		}
+		else if(iLastBullyTurn + 10 >= GC.getGame().getGameTurn())
 		{
 			int iBulliedVeryRecentlyScore = (((iLastBullyTurn + 10) - (GC.getGame().getGameTurn())) * -75);
 			iScore += iBulliedVeryRecentlyScore;
@@ -16279,7 +16089,7 @@ int CvMinorCivAI::CalculateBullyMetric(PlayerTypes eBullyPlayer, bool bForUnit, 
 				sFactors += strNegativeFactor.toUTF8();
 			}
 		}
-		if (iLastBullyTurn + 20 >= GC.getGame().getGameTurn())
+		else if (iLastBullyTurn + 20 >= GC.getGame().getGameTurn())
 		{
 			int iBulliedRecentlyScore = (((iLastBullyTurn + 20) - (GC.getGame().getGameTurn())) * -25);
 			iScore += iBulliedRecentlyScore;
@@ -16293,21 +16103,21 @@ int CvMinorCivAI::CalculateBullyMetric(PlayerTypes eBullyPlayer, bool bForUnit, 
 		}
 	}
 #if defined(MOD_BALANCE_CORE_MINORS)
-	if(GC.getGame().getGameTurn() >  30)
+	if (GC.getGame().getGameTurn() > 30 && GetTurnLiberated() != 0)
 	{
 		int iDuration = (GC.getGame().getGameTurn() - GetTurnLiberated());
 		if(iDuration > 0)
 		{
-			int iLimit = 30;
+			int iLimit = 50;
 			iLimit *= GC.getGame().getGameSpeedInfo().getTrainPercent();
 			iLimit /= 100;
 			if(iDuration <= iLimit)
 			{
-				int iBulliedRecentlyScore = -100;
+				iScore += iFailScore * 2;
 				if (sTooltipSink)
 				{
 					Localization::String strNegativeFactor = Localization::Lookup("TXT_KEY_POP_CSTATE_BULLY_FACTOR_NEGATIVE");
-					strNegativeFactor << iBulliedRecentlyScore;
+					strNegativeFactor << iFailScore * 2;
 					strNegativeFactor << "TXT_KEY_POP_CSTATE_RECENTLY_LIBERATED";
 					sFactors += strNegativeFactor.toUTF8();
 				}
@@ -16378,7 +16188,7 @@ int CvMinorCivAI::CalculateBullyMetric(PlayerTypes eBullyPlayer, bool bForUnit, 
 		int iAllyScore = 0;
 		if(MOD_BALANCE_CORE_MINORS)
 		{
-			iAllyScore = -100;
+			iAllyScore = -125;
 		}
 		else
 		{
@@ -16411,7 +16221,7 @@ int CvMinorCivAI::CalculateBullyMetric(PlayerTypes eBullyPlayer, bool bForUnit, 
 #if defined(MOD_BALANCE_CORE_MINORS)
 			if(MOD_BALANCE_CORE_MINORS)
 			{
-				iProtectionScore = -25;
+				iProtectionScore = -50;
 			}
 			else
 			{
@@ -16689,7 +16499,7 @@ void CvMinorCivAI::DoMajorBullyGold(PlayerTypes eBully, int iGold)
 
 #if defined(MOD_EVENTS_MINORS_INTERACTION)
 		if (MOD_EVENTS_MINORS_INTERACTION) {
-			GAMEEVENTINVOKE_HOOK(GAMEEVENT_PlayerBullied, eBully, GetPlayer()->GetID(), iGold, -1, -1, -1);
+			GAMEEVENTINVOKE_HOOK(GAMEEVENT_PlayerBullied, eBully, GetPlayer()->GetID(), iGold, -1, -1, -1, YIELD_GOLD);
 		}
 #endif
 #if defined(MOD_BALANCE_CORE)
@@ -17085,7 +16895,12 @@ void CvMinorCivAI::DoMajorBullyUnit(PlayerTypes eBully, UnitTypes eUnitType)
 					}
 				}	
 				DoBulliedByMajorReaction(eBully, GC.getMINOR_FRIENDSHIP_DROP_BULLY_WORKER_SUCCESS());
-				if(GC.getLogging() && GC.getAILogging())
+#if defined(MOD_EVENTS_MINORS_INTERACTION)
+				if (MOD_EVENTS_MINORS_INTERACTION) {
+					GAMEEVENTINVOKE_HOOK(GAMEEVENT_PlayerBullied, eBully, GetPlayer()->GetID(), iValue, -1, -1, -1, YIELD_SCIENCE);
+				}
+#endif
+				if (GC.getLogging() && GC.getAILogging())
 				{
 					// Logging
 					CvString strLogString;
@@ -17119,7 +16934,12 @@ void CvMinorCivAI::DoMajorBullyUnit(PlayerTypes eBully, UnitTypes eUnitType)
 					}
 				}			
 				DoBulliedByMajorReaction(eBully, GC.getMINOR_FRIENDSHIP_DROP_BULLY_WORKER_SUCCESS());
-				if(GC.getLogging() && GC.getAILogging())
+#if defined(MOD_EVENTS_MINORS_INTERACTION)
+				if (MOD_EVENTS_MINORS_INTERACTION) {
+					GAMEEVENTINVOKE_HOOK(GAMEEVENT_PlayerBullied, eBully, GetPlayer()->GetID(), iValue, -1, -1, -1, YIELD_CULTURE);
+				}
+#endif
+				if (GC.getLogging() && GC.getAILogging())
 				{
 					// Logging
 					CvString strLogString;
@@ -17152,7 +16972,12 @@ void CvMinorCivAI::DoMajorBullyUnit(PlayerTypes eBully, UnitTypes eUnitType)
 					}
 				}
 				DoBulliedByMajorReaction(eBully, GC.getMINOR_FRIENDSHIP_DROP_BULLY_WORKER_SUCCESS());
-				if(GC.getLogging() && GC.getAILogging())
+#if defined(MOD_EVENTS_MINORS_INTERACTION)
+				if (MOD_EVENTS_MINORS_INTERACTION) {
+					GAMEEVENTINVOKE_HOOK(GAMEEVENT_PlayerBullied, eBully, GetPlayer()->GetID(), iValue, -1, -1, -1, YIELD_PRODUCTION);
+				}
+#endif
+				if (GC.getLogging() && GC.getAILogging())
 				{
 					// Logging
 					CvString strLogString;
@@ -17185,7 +17010,12 @@ void CvMinorCivAI::DoMajorBullyUnit(PlayerTypes eBully, UnitTypes eUnitType)
 					}
 				}
 				DoBulliedByMajorReaction(eBully, GC.getMINOR_FRIENDSHIP_DROP_BULLY_WORKER_SUCCESS());
-				if(GC.getLogging() && GC.getAILogging())
+#if defined(MOD_EVENTS_MINORS_INTERACTION)
+				if (MOD_EVENTS_MINORS_INTERACTION) {
+					GAMEEVENTINVOKE_HOOK(GAMEEVENT_PlayerBullied, eBully, GetPlayer()->GetID(), iValue, -1, -1, -1, YIELD_FAITH);
+				}
+#endif
+				if (GC.getLogging() && GC.getAILogging())
 				{
 					// Logging
 					CvString strLogString;
@@ -17218,7 +17048,12 @@ void CvMinorCivAI::DoMajorBullyUnit(PlayerTypes eBully, UnitTypes eUnitType)
 					}
 				}		
 				DoBulliedByMajorReaction(eBully, GC.getMINOR_FRIENDSHIP_DROP_BULLY_WORKER_SUCCESS());
-				if(GC.getLogging() && GC.getAILogging())
+#if defined(MOD_EVENTS_MINORS_INTERACTION)
+				if (MOD_EVENTS_MINORS_INTERACTION) {
+					GAMEEVENTINVOKE_HOOK(GAMEEVENT_PlayerBullied, eBully, GetPlayer()->GetID(), iValue, -1, -1, -1, YIELD_FOOD);
+				}
+#endif
+				if (GC.getLogging() && GC.getAILogging())
 				{
 					// Logging
 					CvString strLogString;
@@ -17252,6 +17087,11 @@ void CvMinorCivAI::DoMajorBullyUnit(PlayerTypes eBully, UnitTypes eUnitType)
 						GetPlayer()->getCapitalCity()->addProductionExperience(pNewUnit);
 
 					DoBulliedByMajorReaction(eBully, GC.getMINOR_FRIENDSHIP_DROP_BULLY_WORKER_SUCCESS());
+#if defined(MOD_EVENTS_MINORS_INTERACTION)
+					if (MOD_EVENTS_MINORS_INTERACTION) {
+						GAMEEVENTINVOKE_HOOK(GAMEEVENT_PlayerBullied, eBully, GetPlayer()->GetID(), -1, eUnitType, pNewUnit->getX(), pNewUnit->getY(), -1);
+					}
+#endif
 				}
 				else
 					pNewUnit->kill(false);	// Could not find a spot for the unit!
@@ -17287,7 +17127,7 @@ void CvMinorCivAI::DoMajorBullyUnit(PlayerTypes eBully, UnitTypes eUnitType)
 			
 #if defined(MOD_EVENTS_MINORS_INTERACTION)
 			if (MOD_EVENTS_MINORS_INTERACTION) {
-				GAMEEVENTINVOKE_HOOK(GAMEEVENT_PlayerBullied, eBully, GetPlayer()->GetID(), -1, eUnitType, pNewUnit->getX(), pNewUnit->getY());
+				GAMEEVENTINVOKE_HOOK(GAMEEVENT_PlayerBullied, eBully, GetPlayer()->GetID(), -1, eUnitType, pNewUnit->getX(), pNewUnit->getY(), -1);
 			}
 #endif
 		}
@@ -17526,13 +17366,33 @@ void CvMinorCivAI::DoElection()
 					pNotifications->Add(NOTIFICATION_SPY_RIG_ELECTION_SUCCESS, strNotification.toUTF8(), strSummary.toUTF8(), pCapital->getX(), pCapital->getY(), -1);
 				}
 
-				ChangeFriendshipWithMajor(ePlayer, GC.getESPIONAGE_INFLUENCE_GAINED_FOR_RIGGED_ELECTION(), false);
+				int iValue = GC.getESPIONAGE_INFLUENCE_GAINED_FOR_RIGGED_ELECTION();
+
+				int iEra = GET_PLAYER(ePlayer).GetCurrentEra();
+				if (iEra <= 0)
+				{
+					iEra = 1;
+				}
+				if (MOD_BALANCE_CORE_SPIES_ADVANCED)
+				{
+					iValue *= iEra;
+				}
+				ChangeFriendshipWithMajor(ePlayer, iValue, false);
 
 #if !defined(NO_ACHIEVEMENTS)
 				//Achievements!
 				if(ePlayer == GC.getGame().getActivePlayer())
 				{
 					gDLL->UnlockAchievement(ACHIEVEMENT_XP1_14);
+				}
+#endif
+
+#if defined(MOD_EVENTS_ESPIONAGE)
+				CvCityEspionage* pCityEspionage = pCapital->GetCityEspionage();
+				int iSpyID = pCityEspionage->m_aiSpyAssignment[ePlayer];
+
+				if (MOD_EVENTS_ESPIONAGE) {
+					GAMEEVENTINVOKE_HOOK(GAMEEVENT_ElectionResultSuccess, (int)ePlayer, iSpyID, iValue, pCapital->getX(), pCapital->getY());
 				}
 #endif
 			}
@@ -17577,14 +17437,27 @@ void CvMinorCivAI::DoElection()
 					}
 				}
 
+				int iDiminishAmount = 0;
 				if (GetEffectiveFriendshipWithMajorTimes100(ePlayer) > 0)
 				{
-					int iDiminishAmount = min(GC.getESPIONAGE_INFLUENCE_LOST_FOR_RIGGED_ELECTION() * 100, GetEffectiveFriendshipWithMajorTimes100(ePlayer));
+					iDiminishAmount = min(GC.getESPIONAGE_INFLUENCE_LOST_FOR_RIGGED_ELECTION() * 100, GetEffectiveFriendshipWithMajorTimes100(ePlayer));
+					if (MOD_BALANCE_CORE_SPIES_ADVANCED)
+					{
+						iDiminishAmount *= GC.getGame().getCurrentEra();
+					}
 					ChangeFriendshipWithMajorTimes100(ePlayer, -iDiminishAmount, false);
 					
 					GET_PLAYER(ePlayer).GetDiplomacyAI()->ChangeNumTimesTheyLoweredOurInfluence(eElectionWinner, 1);
 					GET_PLAYER(ePlayer).GetDiplomacyAI()->ChangeNumTimesTheyPlottedAgainstUs(eElectionWinner, 1);
 				}
+#if defined(MOD_EVENTS_ESPIONAGE)
+				CvCityEspionage* pCityEspionage = pCapital->GetCityEspionage();
+				int iSpyID = pCityEspionage->m_aiSpyAssignment[ePlayer];
+
+				if (MOD_EVENTS_ESPIONAGE) {
+					GAMEEVENTINVOKE_HOOK(GAMEEVENT_ElectionResultFailure, (int)ePlayer, iSpyID, iDiminishAmount, pCapital->getX(), pCapital->getY());
+				}
+#endif
 			}
 		}
 	}
@@ -18220,7 +18093,7 @@ void CvMinorCivAI::DoTeamDeclaredWarOnMe(TeamTypes eEnemyTeam)
 	// Minor Civ Aggressor - chance of permanent war
 	else if(pEnemyTeam->IsMinorCivAggressor())
 	{
-		iRand = GC.getGame().getJonRandNum(100, "MINOR CIV AI: Become Wary Of aggressor roll.");
+		iRand = GC.getGame().getSmallFakeRandNum(10, m_pPlayer->GetEconomicMight()) * 10;
 
 		if(iRand < /*50*/ GC.getPERMANENT_WAR_AGGRESSOR_CHANCE())
 		{
@@ -18323,7 +18196,7 @@ void CvMinorCivAI::DoTeamDeclaredWarOnMe(TeamTypes eEnemyTeam)
 			if(GET_TEAM(pOtherMinorCiv->getTeam()).isAtWar(eEnemyTeam))
 				iChance += /*50*/ GC.getPERMANENT_WAR_OTHER_AT_WAR();
 
-			iRand = GC.getGame().getJonRandNum(100, "MINOR CIV AI: Third party minor to become Wary Of aggressor roll.");
+			iRand = GC.getGame().getSmallFakeRandNum(10, m_pPlayer->GetEconomicMight() + iMinorCivLoop) * 10;
 			if(iRand < iChance)
 			{
 				if(!pOtherMinorCiv->GetMinorCivAI()->IsWaryOfTeam(eEnemyTeam))
@@ -18592,7 +18465,7 @@ TechTypes CvMinorCivAI::GetGoodTechPlayerDoesntHave(PlayerTypes ePlayer, int iRo
 				}
 
 				// Random factor so that the same thing isn't always picked
-				iValue += GC.getGame().getJonRandNum(iValue / 4, "Minor Civ Quest Reward: Tech - Adding random weight to Tech Reward");
+				iValue += GC.getGame().getSmallFakeRandNum(iValue / 4, m_pPlayer->GetEconomicMight() + iTechLoop);
 
 				TechVector.push_back(iTechLoop, iValue);
 			}
