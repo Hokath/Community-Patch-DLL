@@ -567,8 +567,7 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 
 	if (!pkBuildingInfo->GetBonusFromAccomplishments().empty())
 	{
-		const auto& mBonusesFromAccomplishments = pkBuildingInfo->GetBonusFromAccomplishments();
-		for (std::map<int, std::vector<AccomplishmentBonusInfo>>::const_iterator it = mBonusesFromAccomplishments.begin(); it != mBonusesFromAccomplishments.end(); ++it)
+		for (std::map<int, std::vector<AccomplishmentBonusInfo>>::const_iterator it = pkBuildingInfo->GetBonusFromAccomplishments().begin(); it != pkBuildingInfo->GetBonusFromAccomplishments().end(); ++it)
 		{
 			int iNum = kPlayer.GetNumTimesAccomplishmentCompleted((AccomplishmentTypes)it->first);
 			if (iNum > 0)
@@ -993,8 +992,7 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 			}
 			if (!pkBuildingInfo->GetBonusFromAccomplishments().empty())
 			{
-				const auto& mBonusesFromAccomplishments = pkBuildingInfo->GetBonusFromAccomplishments();
-				for (std::map<int, std::vector<AccomplishmentBonusInfo>>::const_iterator it = mBonusesFromAccomplishments.begin(); it != mBonusesFromAccomplishments.end(); ++it)
+				for (std::map<int, std::vector<AccomplishmentBonusInfo>>::const_iterator it = pkBuildingInfo->GetBonusFromAccomplishments().begin(); it != pkBuildingInfo->GetBonusFromAccomplishments().end(); ++it)
 				{
 					int iNum = kPlayer.GetNumTimesAccomplishmentCompleted((AccomplishmentTypes)it->first);
 					if (iNum > 0)
@@ -1063,8 +1061,7 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 				}
 				if (!pkBuildingInfo->GetBonusFromAccomplishments().empty())
 				{
-					const auto& mBonusesFromAccomplishments = pkBuildingInfo->GetBonusFromAccomplishments();
-					for (std::map<int, std::vector<AccomplishmentBonusInfo>>::const_iterator it = mBonusesFromAccomplishments.begin(); it != mBonusesFromAccomplishments.end(); ++it)
+					for (std::map<int, std::vector<AccomplishmentBonusInfo>>::const_iterator it = pkBuildingInfo->GetBonusFromAccomplishments().begin(); it != pkBuildingInfo->GetBonusFromAccomplishments().end(); ++it)
 					{
 						int iNum = kPlayer.GetNumTimesAccomplishmentCompleted((AccomplishmentTypes)it->first);
 						if (iNum > 0)
