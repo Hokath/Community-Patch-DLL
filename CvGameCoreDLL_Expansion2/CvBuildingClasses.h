@@ -655,7 +655,7 @@ public:
 	int* GetFeatureYieldChangeArray(int i) const;
 	int GetResourceYieldChangeGlobal(int iResource, int iYieldType) const;
 	std::map<int, std::map<int, int>> GetTechEnhancedYields() const;
-	std::map<int, std::vector<AccomplishmentBonusInfo>> GetBonusFromAccomplishments() const;
+	const std::map<int, std::vector<AccomplishmentBonusInfo>>& GetBonusFromAccomplishments() const;
 	std::map<int, std::map<int, int>> GetYieldChangesFromAccomplishments() const;
 	std::map<pair<GreatPersonTypes, EraTypes>, int> GetGreatPersonPointFromConstruction() const;
 	int GetImprovementYieldChange(int i, int j) const;
