@@ -567,11 +567,18 @@ int CvBuildingProductionAI::CheckBuildingBuildSanity(BuildingTypes eBuilding, in
 
 	if (!pkBuildingInfo->GetBonusFromAccomplishments().empty())
 	{
-		map<int, AccomplishmentBonusInfo> mBonusesFromAccomplishments = pkBuildingInfo->GetBonusFromAccomplishments();
-		map<int, AccomplishmentBonusInfo>::iterator it;
-		for (it = mBonusesFromAccomplishments.begin(); it != mBonusesFromAccomplishments.end(); it++)
+		const auto& mBonusesFromAccomplishments = pkBuildingInfo->GetBonusFromAccomplishments();
+		for (auto it = mBonusesFromAccomplishments.begin(); it != mBonusesFromAccomplishments.end(); ++it)
 		{
-			iBonus += iHappinessValue + kPlayer.GetNumTimesAccomplishmentCompleted((AccomplishmentTypes)it->first) > 0 * it->second.iHappiness;
+			int iNum = kPlayer.GetNumTimesAccomplishmentCompleted((AccomplishmentTypes)it->first);
+			if (iNum > 0)
+			{
+				const std::vector<AccomplishmentBonusInfo>& vBonuses = it->second;
+				for (size_t i = 0; i < vBonuses.size(); i++)
+				{
+					iBonus += iHappinessValue + (iNum * vBonuses[i].iHappiness);
+				}
+			}
 		}
 	}
 
