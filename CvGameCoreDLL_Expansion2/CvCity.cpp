@@ -14903,7 +14903,7 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 		// Building Bonuses from Accomplishments
 		if (!pBuildingInfo->GetBonusFromAccomplishments().empty())
 		{
-			auto& mBonusFromAccomplishments = pBuildingInfo->GetBonusFromAccomplishments();
+			const auto& mBonusFromAccomplishments = pBuildingInfo->GetBonusFromAccomplishments();
 			for (auto it = mBonusFromAccomplishments.begin(); it != mBonusFromAccomplishments.end(); ++it)
 			{
 				int iNumAccomplishmentCompleted =
