@@ -37633,7 +37633,7 @@ void CvPlayer::CompleteAccomplishment(AccomplishmentTypes eAccomplishment)
 				for (size_t iI = 0; iI < vCityBuildings.size(); iI++)
 				{
 					CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(vCityBuildings[iI]);
-					const auto& bonusMap = pkBuildingInfo->GetBonusFromAccomplishments();
+					const std::map<int, std::vector<AccomplishmentBonusInfo>>& bonusMap = pkBuildingInfo->GetBonusFromAccomplishments();
 					auto it = bonusMap.find(eAccomplishment);
 					if (it != bonusMap.end())
 					{
