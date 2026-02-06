@@ -1314,13 +1314,13 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 			bonusInfo.eUnitCombatType = (UnitCombatTypes)pResults->GetInt(4);
 			bonusInfo.iUnitProductionModifier = pResults->GetInt(5);
 
-			m_miBonusFromAccomplishments[iAccomplishment] = bonusInfo;
+			m_miBonusFromAccomplishments[iAccomplishment].push_back(bonusInfo);
 		}
 
 		pResults->Reset();
 
 		//Trim extra memory off container since this is mostly read-only.
-		std::map<int, AccomplishmentBonusInfo>(m_miBonusFromAccomplishments).swap(m_miBonusFromAccomplishments);
+		std::map<int, std::vector<AccomplishmentBonusInfo>>(m_miBonusFromAccomplishments).swap(m_miBonusFromAccomplishments);
 	}
 	// Building_ExtraPlayerInstancesFromAccomplishments 
 	// Table structure (BuildingType, AccomplishmentType, ExtraInstances)
