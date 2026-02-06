@@ -4661,7 +4661,7 @@ std::map<int, std::map<int, int>> CvBuildingEntry::GetTechEnhancedYields() const
 	return m_miTechEnhancedYields;
 }
 
-std::map<int, AccomplishmentBonusInfo> CvBuildingEntry::GetBonusFromAccomplishments() const
+std::map<int, std::vector<AccomplishmentBonusInfo>> CvBuildingEntry::GetBonusFromAccomplishments() const
 {
 	return m_miBonusFromAccomplishments;
 }
