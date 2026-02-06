@@ -14904,7 +14904,7 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 		if (!pBuildingInfo->GetBonusFromAccomplishments().empty())
 		{
 			const std::map<int, std::vector<AccomplishmentBonusInfo>>& mBonusFromAccomplishments = pBuildingInfo->GetBonusFromAccomplishments();
-			for (auto it = mBonusFromAccomplishments.begin(); it != mBonusFromAccomplishments.end(); ++it)
+			for (std::map<int, std::vector<AccomplishmentBonusInfo>>::const_iterator it = mBonusFromAccomplishments.begin(); it != mBonusFromAccomplishments.end(); ++it)
 			{
 				int iNumAccomplishmentCompleted =
 					GET_PLAYER(getOwner()).GetNumTimesAccomplishmentCompleted((AccomplishmentTypes)it->first);
