@@ -14764,7 +14764,7 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 			ChangeYieldPerTile(eYield, pBuildingInfo->GetYieldChangePerTile(eYield) * fraction(iChange));
 			ChangeYieldPerCityStateStrategicResource(eYield, pBuildingInfo->GetYieldChangePerCityStateStrategicResource(eYield) * fraction(iChange));
 			ChangeYieldPerPopInEmpireTimes100(eYield, pBuildingInfo->GetYieldChangePerPopInEmpire(eYield) * iChange);
-			changeYieldChangeFaithPurchasableBuildings(eYield, (pBuildingInfo->GetYieldChangeFaithPurchasableBuildings(eYield) * iChange));
+			changeYieldChangeFaithPurchasableBuildings(eYield, (pBuildingInfo->GetYieldFromFaithPurchasableBuildings(eYield) * iChange));
 			//UpdateReligion is called later in this function
 			ChangeYieldPerReligionTimes100(eYield, pBuildingInfo->GetYieldChangePerReligion(eYield) * iChange);
 			changeYieldRateModifier(eYield, (pBuildingInfo->GetYieldModifier(eYield) * iChange));
