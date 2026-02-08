@@ -1726,7 +1726,7 @@ void CvPlayer::reset(PlayerTypes eID, bool bConstructorCall)
 
 	m_aiYieldFromConstruction.clear();
 	m_aiYieldFromConstruction.resize(NUM_YIELD_TYPES, 0);
-	
+
 	m_aiYieldFromWorldWonderConstruction.clear();
 	m_aiYieldFromWorldWonderConstruction.resize(NUM_YIELD_TYPES, 0);
 
