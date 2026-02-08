@@ -636,8 +636,8 @@ public:
 	int GetYieldPerAlly(int i) const;
 	int GetYieldChangeWorldWonder(int i) const;
 	int GetYieldChangeWorldWonderGlobal(int i) const;
-	int GetYieldChangeFaithPurchasableBuildings(int i) const;
-	int GetYieldChangeFaithPurchasableBuildingsGlobal(int i) const;
+	int GetYieldFromFaithPurchasableBuildings(int i) const;
+	int GetYieldFromFaithPurchasableBuildingsGlobal(int i) const;
 
 	int GetLuxuryYieldChanges(int i) const;
 
@@ -1101,8 +1101,8 @@ private:
 	int* m_piYieldPerAlly;
 	int* m_piYieldChangeWorldWonder;
 	int* m_piYieldChangeWorldWonderGlobal;
-	int* m_piYieldChangeFaithPurchasableBuildings;
-	int* m_piYieldChangeFaithPurchasableBuildingsGlobal;
+	int* m_piYieldFromFaithPurchasableBuildings;
+	int* m_piYieldFromFaithPurchasableBuildingsGlobal;
 	int* m_piLuxuryYieldChanges;
 	
 	int* m_piNumFreeUnits;
