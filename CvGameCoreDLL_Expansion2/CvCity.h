@@ -1374,6 +1374,9 @@ public:
 	int getReligionBuildingYieldRateModifier(BuildingClassTypes eBuilding, YieldTypes eYield)	const;
 	void changeReligionBuildingYieldRateModifier(BuildingClassTypes eBuilding, YieldTypes eYield, int iChange);
 
+	int getYieldChangeFaithPurchasableBuildings(YieldTypes eYield)	const;
+	void changeYieldChangeFaithPurchasableBuildings(YieldTypes eYield, int iChange);
+
 	int getLocalBuildingClassYield(BuildingClassTypes eBuilding, YieldTypes eYield)	const;
 	void changeLocalBuildingClassYield(BuildingClassTypes eBuilding, YieldTypes eYield, int iChange);
 
@@ -2142,6 +2145,7 @@ protected:
 
 	vector<SCityExtraYields> m_yieldChanges; //[NUM_YIELD_TYPES]
 
+	std::vector<int> m_aiYieldChangeFaithPurchasableBuildings;
 	std::map<std::pair<int, int>, short> m_ppiGreatPersonProgressFromConstruction;
 	std::vector<int> m_aiEventCooldown;
 	std::vector<bool> m_abEventActive;
