@@ -26475,7 +26475,7 @@ void CvCity::applyYieldFaithPurchasableBuildings(YieldTypes eYield)
 		BuildingClassTypes eBuildingClass = pkBuilding->GetBuildingClassType();
 		if (pkBuilding)
 		{
-			// check to make sure it can be purchased with faith here
+			// check to make sure it can be purchased with faith
 			iFaithCost = GetFaithPurchaseCost(allBuildings[iJ]);
 			if (iFaithCost < 1)
 				continue;
@@ -26494,7 +26494,7 @@ void CvCity::applyYieldFaithPurchasableBuildings(YieldTypes eYield)
 					continue;
 			}
 			// it can be purchased! 
-			ChangeBaseYieldRateFromReligion(eYield, iYieldChange)
+			ChangeBaseYieldRateFromReligion(eYield, iYieldChange);
 			//This is the counter which is wiped by UpdateReligion
 		}
 	}
