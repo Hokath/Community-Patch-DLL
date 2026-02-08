@@ -1376,7 +1376,7 @@ public:
 
 	int getYieldChangeFaithPurchasableBuildings(YieldTypes eYield)	const;
 	void changeYieldChangeFaithPurchasableBuildings(YieldTypes eYield, int iChange);
-	void updateYieldsFaithPurchasableBuildings(YieldTypes eYield, int iChange);
+	void applyYieldFaithPurchasableBuildings(YieldTypes eYield);
 
 	int getLocalBuildingClassYield(BuildingClassTypes eBuilding, YieldTypes eYield)	const;
 	void changeLocalBuildingClassYield(BuildingClassTypes eBuilding, YieldTypes eYield, int iChange);
