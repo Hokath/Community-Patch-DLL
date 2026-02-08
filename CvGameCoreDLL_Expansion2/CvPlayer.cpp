@@ -15903,7 +15903,7 @@ void CvPlayer::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst
 		ChangeYieldFromPillage(((YieldTypes)iI), (pBuildingInfo->GetYieldFromPillageGlobalPlayer(iI) * iChange));
 		ChangeYieldFromVictory(((YieldTypes)iI), (pBuildingInfo->GetYieldFromVictoryGlobalPlayer(iI) * iChange));
 		changeYieldGPExpend(((YieldTypes)iI), (pBuildingInfo->GetYieldFromGPExpend(iI) * iChange));
-		ChangeYieldChangeFaithPurchasableBuildings(((YieldTypes)iI), (pBuildingInfo->GetYieldChangeFaithPurchasableBuildingsGlobal(iI) * iChange));
+		ChangeYieldChangeFaithPurchasableBuildings(((YieldTypes)iI), (pBuildingInfo->GetYieldFromFaithPurchasableBuildingsGlobal(iI) * iChange));
 
 		int iMod = pBuildingInfo->GetGreatWorkYieldChange(iI) * iChange;
 		if(iMod != 0)
