@@ -26453,8 +26453,8 @@ int CvCity::getYieldChangeFaithPurchasableBuildings(YieldTypes eIndex)	const
 void CvCity::changeYieldChangeFaithPurchasableBuildings(YieldTypes eYield, int iChange)
 {
 	VALIDATE_OBJECT();
-	PRECONDITION(eIndex >= 0, "eIndex expected to be >= 0");
-	PRECONDITION(eIndex < NUM_YIELD_TYPES, "eIndex expected to be < NUM_YIELD_TYPES");
+	PRECONDITION(eYield >= 0, "eYield expected to be >= 0");
+	PRECONDITION(eYield < NUM_YIELD_TYPES, "eYield expected to be < NUM_YIELD_TYPES");
 	if (iChange != 0)
 		//UpdateReligion should always be called when this changes. don't recompute here, it is slow
 		m_aiYieldChangeFaithPurchasableBuildings[eYield] += iChange;
@@ -26464,7 +26464,7 @@ void CvCity::changeYieldChangeFaithPurchasableBuildings(YieldTypes eYield, int i
 void CvCity::applyYieldFaithPurchasableBuildings(YieldTypes eYield)
 {
 	//sum local and global values for this yield
-	iYieldChange = getYieldChangeFaithPurchasableBuildings(eYield) + GET_PLAYER(getOwner()).GetYieldChangeFaithPurchasableBuildings(eYield);
+	int iYieldChange = getYieldChangeFaithPurchasableBuildings(eYield) + GET_PLAYER(getOwner()).GetYieldChangeFaithPurchasableBuildings(eYield);
 	if (iYieldChange == 0)
 		return;
 
