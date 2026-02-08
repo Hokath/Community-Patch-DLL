@@ -26480,7 +26480,7 @@ void CvCity::applyYieldFaithPurchasableBuildings(YieldTypes eYield)
 			if (iFaithCost < 1)
 				continue;
 
-			// Religion-enabled building
+			// check to make sure if it requires a belief, the city has that belief
 			if (pkBuilding->IsUnlockedByBelief())
 			{
 				if (GetCityReligions()->GetReligiousMajority() <= RELIGION_PANTHEON)
@@ -26494,11 +26494,8 @@ void CvCity::applyYieldFaithPurchasableBuildings(YieldTypes eYield)
 					continue;
 			}
 			// it can be purchased! 
-			if (iYieldChange != 0)
-			{
-				//This is wiped by UpdateReligion
-				ChangeBaseYieldRateFromReligion(eYield, iYieldChange)
-			}
+			ChangeBaseYieldRateFromReligion(eYield, iYieldChange)
+			//This is the counter which is wiped by UpdateReligion
 		}
 	}
 }
