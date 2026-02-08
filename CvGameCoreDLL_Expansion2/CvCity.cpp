@@ -14765,6 +14765,7 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 			ChangeYieldPerCityStateStrategicResource(eYield, pBuildingInfo->GetYieldChangePerCityStateStrategicResource(eYield) * fraction(iChange));
 			ChangeYieldPerPopInEmpireTimes100(eYield, pBuildingInfo->GetYieldChangePerPopInEmpire(eYield) * iChange);
 			changeYieldChangeFaithPurchasableBuildings(eYield, (pBuildingInfo->GetYieldChangeFaithPurchasableBuildings(eYield) * iChange));
+			//UpdateReligion is called later in this function
 			ChangeYieldPerReligionTimes100(eYield, pBuildingInfo->GetYieldChangePerReligion(eYield) * iChange);
 			changeYieldRateModifier(eYield, (pBuildingInfo->GetYieldModifier(eYield) * iChange));
 			ChangeYieldModifierEraScaling(eYield, pBuildingInfo->GetYieldModifierEraScaling(eYield) * iChange);
@@ -15111,6 +15112,7 @@ void CvCity::UpdateReligion(ReligionTypes eNewMajority, bool bRecalcPlotYields)
 
 	for (int iYield = 0; iYield < NUM_YIELD_TYPES; iYield++)
 	{
+		//some buildings can give yields even if you dont actually have a majority religion (e.g. monastery)
 		applyYieldFaithPurchasableBuildings((YieldTypes)iYield);
 		if (eNewMajority != NO_RELIGION)
 		{
@@ -26454,13 +26456,15 @@ void CvCity::changeYieldChangeFaithPurchasableBuildings(YieldTypes eYield, int i
 	PRECONDITION(eIndex >= 0, "eIndex expected to be >= 0");
 	PRECONDITION(eIndex < NUM_YIELD_TYPES, "eIndex expected to be < NUM_YIELD_TYPES");
 	if (iChange != 0)
+		//UpdateReligion should always be called when this changes. don't recompute here, it is slow
 		m_aiYieldChangeFaithPurchasableBuildings[eYield] += iChange;
 }
 
 //	--------------------------------------------------------------------------------
 void CvCity::applyYieldFaithPurchasableBuildings(YieldTypes eYield)
 {
-	iYieldChange = m_aiYieldChangeFaithPurchasableBuildings[eYield]
+	//sum local and global values for this yield
+	iYieldChange = getYieldChangeFaithPurchasableBuildings(eYield) + GET_PLAYER(getOwner()).GetYieldChangeFaithPurchasableBuildings(eYield);
 	if (iYieldChange == 0)
 		return;
 
@@ -26492,6 +26496,7 @@ void CvCity::applyYieldFaithPurchasableBuildings(YieldTypes eYield)
 			// it can be purchased! 
 			if (iYieldChange != 0)
 			{
+				//This is wiped by UpdateReligion
 				ChangeBaseYieldRateFromReligion(eYield, iYieldChange)
 			}
 		}
