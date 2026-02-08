@@ -392,6 +392,8 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_piYieldPerAlly(NULL),
 	m_piYieldChangeWorldWonder(NULL),
 	m_piYieldChangeWorldWonderGlobal(NULL),
+	m_piYieldChangeFaithPurchasableBuildings(NULL),
+	m_piYieldChangeFaithPurchasableBuildingsGlobal(NULL),
 	m_piLuxuryYieldChanges(NULL),
 	m_piNumFreeUnits(NULL),
 	m_bArtInfoEraVariation(false),
@@ -546,6 +548,8 @@ CvBuildingEntry::~CvBuildingEntry(void)
 	SAFE_DELETE_ARRAY(m_piYieldPerAlly);
 	SAFE_DELETE_ARRAY(m_piYieldChangeWorldWonder);
 	SAFE_DELETE_ARRAY(m_piYieldChangeWorldWonderGlobal);
+	SAFE_DELETE_ARRAY(m_piYieldChangeFaithPurchasableBuildings);
+	SAFE_DELETE_ARRAY(m_piYieldChangeFaithPurchasableBuildingsGlobal);
 	SAFE_DELETE_ARRAY(m_piLuxuryYieldChanges);
 	SAFE_DELETE_ARRAY(m_piNumFreeUnits);
 	SAFE_DELETE_ARRAY(m_paiBuildingClassHappiness);
@@ -1099,6 +1103,8 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 
 	kUtility.SetYields(m_piYieldChangeWorldWonder, "Building_YieldChangeWorldWonder", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldChangeWorldWonderGlobal, "Building_YieldChangeWorldWonderGlobal", "BuildingType", szBuildingType);
+	kUtility.SetYields(m_piYieldChangeFaithPurchasableBuildings, "Building_YieldChangeFaithPurchasableBuildings", "BuildingType", szBuildingType);
+	kUtility.SetYields(m_piYieldChangeFaithPurchasableBuildingsGlobal, "Building_YieldChangeFaithPurchasableBuildingsGlobal", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piLuxuryYieldChanges, "Building_LuxuryYieldChanges", "BuildingType", szBuildingType);
 	
 	m_iGPRateModifierPerXFranchises = kResults.GetInt("GPRateModifierPerXFranchises");
@@ -4541,6 +4547,18 @@ int CvBuildingEntry::GetYieldChangeWorldWonderGlobal(int i) const
 	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
 	PRECONDITION(i > -1, "Index out of bounds");
 	return m_piYieldChangeWorldWonderGlobal ? m_piYieldChangeWorldWonderGlobal[i] : 0;
+}
+int CvBuildingEntry::GetYieldChangeFaithPurchasableBuildings(int i) const
+{
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	return m_piYieldChangeFaithPurchasableBuildings ? m_piYieldChangeFaithPurchasableBuildings[i] : 0;
+}
+int CvBuildingEntry::GetYieldChangeFaithPurchasableBuildingsGlobal(int i) const
+{
+	PRECONDITION(i < NUM_YIELD_TYPES, "Index out of bounds");
+	PRECONDITION(i > -1, "Index out of bounds");
+	return m_piYieldChangeFaithPurchasableBuildingsGlobal ? m_piYieldChangeFaithPurchasableBuildingsGlobal[i] : 0;
 }
 int CvBuildingEntry::GetLuxuryYieldChanges(int i) const
 {
