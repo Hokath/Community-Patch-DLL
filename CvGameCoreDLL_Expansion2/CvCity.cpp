@@ -14756,6 +14756,7 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 			changeRiverPlotYield(eYield, (pBuildingInfo->GetRiverPlotYieldChange(eYield) * iChange));
 			changeLakePlotYield(eYield, (pBuildingInfo->GetLakePlotYieldChange(eYield) * iChange));
 			changeSeaResourceYield(eYield, (pBuildingInfo->GetSeaResourceYieldChange(eYield) * iChange));
+
 			ChangeBaseYieldRateFromBuildings(eYield, ((pBuildingInfo->GetYieldChange(eYield) + m_pCityBuildings->GetBuildingYieldChange(eBuildingClass, eYield)) * iChange));
 			ChangeYieldRateFromBuildingsEraScalingTimes100(eYield, pBuildingInfo->GetYieldChangeEraScalingTimes100(eYield) * iChange);
 			ChangeYieldPerPopTimes100(eYield, pBuildingInfo->GetYieldChangePerPop(eYield) * iChange);
@@ -14763,6 +14764,7 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 			ChangeYieldPerTile(eYield, pBuildingInfo->GetYieldChangePerTile(eYield) * fraction(iChange));
 			ChangeYieldPerCityStateStrategicResource(eYield, pBuildingInfo->GetYieldChangePerCityStateStrategicResource(eYield) * fraction(iChange));
 			ChangeYieldPerPopInEmpireTimes100(eYield, pBuildingInfo->GetYieldChangePerPopInEmpire(eYield) * iChange);
+			changeYieldChangeFaithPurchasableBuildings(eYield, (pBuildingInfo->GetYieldChangeFaithPurchasableBuildings(eYield) * iChange));
 			ChangeYieldPerReligionTimes100(eYield, pBuildingInfo->GetYieldChangePerReligion(eYield) * iChange);
 			changeYieldRateModifier(eYield, (pBuildingInfo->GetYieldModifier(eYield) * iChange));
 			ChangeYieldModifierEraScaling(eYield, pBuildingInfo->GetYieldModifierEraScaling(eYield) * iChange);
@@ -14794,7 +14796,7 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 				{
 					iYieldChange += pBuildingInfo->GetYieldChangeWorldWonder(iI);
 				}
-				//Yield Changes to other specific buildings in this city
+				//Apply the yield changes
 				if (iYieldChange != 0)
 				{
 					m_pCityBuildings->ChangeBuildingYieldChange(eBuildingClass, eYield, iYieldChange * iChange);
@@ -15109,6 +15111,7 @@ void CvCity::UpdateReligion(ReligionTypes eNewMajority, bool bRecalcPlotYields)
 
 	for (int iYield = 0; iYield < NUM_YIELD_TYPES; iYield++)
 	{
+		applyYieldFaithPurchasableBuildings((YieldTypes)iYield);
 		if (eNewMajority != NO_RELIGION)
 		{
 			const CvReligion* pReligion = GC.getGame().GetGameReligions()->GetReligion(eNewMajority, getOwner());
@@ -26433,12 +26436,73 @@ void CvCity::changeReligionBuildingYieldRateModifier(BuildingClassTypes eBuildin
 	SCityExtraYields& y = m_yieldChanges[eYield];
 	ModifierUpdateInsertRemove(y.forReligionBuilding, eBuilding, iChange, true);
 }
+
+
+//	--------------------------------------------------------------------------------
+int CvCity::getYieldChangeFaithPurchasableBuildings(YieldTypes eIndex)	const
+{
+	VALIDATE_OBJECT();
+	PRECONDITION(eIndex >= 0, "eIndex expected to be >= 0");
+	PRECONDITION(eIndex < NUM_YIELD_TYPES, "eIndex expected to be < NUM_YIELD_TYPES");
+	return m_aiYieldChangeFaithPurchasableBuildings[eIndex];
+}
+
+//	--------------------------------------------------------------------------------
+void CvCity::changeYieldChangeFaithPurchasableBuildings(YieldTypes eYield, int iChange)
+{
+	VALIDATE_OBJECT();
+	PRECONDITION(eIndex >= 0, "eIndex expected to be >= 0");
+	PRECONDITION(eIndex < NUM_YIELD_TYPES, "eIndex expected to be < NUM_YIELD_TYPES");
+	if (iChange != 0)
+		m_aiYieldChangeFaithPurchasableBuildings[eYield] += iChange;
+}
+
+//	--------------------------------------------------------------------------------
+void CvCity::applyYieldFaithPurchasableBuildings(YieldTypes eYield)
+{
+	iYieldChange = m_aiYieldChangeFaithPurchasableBuildings[eYield]
+	if (iYieldChange == 0)
+		return;
+
+	const std::vector<BuildingTypes>& allBuildings = GetCityBuildings()->GetAllBuildingsHere();
+	for (size_t iJ = 0; iJ < allBuildings.size(); iJ++)
+	{
+		CvBuildingEntry* pkBuilding = GC.getBuildingInfo(allBuildings[iJ]);
+		BuildingClassTypes eBuildingClass = pkBuilding->GetBuildingClassType();
+		if (pkBuilding)
+		{
+			// check to make sure it can be purchased with faith here
+			iFaithCost = GetFaithPurchaseCost(allBuildings[iJ]);
+			if (iFaithCost < 1)
+				continue;
+
+			// Religion-enabled building
+			if (pkBuilding->IsUnlockedByBelief())
+			{
+				if (GetCityReligions()->GetReligiousMajority() <= RELIGION_PANTHEON)
+					continue;
+
+				const CvReligion* pReligion = GetCityReligions()->GetMajorityReligion();
+				if (!pReligion)
+					continue;
+
+				if (!pReligion->m_Beliefs.IsBuildingClassEnabled(eBuildingClass, getOwner(), this))
+					continue;
+			}
+			// it can be purchased! 
+			if (iYieldChange != 0)
+			{
+				ChangeBaseYieldRateFromReligion(eYield, iYieldChange)
+			}
+		}
+	}
+}
+
 //	--------------------------------------------------------------------------------
 int CvCity::getLocalBuildingClassYield(BuildingClassTypes eBuilding, YieldTypes eYield)	const
 {
 	return ModifierLookup(m_yieldChanges[eYield].forLocalBuilding, eBuilding);
 }
-
 
 //	--------------------------------------------------------------------------------
 void CvCity::changeLocalBuildingClassYield(BuildingClassTypes eBuilding, YieldTypes eYield, int iChange)
