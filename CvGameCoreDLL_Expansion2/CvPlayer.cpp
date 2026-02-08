@@ -39720,7 +39720,7 @@ int CvPlayer::GetYieldChangeFaithPurchasableBuildings(YieldTypes eYield) const
 {
 	PRECONDITION(eYield >= 0, "eIndex is expected to be non-negative (invalid Index)");
 	PRECONDITION(eYield < NUM_YIELD_TYPES, "eIndex is expected to be within maximum bounds (invalid Index)");
-	return m_piYieldChangeFaithPurchasableBuildings[eYield];
+	return m_aiYieldChangeFaithPurchasableBuildings[eYield];
 }
 
 void CvPlayer::ChangeYieldChangeFaithPurchasableBuildings(YieldTypes eYield, int iChange)
@@ -39730,8 +39730,9 @@ void CvPlayer::ChangeYieldChangeFaithPurchasableBuildings(YieldTypes eYield, int
 
 	if (iChange != 0)
 	{
-		m_piYieldChangeFaithPurchasableBuildings[eYield] += iChange;
+		m_aiYieldChangeFaithPurchasableBuildings[eYield] += iChange;
 		// recalculate religion yields for every city
+		int iLoop = 0;
 		for (CvCity* pLoopCity = firstCity(&iLoop); pLoopCity != NULL; pLoopCity = nextCity(&iLoop))
 		{
 			pLoopCity->UpdateReligion(pLoopCity->GetCityReligions()->GetReligiousMajority());
@@ -44063,7 +44064,7 @@ void CvPlayer::Serialize(Player& player, Visitor& visitor)
 	visitor(player.m_piYieldChangeTradeRoute);
 	visitor(player.m_piYieldChangesNaturalWonder);
 	visitor(player.m_piYieldChangesPerReligion);
-	visitor(player.m_piYieldChangeFaithPurchasableBuildings);
+	visitor(player.m_aiYieldChangeFaithPurchasableBuildings);
 	visitor(player.m_piYieldChangeWorldWonder);
 	visitor(player.m_piYieldFromMinorDemand);
 	visitor(player.m_piYieldFromWLTKD);
