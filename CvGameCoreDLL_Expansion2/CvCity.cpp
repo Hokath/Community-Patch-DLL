@@ -26476,7 +26476,7 @@ void CvCity::applyYieldFaithPurchasableBuildings(YieldTypes eYield)
 		if (pkBuilding)
 		{
 			// check to make sure it can be purchased with faith
-			iFaithCost = GetFaithPurchaseCost(allBuildings[iJ]);
+			int iFaithCost = GetFaithPurchaseCost(allBuildings[iJ]);
 			if (iFaithCost < 1)
 				continue;
 
