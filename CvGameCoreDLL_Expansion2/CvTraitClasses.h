@@ -2044,7 +2044,6 @@ private:
 	bool m_bIsReligious;
 
 	// Cached data about this player's traits
-	int m_iEraScalingMultiplier;
 	int m_iGreatPeopleRateModifier;
 	int m_iGreatScientistRateModifier;
 	int m_iGreatGeneralRateModifier;
