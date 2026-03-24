@@ -5764,7 +5764,7 @@ int CvPlayerTraits::CurrentEraScalingModifier() const
 
 	int iCurrentEra = (int)m_pPlayer->GetCurrentEra();
 	
-	if (m_pTraits->IsOddEraScaler())
+	if (m_pTraits->IsOddEraScaler() && iCurrentEra > 1)
 	{
 		iModifier += 100 * (iCurrentEra / 2);
 	}
@@ -5773,6 +5773,15 @@ int CvPlayerTraits::CurrentEraScalingModifier() const
 	if (iFractional > 0)
 	{
 		iModifier += (100 * iCurrentEra) / iFractional;
+	}
+
+	// no abnormal scaling? default to standard era scaling
+	if (iModifier == 100)
+	{
+		if (iCurrentEra > 1)
+		{
+			iModifier += 100 * (iCurrentEra - 1)
+		}
 	}
 
 	return iModifier;
