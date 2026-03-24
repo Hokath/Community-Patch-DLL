@@ -1400,9 +1400,17 @@ bool CvTraitEntry::IsNoReligiousStrife() const
 {
 	return m_bIsNoReligiousStrife;
 }
+bool CvTraitEntry::IsEraScaling() const
+{
+	return m_bIsEraScaling;
+}
 bool CvTraitEntry::IsOddEraScaler() const
 {
 	return m_bIsOddEraScaler;
+}
+int CvTraitEntry::GetFractionalEraScaler() const
+{
+	return m_iFractionalEraScaler;
 }
 int CvTraitEntry::GetWonderProductionModGA() const
 {
@@ -2615,7 +2623,9 @@ bool CvTraitEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility& 
 	m_iReligiousUnrestModifier = kResults.GetInt("ReligiousUnrestModifier");
 	m_bNoConnectionUnhappiness = kResults.GetBool("NoConnectionUnhappiness");
 	m_bIsNoReligiousStrife = kResults.GetBool("IsNoReligiousStrife");
+	m_bIsEraScaling = kResults.GetBool("IsEraScaling");
 	m_bIsOddEraScaler = kResults.GetBool("IsOddEraScaler");
+	m_iFractionalEraScaler = kResults.GetInt("FractionalEraScaler");
 	m_iWonderProductionModGA = kResults.GetInt("WonderProductionModGA");
 	m_iCultureBonusModifierConquest = kResults.GetInt("CultureBonusModifierConquest");
 	m_iProductionBonusModifierConquest = kResults.GetInt("ProductionBonusModifierConquest");
@@ -4724,18 +4734,23 @@ void CvPlayerTraits::InitPlayerTraits()
 			m_iCultureMedianModifier += trait->GetCultureMedianModifier();
 			m_iReligiousUnrestModifier += trait->GetReligiousUnrestModifier();
 
-			if( trait->IsNoConnectionUnhappiness())
+			if(trait->IsNoConnectionUnhappiness())
 			{
 				m_bNoConnectionUnhappiness = true;
 			}
-			if( trait->IsNoReligiousStrife())
+			if(trait->IsNoReligiousStrife())
 			{
 				m_bIsNoReligiousStrife = true;
 			}
-			if( trait->IsOddEraScaler())
+			if(trait->IsEraScaling())
+			{
+				m_bIsEraScaling= true;
+			}
+			if(trait->IsOddEraScaler())
 			{
 				m_bIsOddEraScaler= true;
 			}
+			m_iFractionalEraScaler += trait->GetFractionalEraScaler();
 			m_iWonderProductionModGA += trait->GetWonderProductionModGA();
 			m_iCultureBonusModifierConquest += trait->GetCultureBonusModifierConquest();
 			m_iProductionBonusModifierConquest += trait->GetProductionBonusModifierConquest();
@@ -5441,7 +5456,9 @@ void CvPlayerTraits::Reset()
 	m_iReligiousUnrestModifier = 0;
 	m_bNoConnectionUnhappiness = false;
 	m_bIsNoReligiousStrife = false;
+	m_bIsEraScaling = false;
 	m_bIsOddEraScaler = false;
+	m_iFractionalEraScaler = 0;
 	m_iWonderProductionModGA = 0;
 	m_iCultureBonusModifierConquest = 0;
 	m_iProductionBonusModifierConquest = 0;
@@ -7607,7 +7624,9 @@ void CvPlayerTraits::Serialize(PlayerTraits& playerTraits, Visitor& visitor)
 	visitor(playerTraits.m_iReligiousUnrestModifier);
 	visitor(playerTraits.m_bNoConnectionUnhappiness);
 	visitor(playerTraits.m_bIsNoReligiousStrife);
+	visitor(playerTraits.m_bIsEraScaling);
 	visitor(playerTraits.m_bIsOddEraScaler);
+	visitor(playerTraits.m_iFractionalEraScaler);
 	visitor(playerTraits.m_iWonderProductionModGA);
 	visitor(playerTraits.m_iCultureBonusModifierConquest);
 	visitor(playerTraits.m_iProductionBonusModifierConquest);
