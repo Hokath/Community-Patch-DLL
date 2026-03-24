@@ -5754,6 +5754,30 @@ bool CvPlayerTraits::HasTrait(TraitTypes eTrait) const
 	}
 }
 
+/// What kind of Era scaling does this player have on their traits?
+int CvPlayerTraits::CurrentEraScalingModifier() const
+{
+	int iModifier = 100;
+	
+	if (!m_pTraits->IsEraScaling())
+		return iModifier;
+
+	int iCurrentEra = (int)m_pPlayer->GetCurrentEra();
+	
+	if (m_pTraits->IsOddEraScaler())
+	{
+		iModifier += 100 * (iCurrentEra / 2);
+	}
+
+	int iFractional = m_pTraits->GetFractionalEraScaler();
+	if (iFractional > 0)
+	{
+		iModifier += (100 * iCurrentEra) / iFractional;
+	}
+
+	return iModifier;
+}
+
 /// Will settling a city in this new area unlock a unique luxury?
 bool CvPlayerTraits::WillGetUniqueLuxury(CvArea *pArea) const
 {
