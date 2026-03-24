@@ -870,7 +870,7 @@ public:
 	bool HasTrait(TraitTypes eTrait) const;
 
 	// Handles the different types of possible scaling defined below
-	int CurrentEraScalingMultiplier() const;
+	int CurrentEraScalingModifier() const;
 
 	// Accessor functions
 	int GetGreatPeopleRateModifier() const
