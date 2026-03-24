@@ -865,6 +865,10 @@ public:
 
 	// Accessor functions
 	bool HasTrait(TraitTypes eTrait) const;
+	int GetEraScalingMultiplier() const;
+	{
+		return m_iEraScalingMultiplier;
+	}
 	int GetGreatPeopleRateModifier() const
 	{
 		return m_iGreatPeopleRateModifier;
@@ -2040,6 +2044,7 @@ private:
 	bool m_bIsReligious;
 
 	// Cached data about this player's traits
+	int m_iEraScalingMultiplier;
 	int m_iGreatPeopleRateModifier;
 	int m_iGreatScientistRateModifier;
 	int m_iGreatGeneralRateModifier;
