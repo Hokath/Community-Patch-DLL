@@ -1872,7 +1872,7 @@ int CvTraitEntry::GetTradeRouteYieldChange(DomainTypes eIndex1, YieldTypes eInde
 	return m_ppiTradeRouteYieldChange ? m_ppiTradeRouteYieldChange[eIndex1][eIndex2] : 0;
 }
 
-/// Accessor:: Extra yield from an improvement
+/// Accessor:: Extra yield from specialists
 int CvTraitEntry::GetSpecialistYieldChanges(SpecialistTypes eIndex1, YieldTypes eIndex2) const
 {
 	PRECONDITION(eIndex1 < GC.getNumSpecialistInfos(), "Index out of bounds");
@@ -6229,20 +6229,9 @@ int CvPlayerTraits::GetSpecialistYieldChange(SpecialistTypes eSpecialist, YieldT
 		return 0;
 	}
 
-	int iScaler = 1;
-	
-	if(IsOddEraScaler())
-	{
-		int iCurrentEra = (int)m_pPlayer->GetCurrentEra();
-		// starts at Medieval (or whatever is Era #3)
-		if (iCurrentEra >= 2)
-		{
-			int iEraOffset = iCurrentEra - 2;
-			iScaler += 1 + (iEraOffset / 2);
-		}
-	}
+	int iModifier = CurrentEraScalingModifier();
 
-	return iScaler * m_ppaaiSpecialistYieldChange[(int)eSpecialist][(int)eYield];
+	return (iModifier * m_ppaaiSpecialistYieldChange[(int)eSpecialist][(int)eYield]) / 100;
 }
 
 int CvPlayerTraits::GetGreatPersonExpendedYield(GreatPersonTypes eGreatPerson, YieldTypes eYield) const
