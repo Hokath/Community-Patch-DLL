@@ -863,11 +863,12 @@ public:
 		return m_bIsReligious;
 	}
 
+	bool HasTrait(TraitTypes eTrait) const;
+
 	// Handles the different types of possible scaling defined below
 	int CurrentEraScalingMultiplier() const;
 
 	// Accessor functions
-	bool HasTrait(TraitTypes eTrait) const;
 	int GetGreatPeopleRateModifier() const
 	{
 		return m_iGreatPeopleRateModifier;
