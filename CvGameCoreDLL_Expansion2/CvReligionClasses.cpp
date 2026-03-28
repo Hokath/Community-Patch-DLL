@@ -8285,6 +8285,13 @@ int CvReligionAI::ScorePantheonBeliefAtCity(CvBeliefEntry* pEntry, CvCity* pCity
 			// additional population we expect to get in the near future
 			iTempValue += 2 * iExpectedGrowth / pEntry->GetYieldPerXFollowers(iI);
 		}
+		
+		if (pEntry->GetMaxYieldPerFollowerPercent(iI) > 0)
+		{
+			// there is a possible clamp by the MaxYieldPerFollower table
+			iTempValue += 5 * min(pEntry->GetMaxYieldPerFollower((YieldTypes)iI), iCurrentCityPop * pEntry->GetMaxYieldPerFollowerPercent(iI) / 100);
+			iTempValue += 2 * min(pEntry->GetMaxYieldPerFollower((YieldTypes)iI), (iCurrentCityPop + iExpectedGrowth) * pEntry->GetMaxYieldPerFollowerPercent(iI) / 100);
+		}
 
 		// caps at half number of followers. assume we are at cap.
 		if (pEntry->GetYieldPerGPT(iI) > 0)
@@ -9652,33 +9659,10 @@ int CvReligionAI::ScoreBeliefForPlayer(CvBeliefEntry* pEntry, bool bReturnConque
 
 			iSpreadYields += pEntry->GetYieldChangePerForeignCity(iI) * 2;
 
-			iSpreadYields += pEntry->GetYieldChangePerXForeignFollowers(iI) * 2;
+			iSpreadYields += (10 / pEntry->GetYieldChangePerXForeignFollowers(iI));
 
 			if (pEntry->GetYieldChangePerXCityStateFollowers(iI) > 0)
-				iSpreadYields += pEntry->GetYieldChangePerXCityStateFollowers(iI) * (m_pPlayer->GetNumCSFriends() + GC.getGame().GetNumMinorCivsAlive()) / 2;
-
-			if (pEntry->GetMaxYieldPerFollowerPercent(iI) > 0)
-			{
-				iSpreadYieldsLocal += pEntry->GetMaxYieldPerFollowerPercent(iI) * 25 / max(1, 100 - pEntry->GetMaxYieldPerFollower((YieldTypes)iI));
-			}
-			else
-			{
-				if (pEntry->GetYieldPerXFollowers((YieldTypes)iI) > 0)
-				{
-					int iVal = iIdealCityPop / pEntry->GetYieldPerXFollowers((YieldTypes)iI);
-					iVal *= 100;
-					iVal /= (100 + max(0, (2 * (iIdealCityPop - m_pPlayer->getCapitalCity()->getPopulation()))));
-
-					if (iVal > pEntry->GetMaxYieldPerFollower(iI))
-					{
-						iVal = pEntry->GetMaxYieldPerFollower(iI);
-					}
-					if (pEntry->IsPantheonBelief())
-						iVal /= 4;
-
-					iSpreadYieldsLocal += iVal;
-				}
-			}
+				iSpreadYields += (m_pPlayer->GetNumCSFriends() + GC.getGame().GetNumMinorCivsAlive()) / pEntry->GetYieldChangePerXCityStateFollowers(iI);
 		}
 
 
