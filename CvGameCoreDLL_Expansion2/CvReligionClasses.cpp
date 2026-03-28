@@ -8286,11 +8286,11 @@ int CvReligionAI::ScorePantheonBeliefAtCity(CvBeliefEntry* pEntry, CvCity* pCity
 			iTempValue += 2 * iExpectedGrowth / pEntry->GetYieldPerXFollowers(iI);
 		}
 		
-		if (pEntry->GetMaxYieldPerFollowerPercent(iI) > 0)
+		if (pEntry->GetFollowerRequiredPerYield(iI) > 0)
 		{
-			// there is a possible clamp by the MaxYieldPerFollower table
-			iTempValue += 5 * min(pEntry->GetMaxYieldPerFollower((YieldTypes)iI), iCurrentCityPop * pEntry->GetMaxYieldPerFollowerPercent(iI) / 100);
-			iTempValue += 2 * min(pEntry->GetMaxYieldPerFollower((YieldTypes)iI), (iCurrentCityPop + iExpectedGrowth) * pEntry->GetMaxYieldPerFollowerPercent(iI) / 100);
+			// there is a possible clamp by MaxYieldPerFollower
+			iTempValue += 5 * min(pEntry->GetMaxYieldPerFollower((YieldTypes)iI), iCurrentCityPop / pEntry->GetFollowerRequiredPerYield(iI));
+			iTempValue += 2 * min(pEntry->GetMaxYieldPerFollower((YieldTypes)iI), (iCurrentCityPop + iExpectedGrowth) / GetFollowerRequiredPerYield);
 		}
 
 		// caps at half number of followers. assume we are at cap.
