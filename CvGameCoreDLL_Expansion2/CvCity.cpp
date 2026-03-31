@@ -6752,6 +6752,9 @@ void CvCity::DoEventChoice(CityEventChoiceTypes eEventChoice, CityEventTypes eCi
 				if (GetCityBuildings()->GetNumBuildingClass(eBuildingClass) <= 0)
 					continue;
 
+				if (GetCityBuildings()->IsHoldingGreatWork(eBuildingClass))
+					continue;
+
 				const CvBuildingClassInfo* pkBuildingClassInfo = GC.getBuildingClassInfo(eBuildingClass);
 				if (!pkBuildingClassInfo)
 					continue;
