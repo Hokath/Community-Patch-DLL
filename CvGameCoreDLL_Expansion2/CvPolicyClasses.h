@@ -277,7 +277,7 @@ public:
 	int GetBuildingClassHappiness(int i) const;
 	int GetBuildingClassProductionModifier(int i) const;
 	int GetUnitClassProductionModifiers(int i) const;
-	int GetProjectProductionModifier(int i) const;
+	int GetProjectProductionModifiers(int i) const;
 	int GetNumFreeUnitsByClass(int i) const;
 	int GetTourismByUnitClassCreated(int i) const;
 	int GetImprovementCultureChanges(int i) const;
