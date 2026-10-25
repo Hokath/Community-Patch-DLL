@@ -3748,6 +3748,32 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 		}
 	}
 
+	// Project related
+	ProjectTypes eProject;
+	bool bDummyFound = false;
+	for (int iI = 0; iI < GC.getNumProjectInfos(); iI++)
+	{
+		eProject = (ProjectTypes)iI;
+	
+		int iProductionModifier = PolicyInfo->GetProjectProductionModifiers(eProject);
+
+		if (iProductionModifier != 0)
+		{
+			if (!PolicyInfo->ShowInTechTree)  // account for possibly large number of dummies by treating them as just 1 project
+			{
+				if (!bDummyFound)  // first one
+				{
+					yield[YIELD_PRODUCTION] += iProductionModifier;
+					bDummyFound = true;
+				}
+			}
+			else
+			{
+				yield[YIELD_PRODUCTION] += iProductionModifier;
+			}
+		}
+	}
+
 	// Unit related
 	for (int iI = 0; iI < GC.getNumUnitClassInfos(); iI++)
 	{
