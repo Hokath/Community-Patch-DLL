@@ -3750,7 +3750,7 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 
 	// Project related
 	ProjectTypes eProject;
-	bool bDummyFound = false;
+	int iSingleEntry = 0;  // account for possibly large number of entries by treating them as just 1 project
 	for (int iI = 0; iI < GC.getNumProjectInfos(); iI++)
 	{
 		eProject = (ProjectTypes)iI;
@@ -3759,19 +3759,15 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 
 		if (iProductionModifier != 0)
 		{
-			if (!PolicyInfo->ShowInTechTree)  // account for possibly large number of dummies by treating them as just 1 project
+			if (iProductionModifier > iSingleEntry)
 			{
-				if (!bDummyFound)  // first one
-				{
-					yield[YIELD_PRODUCTION] += iProductionModifier;
-					bDummyFound = true;
-				}
-			}
-			else
-			{
-				yield[YIELD_PRODUCTION] += iProductionModifier;
+				iSingleEntry = iProductionModifier;
 			}
 		}
+	}
+	if (iSingleEntry > 0)
+	{
+		yield[YIELD_PRODUCTION] += iSingleEntry;
 	}
 
 	// Unit related
