@@ -510,11 +510,6 @@ public:
 	int GetYieldFromPolicyUnlock(int i) const;
 	int* GetYieldFromPolicyUnlockArray() const;
 
-	int GetYieldFromUnitLevelUp(int i, int j) const;
-	int* GetYieldFromUnitLevelUpArray(int i) const;
-
-	int GetYieldFromUnitLevelUpGlobal(int i, int j) const;
-
 	int GetYieldFromCombatExperienceTimes100(int i) const;
 	int* GetYieldFromCombatExperienceTimes100Array() const;
 
@@ -711,6 +706,8 @@ public:
 	int GetBuildingClassHappiness(int i) const;
 
 	std::multimap<int, std::pair<int, int>> GetGreatPersonProgressFromConstructionArray() const;
+	std::map<std::pair<UnitCombatTypes, YieldTypes>, int> GetYieldFromUnitLevelUpArray() const;
+	std::map<std::pair<UnitCombatTypes, YieldTypes>, int> GetYieldFromUnitLevelUpGlobalArray() const;
 
 	CvThemingBonusInfo *GetThemingBonusInfo(int i) const;
 	int GetNumThemingBonuses() const { return m_iNumThemingBonuses; }
@@ -1136,8 +1133,6 @@ private:
 	
 	int* m_piNumFreeUnits;
 
-	int** m_ppaiYieldFromUnitLevelUp;
-	int** m_ppaiYieldFromUnitLevelUpGlobal;
 	int** m_ppaiResourceYieldChange;
 	int** m_ppaiFeatureYieldChange;
 	std::map<int, std::map<int, int>> m_ppiResourceYieldChangeGlobal;
@@ -1169,6 +1164,8 @@ private:
 	int* m_piInstantYield;
 	
 	std::multimap<int, std::pair<int, int>> m_piiGreatPersonProgressFromConstruction;
+	std::map<std::pair<UnitCombatTypes, YieldTypes>, int> m_ppaiYieldFromUnitLevelUp;
+	std::map<std::pair<UnitCombatTypes, YieldTypes>, int> m_ppaiYieldFromUnitLevelUpGlobal;
 
 	CvThemingBonusInfo* m_paThemingBonusInfo;
 	int m_iNumThemingBonuses;

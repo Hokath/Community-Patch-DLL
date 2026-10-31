@@ -4009,13 +4009,12 @@ int CityStrategyAIHelpers::GetBuildingYieldValue(CvCity *pCity, BuildingTypes eB
 			iInstant += pkBuildingInfo->GetYieldFromFaithPurchase(eYield);
 	}
 
-	std::multimap<int, std::pair<int, int>> mYieldFromUnitLevelUp = pkBuildingInfo->GetYieldFromUnitLevelUpArray();
-	for (std::multimap<int, std::pair<int, int>>::const_iterator it = mYieldFromUnitLevelUp.begin();
-	    it != mYieldFromUnitLevelUp.end(); ++it)
+	std::map<std::pair<UnitCombatTypes, YieldTypes>, int> mYieldFromUnitLevelUp = pkBuildingInfo->GetYieldFromUnitLevelUpArray();
+	for (std::map<std::pair<UnitCombatTypes, YieldTypes>, int>::const_iterator it = mYieldFromUnitLevelUp.begin(); it != mYieldFromUnitLevelUp.end(); ++it)
 	{
-	    UnitCombatTypes eUnitCombat = (UnitCombatTypes)it->first;
-	    YieldTypes eYieldType = (YieldTypes)it->second.first;
-	    int iYield = it->second.second;
+	    UnitCombatTypes eUnitCombat = it->first.first;
+	    YieldTypes eYieldType = it->first.second;
+	    int iYield = it->second;
 	
 	    if (eYield == eYieldType && iYield > 0)
 	    {
@@ -4028,19 +4027,18 @@ int CityStrategyAIHelpers::GetBuildingYieldValue(CvCity *pCity, BuildingTypes eB
 	    }
 	}
 	
-	std::multimap<int, std::pair<int, int>> mYieldFromUnitLevelUpGlobal = pkBuildingInfo->GetYieldFromUnitLevelUpGlobalArray();
-	for (std::multimap<int, std::pair<int, int>>::const_iterator it = mYieldFromUnitLevelUpGlobal.begin();
-	    it != mYieldFromUnitLevelUpGlobal.end(); ++it)
+	std::map<std::pair<UnitCombatTypes, YieldTypes>, int> mYieldFromUnitLevelUpGlobal = pkBuildingInfo->GetYieldFromUnitLevelUpGlobalArray();
+	for (std::map<std::pair<UnitCombatTypes, YieldTypes>, int>::const_iterator it = mYieldFromUnitLevelUpGlobal.begin(); it != mYieldFromUnitLevelUpGlobal.end(); ++it)
 	{
-	    YieldTypes eYield = (YieldTypes)it->second.first;
-	    int iYield = it->second.second;
+	    YieldTypes eYieldType = (YieldTypes)it->first.second;
+	    int iYield = it->second;
 	
 	    if (eYield == eYieldType && iYield > 0)
 	    {
 	        iInstant += iYield;
 	    }
 	}
-
+	
 	if (pkBuildingInfo->GetYieldFromCombatExperienceTimes100(eYield) > 0)
 	{
 		if (kPlayer.GetBestMilitaryCity(NO_UNITCOMBAT, DOMAIN_LAND) == pCity)

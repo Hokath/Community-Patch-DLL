@@ -409,8 +409,6 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_piCityConnectionPlotYieldChanges(NULL),
 	m_piCityConnectionPlotYieldChangesGlobal(NULL),
 	m_piNumFreeUnits(NULL),
-	m_ppaiYieldFromUnitLevelUp(NULL),
-	m_ppaiYieldFromUnitLevelUpGlobal(NULL),
 	m_ppaiResourceYieldChange(NULL),
 	m_ppaiFeatureYieldChange(NULL),
 	m_ppiResourceYieldChangeGlobal(),
@@ -441,6 +439,8 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_paiBuildingClassHappiness(NULL),
 	m_piInstantYield(NULL),
 	m_piiGreatPersonProgressFromConstruction(),
+	m_ppaiYieldFromUnitLevelUp(),
+	m_ppaiYieldFromUnitLevelUpGlobal(),
 	m_paThemingBonusInfo(NULL),
 	m_iNumThemingBonuses(0)
 {
@@ -575,8 +575,6 @@ CvBuildingEntry::~CvBuildingEntry(void)
 	SAFE_DELETE_ARRAY(m_paYieldFromYieldGlobal);
 	SAFE_DELETE_ARRAY(m_piInstantYield);
 
-	CvDatabaseUtility::SafeDelete2DArray(m_ppaiYieldFromUnitLevelUp);
-	CvDatabaseUtility::SafeDelete2DArray(m_ppaiYieldFromUnitLevelUpGlobal);
 	CvDatabaseUtility::SafeDelete2DArray(m_ppaiResourceYieldChange);
 	CvDatabaseUtility::SafeDelete2DArray(m_ppaiFeatureYieldChange);
 	m_ppiResourceYieldChangeGlobal.clear();
@@ -602,6 +600,8 @@ CvBuildingEntry::~CvBuildingEntry(void)
 	CvDatabaseUtility::SafeDelete2DArray(m_ppiBuildingClassLocalYieldChanges);
 	SAFE_DELETE_ARRAY(m_paiSpecificGreatPersonRateModifier);
 	m_piiGreatPersonProgressFromConstruction.clear();
+	m_ppaiYieldFromUnitLevelUp.clear();
+	m_ppaiYieldFromUnitLevelUpGlobal.clear();
 }
 
 /// Read from XML file
@@ -1515,8 +1515,6 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 
 	//YieldFromUnitLevelUp
 	{
-		kUtility.Initialize2DArray(m_ppaiYieldFromUnitLevelUp, "UnitCombatInfos", "Yields");
-
 		std::string strKey("Building_YieldFromUnitLevelUp");
 		Database::Results* pResults = kUtility.GetResults(strKey);
 		if(pResults == NULL)
@@ -1532,13 +1530,16 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 			const int YieldID = pResults->GetInt(1);
 			const int yield = pResults->GetInt(2);
 
-			m_ppaiYieldFromUnitLevelUp[CombatID][YieldID] = yield;
+			m_ppaiYieldFromUnitLevelUp.insert(std::make_pair(std::make_pair((UnitCombatTypes)CombatID, (YieldTypes)YieldID), yield));
 		}
+		pResults->Reset();
+
+		//Trim extra memory off container since this is mostly read-only.
+		std::map<std::pair<UnitCombatTypes, YieldTypes>, int>(m_ppaiYieldFromUnitLevelUp).swap(m_ppaiYieldFromUnitLevelUp);
 	}
+	
 	//YieldFromUnitLevelUpGlobal (any unit, local yields)
 	{
-		kUtility.Initialize2DArray(m_ppaiYieldFromUnitLevelUpGlobal, "UnitCombatInfos", "Yields");
-
 		std::string strKey("Building_YieldFromUnitLevelUpGlobal");
 		Database::Results* pResults = kUtility.GetResults(strKey);
 		if(pResults == NULL)
@@ -1554,8 +1555,12 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 			const int YieldID = pResults->GetInt(1);
 			const int yield = pResults->GetInt(2);
 
-			m_ppaiYieldFromUnitLevelUpGlobal[CombatID][YieldID] = yield;
+			m_ppaiYieldFromUnitLevelUpGlobal.insert(std::make_pair(std::make_pair((UnitCombatTypes)CombatID, (YieldTypes)YieldID), yield));
 		}
+		pResults->Reset();
+
+		//Trim extra memory off container since this is mostly read-only.
+		std::map<std::pair<UnitCombatTypes, YieldTypes>, int>(m_ppaiYieldFromUnitLevelUpGlobal).swap(m_ppaiYieldFromUnitLevelUpGlobal);
 	}
 	
 	//FeatureYieldChanges
@@ -3881,29 +3886,13 @@ int* CvBuildingEntry::GetYieldFromPolicyUnlockArray() const
 	return m_piYieldFromPolicyUnlock;
 }
 
-int CvBuildingEntry::GetYieldFromUnitLevelUp(int i, int j) const
+std::map<std::pair<UnitCombatTypes, YieldTypes>, int> CvBuildingEntry::GetYieldFromUnitLevelUpArray() const
 {
-	PRECONDITION(i < GC.getNumUnitCombatClassInfos(), "Index out of bounds");
-	PRECONDITION(i > -1, "Index out of bounds");
-	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
-	PRECONDITION(j > -1, "Index out of bounds");
-	
-	return m_ppaiYieldFromUnitLevelUp ? m_ppaiYieldFromUnitLevelUp[i][j] : -1;
+	return m_ppaiYieldFromUnitLevelUp;
 }
-/// Array of yield changes
-int* CvBuildingEntry::GetYieldFromUnitLevelUpArray(int i) const
+std::map<std::pair<UnitCombatTypes, YieldTypes>, int> CvBuildingEntry::GetYieldFromUnitLevelUpGlobalArray() const
 {
-	return m_ppaiYieldFromUnitLevelUp[i];
-}
-/// any unit levelling up (but yields are local)
-int CvBuildingEntry::GetYieldFromUnitLevelUpGlobal(int i, int j) const
-{
-	PRECONDITION(i < GC.getNumUnitCombatClassInfos(), "Index out of bounds");
-	PRECONDITION(i > -1, "Index out of bounds");
-	PRECONDITION(j < NUM_YIELD_TYPES, "Index out of bounds");
-	PRECONDITION(j > -1, "Index out of bounds");
-	
-	return m_ppaiYieldFromUnitLevelUpGlobal ? m_ppaiYieldFromUnitLevelUpGlobal[i][j] : -1;
+	return m_ppaiYieldFromUnitLevelUpGlobal;
 }
 
 int CvBuildingEntry::GetYieldFromCombatExperienceTimes100(int i) const

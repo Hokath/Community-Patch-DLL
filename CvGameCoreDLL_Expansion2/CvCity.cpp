@@ -394,8 +394,6 @@ CvCity::CvCity() :
 	, m_aiYieldFromPurchase()
 	, m_aiYieldFromPurchaseGlobal()
 	, m_aiYieldFromFaithPurchase()
-	, m_aiYieldFromUnitLevelUp()
-	, m_aiYieldFromUnitLevelUpGlobal()
 	, m_aiYieldFromCombatExperienceTimes100()
 	, m_aiYieldPerAllyTimes100()
 	, m_aiYieldPerFriendTimes100()
@@ -1126,6 +1124,8 @@ void CvCity::uninit()
 	m_aiYieldPerPopInEmpire.clear();
 	m_miTechEnhancedYields.clear();
 	m_miGreatPersonPointFromConstruction.clear();
+	m_miiYieldFromUnitLevelUp.clear();
+	m_miiYieldFromUnitLevelUpGlobal.clear();
 	m_ppiGreatPersonProgressFromConstruction.clear();
 	m_pCityBuildings->Uninit();
 	m_pCityStrategyAI->Uninit();
@@ -1416,6 +1416,8 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 	m_aiYieldPerPopInEmpire.clear();
 	m_miTechEnhancedYields.clear();
 	m_miGreatPersonPointFromConstruction.clear();
+	m_miiYieldFromUnitLevelUp.clear();
+	m_miiYieldFromUnitLevelUpGlobal.clear();
 	m_aiYieldPerReligion.resize(NUM_YIELD_TYPES);
 	m_aiYieldRateModifier.resize(NUM_YIELD_TYPES);
 	m_aiYieldModifierEraScaling.resize(NUM_YIELD_TYPES);
@@ -1729,20 +1731,10 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 		m_paiUnitCombatFreeExperience.resize(iNumUnitCombatClassInfos);
 		m_paiUnitCombatProductionModifier.clear();
 		m_paiUnitCombatProductionModifier.resize(iNumUnitCombatClassInfos);
-		m_aiYieldFromUnitLevelUp.resize(GC.getNumUnitCombatClassInfos());
-		m_aiYieldFromUnitLevelUpGlobal.resize(GC.getNumUnitCombatClassInfos());
 		for (iI = 0; iI < iNumUnitCombatClassInfos; iI++)
 		{
 			m_paiUnitCombatFreeExperience[iI] = 0;
 			m_paiUnitCombatProductionModifier[iI] = 0;
-			
-			m_aiYieldFromUnitLevelUp[iI].resize(NUM_YIELD_TYPES);
-			m_aiYieldFromUnitLevelUpGlobal[iI].resize(NUM_YIELD_TYPES);
-			for (iJ = 0; iJ < NUM_YIELD_TYPES; iJ++)
-			{
-				m_aiYieldFromUnitLevelUp[iI][iJ] = 0;
-				m_aiYieldFromUnitLevelUpGlobal[iI][iJ] = 0;
-			}
 		}
 
 		m_paiFreePromotionCount.clear();
@@ -13269,25 +13261,9 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 			{
 				changeUnitCombatFreeExperience(eUnitCombatClass, pBuildingInfo->GetUnitCombatFreeExperience(iI) * iChange);
 				changeUnitCombatProductionModifier(eUnitCombatClass, pBuildingInfo->GetUnitCombatProductionModifier(iI) * iChange);
-				
-				YieldTypes eYield;
-		
-				for (int iJ = 0; iJ < NUM_YIELD_TYPES; iJ++)
-				{
-					eYield = (YieldTypes)iJ;
-					
-					if ((pBuildingInfo->GetYieldFromUnitLevelUp(eUnitCombatClass, eYield) > 0))
-					{
-						ChangeYieldFromUnitLevelUp(eUnitCombatClass, eYield, pBuildingInfo->GetYieldFromUnitLevelUp(eUnitCombatClass, eYield) * iChange);
-					}
-		
-					if ((pBuildingInfo->GetYieldFromUnitLevelUpGlobal(eUnitCombatClass, eYield) > 0))
-					{
-						ChangeYieldFromUnitLevelUpGlobal(eUnitCombatClass, eYield, pBuildingInfo->GetYieldFromUnitLevelUpGlobal(eUnitCombatClass, eYield) * iChange);
-					}
-				}
 			}
 		}
+		
 		for (int iI = 0; iI < NUM_DOMAIN_TYPES; iI++)
 		{
 			changeDomainFreeExperience(((DomainTypes)iI), pBuildingInfo->GetDomainFreeExperience(iI) * iChange);
@@ -13981,6 +13957,32 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 			}
 		}
 
+		std::map<std::pair<UnitCombatTypes, YieldTypes>, int> miiYieldFromUnitLevelUp = pBuildingInfo->GetYieldFromUnitLevelUpArray();
+		if (miiYieldFromUnitLevelUp.empty() == false)
+		{
+		    for (std::map<std::pair<UnitCombatTypes, YieldTypes>, int>::const_iterator it = miiYieldFromUnitLevelUp.begin(); it != miiYieldFromUnitLevelUp.end(); ++it)
+		    {
+		        if (it->first.first >= 0 && it->first.first < GC.getNumUnitCombatClassInfos() &&
+		            it->first.second >= 0 && it->first.second < NUM_YIELD_TYPES)
+		        {
+		            ChangeYieldFromUnitLevelUp(it->first.first, it->first.second, it->second);
+		        }
+		    }
+		}
+		
+		std::map<std::pair<UnitCombatTypes, YieldTypes>, int> miiYieldFromUnitLevelUpGlobal = pBuildingInfo->GetYieldFromUnitLevelUpGlobalArray();
+		if (miiYieldFromUnitLevelUpGlobal.empty() == false)
+		{
+		    for (std::map<std::pair<UnitCombatTypes, YieldTypes>, int>::const_iterator it = miiYieldFromUnitLevelUpGlobal.begin(); it != miiYieldFromUnitLevelUpGlobal.end(); ++it)
+		    {
+		        if (it->first.first >= 0 && it->first.first < GC.getNumUnitCombatClassInfos() &&
+		            it->first.second >= 0 && it->first.second < NUM_YIELD_TYPES)
+		        {
+		            ChangeYieldFromUnitLevelUpGlobal(it->first.first, it->first.second, it->second);
+		        }
+		    }
+		}
+		
 		const set<int>& sUnitClassTrainingAllowed = pBuildingInfo->GetUnitClassTrainingAllowed();
 		for (set<int>::const_iterator it = sUnitClassTrainingAllowed.begin(); it != sUnitClassTrainingAllowed.end(); ++it)
 		{
@@ -24638,61 +24640,6 @@ void CvCity::ChangeYieldFromFaithPurchase(YieldTypes eIndex, int iChange)
 		ASSERT(GetYieldFromFaithPurchase(eIndex) >= 0);
 	}
 }
-//	--------------------------------------------------------------------------------
-/// Instant yield when a unit from this city levels up
-int CvCity::GetYieldFromUnitLevelUp(UnitCombatTypes eIndex1, YieldTypes eIndex2) const
-{
-	VALIDATE_OBJECT();
-	PRECONDITION(eIndex1 >= 0, "eIndex expected to be >= 0");
-	PRECONDITION(eIndex1 < GC.getNumUnitCombatClassInfos(), "eIndex expected to be < GC.getNumUnitCombatClassInfos()");
-	PRECONDITION(eIndex2 >= 0, "eIndex expected to be >= 0");
-	PRECONDITION(eIndex2 < NUM_YIELD_TYPES, "eIndex expected to be < NUM_YIELD_TYPES");
-	
-	return m_aiYieldFromUnitLevelUp[eIndex1][eIndex2];
-}
-
-void CvCity::ChangeYieldFromUnitLevelUp(UnitCombatTypes eIndex1, YieldTypes eIndex2, int iChange)
-{
-	VALIDATE_OBJECT();
-	PRECONDITION(eIndex1 >= 0, "eIndex expected to be >= 0");
-	PRECONDITION(eIndex1 < GC.getNumUnitCombatClassInfos(), "eIndex expected to be < GC.getNumUnitCombatClassInfos()");
-	PRECONDITION(eIndex2 >= 0, "eIndex expected to be >= 0");
-	PRECONDITION(eIndex2 < NUM_YIELD_TYPES, "eIndex expected to be < NUM_YIELD_TYPES");
-
-	if (iChange != 0)
-	{
-		m_aiYieldFromUnitLevelUp[eIndex1][eIndex2] = m_aiYieldFromUnitLevelUp[eIndex1][eIndex2] + iChange;
-		ASSERT(GetYieldFromUnitLevelUp(eIndex1, eIndex2) >= 0);
-	}
-}
-
-//	--------------------------------------------------------------------------------
-// instant yield (just locally) whenever any owned unit levels up
-int CvCity::GetYieldFromUnitLevelUpGlobal(UnitCombatTypes eIndex1, YieldTypes eIndex2) const
-{
-	VALIDATE_OBJECT();
-	PRECONDITION(eIndex1 >= 0, "eIndex expected to be >= 0");
-	PRECONDITION(eIndex1 < GC.getNumUnitCombatClassInfos(), "eIndex expected to be < GC.getNumUnitCombatClassInfos()");
-	PRECONDITION(eIndex2 >= 0, "eIndex expected to be >= 0");
-	PRECONDITION(eIndex2 < NUM_YIELD_TYPES, "eIndex expected to be < NUM_YIELD_TYPES");
-	
-	return m_aiYieldFromUnitLevelUpGlobal[eIndex1][eIndex2];
-}
-
-void CvCity::ChangeYieldFromUnitLevelUpGlobal(UnitCombatTypes eIndex1, YieldTypes eIndex2, int iChange)
-{
-	VALIDATE_OBJECT();
-	PRECONDITION(eIndex1 >= 0, "eIndex expected to be >= 0");
-	PRECONDITION(eIndex1 < GC.getNumUnitCombatClassInfos(), "eIndex expected to be < GC.getNumUnitCombatClassInfos()");
-	PRECONDITION(eIndex2 >= 0, "eIndex expected to be >= 0");
-	PRECONDITION(eIndex2 < NUM_YIELD_TYPES, "eIndex expected to be < NUM_YIELD_TYPES");
-
-	if (iChange != 0)
-	{
-		m_aiYieldFromUnitLevelUpGlobal[eIndex1][eIndex2] = m_aiYieldFromUnitLevelUpGlobal[eIndex1][eIndex2] + iChange;
-		ASSERT(GetYieldFromUnitLevelUp(eIndex1, eIndex2) >= 0);
-	}
-}
 
 //	--------------------------------------------------------------------------------
 /// Extra yield from building
@@ -25295,6 +25242,88 @@ void CvCity::ChangeGreatPersonProgressFromConstruction(GreatPersonTypes eGreatPe
 			m_ppiGreatPersonProgressFromConstruction.insert(std::pair<std::pair<int, int>, short>(std::make_pair((int)eGreatPerson, (int)eEra), iChange));
 		}
 		else // if the key (eGreatPerson, eEra) does exist
+		{
+			it->second += iChange;
+		}
+	}
+}
+
+//	--------------------------------------------------------------------------------
+/// Instant yield when a unit from this city levels up
+int CvCity::GetYieldFromUnitLevelUp(UnitCombatTypes eIndex1, YieldTypes eIndex2) const
+{
+	VALIDATE_OBJECT();
+	PRECONDITION(eIndex1 >= 0, "eIndex expected to be >= 0");
+	PRECONDITION(eIndex1 < GC.getNumUnitCombatClassInfos(), "eIndex expected to be < GC.getNumUnitCombatClassInfos()");
+	PRECONDITION(eIndex2 >= 0, "eIndex expected to be >= 0");
+	PRECONDITION(eIndex2 < NUM_YIELD_TYPES, "eIndex expected to be < NUM_YIELD_TYPES");
+	
+	std::map<pair<UnitCombatTypes, YieldTypes>, int>::const_iterator it = m_miiYieldFromUnitLevelUp.find(std::make_pair(eIndex1, eIndex2));
+	if (it != m_miiYieldFromUnitLevelUp.end())
+	{
+		return it->second;
+	}
+
+	return 0;
+}
+
+void CvCity::ChangeYieldFromUnitLevelUp(UnitCombatTypes eIndex1, YieldTypes eIndex2, int iChange)
+{
+	VALIDATE_OBJECT();
+	PRECONDITION(eIndex1 >= 0, "eIndex expected to be >= 0");
+	PRECONDITION(eIndex1 < GC.getNumUnitCombatClassInfos(), "eIndex expected to be < GC.getNumUnitCombatClassInfos()");
+	PRECONDITION(eIndex2 >= 0, "eIndex expected to be >= 0");
+	PRECONDITION(eIndex2 < NUM_YIELD_TYPES, "eIndex expected to be < NUM_YIELD_TYPES");
+
+	if (iChange != 0)
+	{
+		std::map<pair<UnitCombatTypes, YieldTypes>, int>::iterator it = m_miiYieldFromUnitLevelUp.find(std::make_pair(eIndex1, eIndex2));
+		if (it == m_miiYieldFromUnitLevelUp.end()) // if the key does not exist
+		{
+			m_miiYieldFromUnitLevelUp.insert(std::pair<pair<UnitCombatTypes, YieldTypes>, int>(std::make_pair(eIndex1, eIndex2), iChange));
+		}
+		else // if the key does exist
+		{
+			it->second += iChange;
+		}
+	}
+}
+
+//	--------------------------------------------------------------------------------
+// instant yield (just locally) whenever any owned unit levels up
+int CvCity::GetYieldFromUnitLevelUpGlobal(UnitCombatTypes eIndex1, YieldTypes eIndex2) const
+{
+	VALIDATE_OBJECT();
+	PRECONDITION(eIndex1 >= 0, "eIndex expected to be >= 0");
+	PRECONDITION(eIndex1 < GC.getNumUnitCombatClassInfos(), "eIndex expected to be < GC.getNumUnitCombatClassInfos()");
+	PRECONDITION(eIndex2 >= 0, "eIndex expected to be >= 0");
+	PRECONDITION(eIndex2 < NUM_YIELD_TYPES, "eIndex expected to be < NUM_YIELD_TYPES");
+	
+	std::map<pair<UnitCombatTypes, YieldTypes>, int>::const_iterator it = m_miiYieldFromUnitLevelUpGlobal.find(std::make_pair(eIndex1, eIndex2));
+	if (it != m_miiYieldFromUnitLevelUpGlobal.end())
+	{
+		return it->second;
+	}
+
+	return 0;
+}
+
+void CvCity::ChangeYieldFromUnitLevelUpGlobal(UnitCombatTypes eIndex1, YieldTypes eIndex2, int iChange)
+{
+	VALIDATE_OBJECT();
+	PRECONDITION(eIndex1 >= 0, "eIndex expected to be >= 0");
+	PRECONDITION(eIndex1 < GC.getNumUnitCombatClassInfos(), "eIndex expected to be < GC.getNumUnitCombatClassInfos()");
+	PRECONDITION(eIndex2 >= 0, "eIndex expected to be >= 0");
+	PRECONDITION(eIndex2 < NUM_YIELD_TYPES, "eIndex expected to be < NUM_YIELD_TYPES");
+
+	if (iChange != 0)
+	{
+		std::map<pair<UnitCombatTypes, YieldTypes>, int>::iterator it = m_miiYieldFromUnitLevelUpGlobal.find(std::make_pair(eIndex1, eIndex2));
+		if (it == m_miiYieldFromUnitLevelUpGlobal.end()) // if the key does not exist
+		{
+			m_miiYieldFromUnitLevelUpGlobal.insert(std::pair<pair<UnitCombatTypes, YieldTypes>, int>(std::make_pair(eIndex1, eIndex2), iChange));
+		}
+		else // if the key does exist
 		{
 			it->second += iChange;
 		}
@@ -32363,8 +32392,6 @@ void CvCity::Serialize(City& city, Visitor& visitor)
 	visitor(city.m_aiYieldFromPurchase);
 	visitor(city.m_aiYieldFromPurchaseGlobal);
 	visitor(city.m_aiYieldFromFaithPurchase);
-	visitor(city.m_aiYieldFromUnitLevelUp);
-	visitor(city.m_aiYieldFromUnitLevelUpGlobal);
 	visitor(city.m_aiYieldFromCombatExperienceTimes100);
 	visitor(city.m_aiYieldPerAllyTimes100);
 	visitor(city.m_aiYieldPerFriendTimes100);
@@ -32652,6 +32679,8 @@ void CvCity::Serialize(City& city, Visitor& visitor)
 	visitor(city.m_aiYieldPerPopInEmpire);
 	visitor(city.m_miTechEnhancedYields);
 	visitor(city.m_miGreatPersonPointFromConstruction);
+	visitor(city.m_miiYieldFromUnitLevelUp);
+	visitor(city.m_miiYieldFromUnitLevelUpGlobal);
 	visitor(city.m_iUnhappinessFromBuildings);
 }
 
