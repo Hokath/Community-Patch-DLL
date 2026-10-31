@@ -1175,11 +1175,11 @@ public:
 	int GetYieldFromFaithPurchase(YieldTypes eIndex) const;
 	void ChangeYieldFromFaithPurchase(YieldTypes eIndex, int iChange);
 
-	int GetYieldFromUnitLevelUp(YieldTypes eIndex) const;
-	void ChangeYieldFromUnitLevelUp(YieldTypes eIndex, int iChange);
+	int GetYieldFromUnitLevelUp(UnitCombatTypes eIndex1, YieldTypes eIndex2) const;
+	void ChangeYieldFromUnitLevelUp(UnitCombatTypes eIndex1, YieldTypes eIndex2, int iChange);
 
-	int GetYieldFromUnitLevelUpGlobal(YieldTypes eIndex) const;
-	void ChangeYieldFromUnitLevelUpGlobal(YieldTypes eIndex, int iChange);
+	int GetYieldFromUnitLevelUpGlobal(UnitCombatTypes eIndex1, YieldTypes eIndex2) const;
+	void ChangeYieldFromUnitLevelUpGlobal(UnitCombatTypes eIndex1, YieldTypes eIndex2, int iChange);
 
 	int GetYieldFromCombatExperienceTimes100(YieldTypes eIndex) const;
 	void ChangeYieldFromCombatExperienceTimes100(YieldTypes eIndex, int iChange);
@@ -2029,8 +2029,8 @@ protected:
 	std::vector<int> m_aiYieldFromPurchase;
 	std::vector<int> m_aiYieldFromPurchaseGlobal;
 	std::vector<int> m_aiYieldFromFaithPurchase;
-	std::vector<int> m_aiYieldFromUnitLevelUp;
-	std::vector<int> m_aiYieldFromUnitLevelUpGlobal;
+	std::map<UnitCombatTypes, int> m_aiYieldFromUnitLevelUp;
+	std::map<UnitCombatTypes, int> m_aiYieldFromUnitLevelUpGlobal;
 	std::vector<int> m_aiYieldFromCombatExperienceTimes100;
 	std::vector<int> m_aiYieldPerAllyTimes100;
 	std::vector<int> m_aiYieldPerFriendTimes100;
@@ -2442,8 +2442,8 @@ SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromPolicyUnlock)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromPurchase)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromPurchaseGlobal)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromFaithPurchase)
-SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromUnitLevelUp)
-SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromUnitLevelUpGlobal)
+SYNC_ARCHIVE_VAR(SYNC_ARCHIVE_VAR_TYPE(std::map<UnitCombatTypes, int>), m_aiYieldFromUnitLevelUp)
+SYNC_ARCHIVE_VAR(SYNC_ARCHIVE_VAR_TYPE(std::map<UnitCombatTypes, int>), m_aiYieldFromUnitLevelUpGlobal)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromCombatExperienceTimes100)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldPerAllyTimes100)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldPerFriendTimes100)

@@ -510,8 +510,10 @@ public:
 	int GetYieldFromPolicyUnlock(int i) const;
 	int* GetYieldFromPolicyUnlockArray() const;
 
-	int GetYieldFromUnitLevelUp(int i) const;
-	int* GetYieldFromUnitLevelUpArray() const;
+	int GetYieldFromUnitLevelUp(int i, int j) const;
+	int* GetYieldFromUnitLevelUpArray(int i) const;
+
+	int GetYieldFromUnitLevelUpGlobal(int i, int j) const;
 
 	int GetYieldFromCombatExperienceTimes100(int i) const;
 	int* GetYieldFromCombatExperienceTimes100Array() const;
@@ -524,8 +526,6 @@ public:
 
 	int GetYieldFromFaithPurchase(int i) const;
 	int* GetYieldFromFaithPurchaseArray() const;
-
-	int GetYieldFromUnitLevelUpGlobal(int i) const;
 
 	int GetYieldFromInternationalTREnd(int i) const;
 
@@ -1064,12 +1064,10 @@ private:
 	int* m_piYieldFromUnitProduction;
 	int* m_piYieldFromBorderGrowth;
 	int* m_piYieldFromPolicyUnlock;
-	int* m_piYieldFromUnitLevelUp;
 	int* m_piYieldFromCombatExperienceTimes100;
 	int* m_piYieldFromPurchase;
 	int* m_piYieldFromPurchaseGlobal;
 	int* m_piYieldFromFaithPurchase;
-	int* m_piYieldFromUnitLevelUpGlobal;
 	int* m_piYieldFromInternalTREnd;
 	int* m_piYieldFromInternationalTREnd;
 	int* m_piYieldFromInternal;
@@ -1138,6 +1136,8 @@ private:
 	
 	int* m_piNumFreeUnits;
 
+	int** m_ppaiYieldFromUnitLevelUp;
+	int** m_ppaiYieldFromUnitLevelUpGlobal;
 	int** m_ppaiResourceYieldChange;
 	int** m_ppaiFeatureYieldChange;
 	std::map<int, std::map<int, int>> m_ppiResourceYieldChangeGlobal;

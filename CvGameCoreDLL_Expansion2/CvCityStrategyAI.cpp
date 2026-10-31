@@ -4008,24 +4008,37 @@ int CityStrategyAIHelpers::GetBuildingYieldValue(CvCity *pCity, BuildingTypes eB
 		if (kPlayer.GetPlayerTraits()->IsReligious())
 			iInstant += pkBuildingInfo->GetYieldFromFaithPurchase(eYield);
 	}
-	if (pkBuildingInfo->GetYieldFromUnitLevelUp(eYield) > 0)
+
+	std::multimap<int, std::pair<int, int>> mYieldFromUnitLevelUp = pkBuildingInfo->GetYieldFromUnitLevelUpArray();
+	for (std::multimap<int, std::pair<int, int>>::const_iterator it = mYieldFromUnitLevelUp.begin();
+	    it != mYieldFromUnitLevelUp.end(); ++it)
 	{
-		if (kPlayer.GetBestMilitaryCity(NO_UNITCOMBAT, DOMAIN_LAND) == pCity)
-		{
-			iInstant += pkBuildingInfo->GetYieldFromUnitLevelUp(eYield);
-		}
-		if (kPlayer.GetBestMilitaryCity(NO_UNITCOMBAT, DOMAIN_SEA) == pCity)
-		{
-			iInstant += pkBuildingInfo->GetYieldFromUnitLevelUp(eYield);
-		}
-		if (kPlayer.GetBestMilitaryCity(NO_UNITCOMBAT, DOMAIN_AIR) == pCity)
-		{
-			iInstant += pkBuildingInfo->GetYieldFromUnitLevelUp(eYield);
-		}
+	    UnitCombatTypes eUnitCombat = (UnitCombatTypes)it->first;
+	    YieldTypes eYieldType = (YieldTypes)it->second.first;
+	    int iYield = it->second.second;
+	
+	    if (eYield == eYieldType && iYield > 0)
+	    {
+	        if (kPlayer.GetBestMilitaryCity(eUnitCombat, DOMAIN_LAND) == pCity ||
+	            kPlayer.GetBestMilitaryCity(eUnitCombat, DOMAIN_SEA) == pCity ||
+	            kPlayer.GetBestMilitaryCity(eUnitCombat, DOMAIN_AIR) == pCity)
+	        {
+	            iInstant += iYield;
+	        }
+	    }
 	}
-	if (pkBuildingInfo->GetYieldFromUnitLevelUpGlobal(eYield) > 0)
+	
+	std::multimap<int, std::pair<int, int>> mYieldFromUnitLevelUpGlobal = pkBuildingInfo->GetYieldFromUnitLevelUpGlobalArray();
+	for (std::multimap<int, std::pair<int, int>>::const_iterator it = mYieldFromUnitLevelUpGlobal.begin();
+	    it != mYieldFromUnitLevelUpGlobal.end(); ++it)
 	{
-		iInstant += pkBuildingInfo->GetYieldFromUnitLevelUpGlobal(eYield) * iEra;
+	    YieldTypes eYield = (YieldTypes)it->second.first;
+	    int iYield = it->second.second;
+	
+	    if (eYield == eYieldType && iYield > 0)
+	    {
+	        iInstant += iYield;
+	    }
 	}
 
 	if (pkBuildingInfo->GetYieldFromCombatExperienceTimes100(eYield) > 0)
